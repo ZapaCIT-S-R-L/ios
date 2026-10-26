@@ -25,7 +25,7 @@ enum GoogleSignInError: LocalizedError {
 /// the code is exchanged for an ID token, which the API verifies (signature, audience, nonce).
 @MainActor
 final class GoogleSignIn: NSObject, GoogleSignInProviding, ASWebAuthenticationPresentationContextProviding {
-    /// The iOS OAuth client ID from Google Cloud Console (type iOS, bundle ID com.zapacit.cuzaai).
+    /// The iOS OAuth client ID from Google Cloud Console (type iOS, bundle ID ro.zapakid.app).
     /// Not a secret (it ships in every copy of the app); the API lists the same ID as an allowed audience.
     /// TODO: set once Stefan creates the client.
     static let clientID = ""
