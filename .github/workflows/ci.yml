@@ -1,5 +1,7 @@
 # Checks every pull request and every push to main. No secrets are used here, so PRs from forks are safe.
-#   ios      XcodeGen project, build, unit tests and UI tests on an iOS simulator (scripts/test.sh)
+#   changes  does this PR touch more than docs? (docs-only PRs skip the macOS job)
+#   ios      the only macOS job: XcodeGen project, build and unit tests on an iOS simulator (scripts/test.sh unit);
+#            on main also the UI tests. Our free org runs about 5 macOS jobs at once, so each PR uses one.
 #   scripts  the Node scripts for the CLA check and release tags (npm test)
 #   deps     OSV-Scanner: known vulnerabilities in the pinned Swift packages (ZapaKidKit/Package.resolved)
 #   secrets  gitleaks scan of the whole history
@@ -21,10 +23,33 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      code: ${{ steps.diff.outputs.code }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 2
+      # On a PR the checkout is the merge commit: HEAD^1 is the base branch. Docs = *.md, docs/, LICENSE.
+      - id: diff
+        env:
+          EVENT: ${{ github.event_name }}
+        run: |
+          if [ "$EVENT" != pull_request ]; then echo "code=true" >> "$GITHUB_OUTPUT"; exit 0; fi
+          changed=$(git diff --name-only HEAD^1 HEAD)
+          echo "$changed"
+          if grep -qvE '^(docs/.*|.*\.md|LICENSE)$' <<<"$changed"; then code=true; else code=false; fi
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          echo "Code changed: $code" >> "$GITHUB_STEP_SUMMARY"
+
   ios:
-    # Intel (x64) for now: GitHub had no macOS arm64 capacity on 2026-10-26 (jobs on macos-26 were never picked up,
-    # "not acquired by Runner of type hosted even after multiple attempts"). Switch back to macos-26 (arm64, faster)
-    # when its capacity returns, here and in codeql.yml.
+    # Docs-only PRs skip this job; a skipped job reports success, so the required `ios` check still passes.
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    # Intel (x64) for now: on 2026-10-26 jobs on macos-26 (arm64) were never picked up ("not acquired by Runner of
+    # type hosted"); the cause was the org's limit of about 5 concurrent macOS jobs. Switch back to macos-26 (arm64,
+    # faster) when that is reliable, here and in codeql.yml.
     runs-on: macos-26-intel
     timeout-minutes: 75
     env:
@@ -46,7 +71,8 @@ jobs:
           unzip -q "$RUNNER_TEMP/xcodegen.zip" -d "$RUNNER_TEMP/xcodegen"
           echo "$RUNNER_TEMP/xcodegen/xcodegen/bin" >> "$GITHUB_PATH"
       - run: xcodebuild -version && xcodegen --version
-      - run: scripts/test.sh
+      # PRs: build + unit tests. main: also the UI tests (run them locally with scripts/test.sh before a PR).
+      - run: scripts/test.sh "${{ github.event_name == 'pull_request' && 'unit' || 'all' }}"
       - if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:

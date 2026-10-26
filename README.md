@@ -24,7 +24,7 @@ Simulator builds are signed ad hoc, so no Apple account is needed. Never run tes
 
 ## How changes ship
 
-1. Open a pull request. CI (`.github/workflows/ci.yml`) builds the app, runs the unit and UI tests on a simulator,
+1. Open a pull request (run `scripts/test.sh` first: CI runs only the unit tests on PRs). CI (`.github/workflows/ci.yml`) builds the app, runs the unit tests on a simulator (UI tests too on main),
    lints, scans the dependencies (OSV-Scanner) and the whole history (gitleaks), and checks the CLA. CodeQL scans the
    Swift code and the workflows.
 2. A maintainer reviews and merges it.
