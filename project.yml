@@ -37,7 +37,7 @@ targets:
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
         INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: UIInterfaceOrientationPortrait
         INFOPLIST_KEY_ITSAppUsesNonExemptEncryption: NO
-        # Sign in with Apple and Declared Age Range (is the parent 18+?).
+        # Sign in with Apple, Declared Age Range (is the parent 18+?) and Data Protection Complete for all files.
         CODE_SIGN_ENTITLEMENTS: ZapaKid/ZapaKid.entitlements
   ZapaKidTests:
     type: bundle.unit-test

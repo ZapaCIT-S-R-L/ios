@@ -5,7 +5,7 @@ import Testing
 struct AppSecurityTests {
     let info = Bundle.main.infoDictionary ?? [:]
 
-    @Test func testsRunInsideTheApp() {
+    @Test func runsInsideTheApp() {
         #expect(Bundle.main.bundleIdentifier == "com.zapacit.cuzaai")
     }
 

@@ -24,8 +24,13 @@ final class MockURLProtocol: URLProtocol, @unchecked Sendable {
         lock.withLock { recorded.map { (request: $0.0, body: $0.1) } }
     }
 
-    override class func canInit(with _: URLRequest) -> Bool { true }
-    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+    override static func canInit(with _: URLRequest) -> Bool {
+        true
+    }
+
+    override static func canonicalRequest(for request: URLRequest) -> URLRequest {
+        request
+    }
 
     override func startLoading() {
         let body = request.httpBody ?? request.httpBodyStream.map(Self.read)
@@ -40,7 +45,9 @@ final class MockURLProtocol: URLProtocol, @unchecked Sendable {
                 url: url, statusCode: status, httpVersion: "HTTP/1.1",
                 headerFields: ["Content-Type": "application/json"]
             )
-            if let response { client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed) }
+            if let response {
+                client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+            }
             client?.urlProtocol(self, didLoad: data)
             client?.urlProtocolDidFinishLoading(self)
         } catch {
@@ -57,7 +64,9 @@ final class MockURLProtocol: URLProtocol, @unchecked Sendable {
         var buffer = [UInt8](repeating: 0, count: 4096)
         while stream.hasBytesAvailable {
             let count = stream.read(&buffer, maxLength: buffer.count)
-            if count <= 0 { break }
+            if count <= 0 {
+                break
+            }
             data.append(buffer, count: count)
         }
         return data
@@ -65,5 +74,7 @@ final class MockURLProtocol: URLProtocol, @unchecked Sendable {
 }
 
 extension Data {
-    var json: [String: Any]? { (try? JSONSerialization.jsonObject(with: self)) as? [String: Any] }
+    var json: [String: Any]? {
+        (try? JSONSerialization.jsonObject(with: self)) as? [String: Any]
+    }
 }

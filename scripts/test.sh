@@ -3,7 +3,9 @@
 #   scripts/test.sh            build + unit + UI tests
 #   scripts/test.sh unit       build + unit tests only
 #   SIM_UDID=<udid> scripts/test.sh   use this simulator (xcrun simctl list devices)
-# Simulator builds are not code signed, so no Apple account or certificate is needed.
+#   XCODE_JOBS=2 scripts/test.sh      limit parallel compile jobs (busy machine)
+# Simulator builds are signed ad hoc ("Sign to Run Locally"), so no Apple account or certificate is needed. They must
+# be signed: an unsigned app has no entitlements and the Keychain refuses it (errSecMissingEntitlement, -34018).
 set -euo pipefail
 cd "$(dirname "$0")/.."
 what="${1:-all}"
@@ -19,8 +21,9 @@ common=(
   -project ZapaKid.xcodeproj -scheme ZapaKid
   -destination "platform=iOS Simulator,id=$udid"
   -derivedDataPath "$derived"
-  CODE_SIGNING_ALLOWED=NO
+  CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY=- DEVELOPMENT_TEAM= PROVISIONING_PROFILE_SPECIFIER=
 )
+if [ -n "${XCODE_JOBS:-}" ]; then common+=(-jobs "$XCODE_JOBS" -parallel-testing-enabled NO); fi
 
 xcodebuild build-for-testing "${common[@]}" -quiet
 xcodebuild test-without-building "${common[@]}" -only-testing:ZapaKidTests \

@@ -24,16 +24,16 @@ final class SignInUITests: XCTestCase {
     func testFirstLaunchShowsTheParentalAgreementPlaceholderThenSignIn() {
         let app = launch(agreement: "pending")
 
-        XCTAssertTrue(app.otherElements["agreement.screen"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.screen("agreement.screen").waitForExistence(timeout: 10))
         app.buttons["agreement.accept"].tap()
 
-        XCTAssertTrue(app.otherElements["signin.screen"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.screen("signin.screen").waitForExistence(timeout: 5))
     }
 
     func testSignInScreenShowsAppleAndGoogleButtons() {
         let app = launch()
 
-        XCTAssertTrue(app.otherElements["signin.screen"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.screen("signin.screen").waitForExistence(timeout: 10))
         let apple = app.buttons["signin.apple"]
         let google = app.buttons["signin.google"]
         XCTAssertTrue(apple.exists)
@@ -50,17 +50,17 @@ final class SignInUITests: XCTestCase {
 
         app.buttons["signin.google"].tap()
 
-        XCTAssertTrue(app.otherElements["home.screen"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["TEST Parent"].exists)
+        XCTAssertTrue(app.screen("home.screen").waitForExistence(timeout: 5))
+        XCTAssertEqual(app.staticTexts["home.parentName"].label, "TEST Parent")
         app.buttons["home.signOut"].tap()
-        XCTAssertTrue(app.otherElements["signin.screen"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.screen("signin.screen").waitForExistence(timeout: 5))
     }
 
     func testStoredSessionOpensSignedIn() {
         let app = launch(session: "signed-in")
 
-        XCTAssertTrue(app.otherElements["home.screen"].waitForExistence(timeout: 10))
-        XCTAssertTrue(app.staticTexts["TEST Parent"].exists)
+        XCTAssertTrue(app.screen("home.screen").waitForExistence(timeout: 10))
+        XCTAssertEqual(app.staticTexts["home.parentName"].label, "TEST Parent")
     }
 
     func testMinorIsBlocked() {
@@ -69,20 +69,30 @@ final class SignInUITests: XCTestCase {
 
         app.buttons["signin.google"].tap()
 
-        XCTAssertTrue(app.otherElements["blocked.screen"].waitForExistence(timeout: 5))
-        XCTAssertFalse(app.otherElements["home.screen"].exists)
+        XCTAssertTrue(app.screen("blocked.screen").waitForExistence(timeout: 5))
+        XCTAssertFalse(app.screen("home.screen").exists)
     }
 
     func testLargestDynamicTypeKeepsSignInReachable() {
         let app = launch(extraArguments: [
             "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL",
         ])
-        XCTAssertTrue(app.otherElements["signin.screen"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.screen("signin.screen").waitForExistence(timeout: 10))
 
         for id in ["signin.apple", "signin.google"] {
             let button = app.buttons[id]
-            if !button.isHittable { app.swipeUp() }
+            if !button.isHittable {
+                app.swipeUp()
+            }
             XCTAssertTrue(button.isHittable, "\(id) can be reached at the largest text size")
         }
+    }
+}
+
+extension XCUIApplication {
+    /// A screen by its accessibility identifier, whatever element type SwiftUI gives its container
+    /// (a ScrollView shows up as a scroll view, a NavigationStack as an other element).
+    func screen(_ identifier: String) -> XCUIElement {
+        descendants(matching: .any).matching(identifier: identifier).firstMatch
     }
 }

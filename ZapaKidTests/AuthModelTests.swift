@@ -11,9 +11,17 @@ actor FakeAuthAPI: AuthAPI {
     private(set) var meCalls: [String] = []
     private(set) var logoutCalls: [String] = []
 
-    func set(signIn: Result<Session, AuthAPIError>) { signInResult = signIn }
-    func set(me: Result<ParentProfile, AuthAPIError>) { meResult = me }
-    func set(logoutError: AuthAPIError?) { self.logoutError = logoutError }
+    func set(signIn: Result<Session, AuthAPIError>) {
+        signInResult = signIn
+    }
+
+    func set(me: Result<ParentProfile, AuthAPIError>) {
+        meResult = me
+    }
+
+    func set(logoutError: AuthAPIError?) {
+        self.logoutError = logoutError
+    }
 
     func signIn(_ request: SignInRequest) async throws -> Session {
         signInCalls.append(request)
@@ -27,20 +35,27 @@ actor FakeAuthAPI: AuthAPI {
 
     func logout(token: String) async throws {
         logoutCalls.append(token)
-        if let logoutError { throw logoutError }
+        if let logoutError {
+            throw logoutError
+        }
     }
 }
 
 @MainActor
 struct AuthModelTests {
     let parent = ParentProfile(id: "p_1", name: "TEST Parent", email: nil)
-    var session: Session { Session(token: "tok_1", parent: parent) }
+    var session: Session {
+        Session(token: "tok_1", parent: parent)
+    }
+
     let adult = AgeRange(lower: 18, upper: nil, declined: false)
     let api = FakeAuthAPI()
     let store = InMemorySessionStore()
     let agreement = InMemoryAgreementStore()
 
-    func model() -> AuthModel { AuthModel(api: api, store: store, agreement: agreement) }
+    func model() -> AuthModel {
+        AuthModel(api: api, store: store, agreement: agreement)
+    }
 
     func acceptedModel() -> AuthModel {
         agreement.accept(version: ParentalAgreement.currentVersion)
