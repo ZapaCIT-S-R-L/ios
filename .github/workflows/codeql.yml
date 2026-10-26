@@ -16,6 +16,8 @@ jobs:
   analyze:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
+    env:
+      DEVELOPER_DIR: ${{ matrix.os == 'macos-26' && '/Applications/Xcode_26.6.app/Contents/Developer' || '' }}
     permissions:
       actions: read
       contents: read
