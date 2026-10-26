@@ -13,7 +13,11 @@ settings:
     SWIFT_VERSION: "6.0"
     DEVELOPMENT_TEAM: 9572LYGZ7S
     CODE_SIGN_STYLE: Automatic
-    ENABLE_USER_SCRIPT_SANDBOXING: YES
+    # NO because of CocoaPods: its build phases (embedding the frameworks, fetching libsignal_ffi.a into
+    # ~/Library/Caches) need to read and write outside the sandbox.
+    ENABLE_USER_SCRIPT_SANDBOXING: NO
+    # LibSignalClient's C module (SignalFfi) for Xcode's explicitly built modules (libsignal swift/README).
+    HEADER_SEARCH_PATHS: $(inherited) $(PODS_ROOT)/LibSignalClient/swift/Sources/SignalFfi
     STRING_CATALOG_GENERATE_SYMBOLS: YES
     SWIFT_STRICT_CONCURRENCY: complete
 targets:

@@ -3,7 +3,7 @@
 # into the PR description.
 #   scripts/ci-local.sh                       everything (XcodeGen, build, unit + UI tests, lint, Node, OSV, gitleaks)
 #   SIM_UDID=<udid> scripts/ci-local.sh       on this simulator (else scripts/pick-simulator.sh chooses)
-# Needs: brew install xcodegen swiftformat swiftlint actionlint gitleaks osv-scanner node
+# Needs: brew install xcodegen cocoapods swiftformat swiftlint actionlint gitleaks osv-scanner node
 # Kind to a shared Mac: one xcodebuild with 2 jobs, one simulator, shut down at the end.
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -17,6 +17,7 @@ check_version() {
 check_version swiftformat "$(swiftformat --version)" "$(want swiftformat)"
 check_version swiftlint "$(swiftlint version)" "$(want swiftlint)"
 check_version actionlint "$(actionlint --version | sed -n 1p)" "$(want actionlint)"
+check_version cocoapods "$(pod --version)" "$(grep -oE 'COCOAPODS_VERSION: [0-9.]+' .github/workflows/ci.yml | sed 's/.* //')"
 check_version gitleaks "$(gitleaks version | sed 's/^v//')" "$(want gitleaks)"
 
 summary=()

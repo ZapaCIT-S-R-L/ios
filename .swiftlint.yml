@@ -8,6 +8,7 @@ excluded:
   - build
   - DerivedData
   - ZapaKidKit/.build
+  - Pods
 disabled_rules:
   - trailing_comma
   - opening_brace

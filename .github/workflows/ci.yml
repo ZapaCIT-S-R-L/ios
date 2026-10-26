@@ -70,6 +70,11 @@ jobs:
           echo "$XCODEGEN_SHA256  $RUNNER_TEMP/xcodegen.zip" | shasum -a 256 -c -
           unzip -q "$RUNNER_TEMP/xcodegen.zip" -d "$RUNNER_TEMP/xcodegen"
           echo "$RUNNER_TEMP/xcodegen/xcodegen/bin" >> "$GITHUB_PATH"
+      # CocoaPods (for libsignal) comes with the runner image; fail if it isn't the version we pin.
+      - name: CocoaPods version
+        env:
+          COCOAPODS_VERSION: 1.17.0
+        run: test "$(pod --version)" = "$COCOAPODS_VERSION" || { echo "CocoaPods $(pod --version), expected $COCOAPODS_VERSION"; exit 1; }
       - run: xcodebuild -version && xcodegen --version
       # PRs: build + unit tests. main: also the UI tests (scripts/ci-local.sh runs everything locally before a push).
       - run: scripts/test.sh "${{ github.event_name == 'pull_request' && 'unit' || 'all' }}"

@@ -10,6 +10,22 @@ Thanks for helping. Issues and pull requests are welcome.
 - **No credentials** in code, commits or issues. CI scans every pull request.
 - **Security issues** go through [SECURITY.md](SECURITY.md), never a public issue.
 
+## Bumping libsignal (by hand)
+
+libsignal comes from Signal's CocoaPod (`Podfile`), the way Signal-iOS uses it. Dependabot can't update CocoaPods, so
+check for a new release when you start work and at least every two weeks (`gh api repos/signalapp/libsignal/releases/latest`).
+Never go back to an older version.
+
+1. In `Podfile`, set `tag:` to the new release (`vX.Y.Z`) and `LIBSIGNAL_FFI_PREBUILD_CHECKSUM` to the SHA-256 in that
+   release's asset `libsignal-client-ios-build-vX.Y.Z.tar.gz.sha256`
+   (`gh release download vX.Y.Z -R signalapp/libsignal -p '*.tar.gz.sha256' -O -`). Update the comment above it.
+2. `xcodegen generate && pod install`, and commit `Podfile` and `Podfile.lock` (never `Pods/`).
+3. Read the release notes for breaking API changes, run `scripts/ci-local.sh`, and open a PR titled
+   "libsignal vX.Y.Z" with the release link.
+
+`scripts/osv-scan.sh` scans libsignal's `Cargo.lock` at the pinned tag: a HIGH or CRITICAL finding fails CI, and the
+fix is a bump.
+
 ## Contributor License Agreement
 
 This project is licensed under the [AGPL-3.0](LICENSE). Before we can merge your first pull request, you sign the

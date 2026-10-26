@@ -60,6 +60,7 @@ jobs:
           echo "$XCODEGEN_SHA256  $RUNNER_TEMP/xcodegen.zip" | shasum -a 256 -c -
           unzip -q "$RUNNER_TEMP/xcodegen.zip" -d "$RUNNER_TEMP/xcodegen"
           "$RUNNER_TEMP/xcodegen/xcodegen/bin/xcodegen" generate --quiet
-          xcodebuild build -project ZapaKid.xcodeproj -scheme ZapaKid -destination "generic/platform=iOS Simulator" \
+          pod install --silent
+          xcodebuild build -workspace ZapaKid.xcworkspace -scheme ZapaKid -destination "generic/platform=iOS Simulator" \
             -derivedDataPath build/DerivedData CODE_SIGNING_ALLOWED=NO -quiet
       - uses: github/codeql-action/analyze@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
