@@ -18,7 +18,7 @@ public struct KeychainSessionStore: SessionStore {
     public let service: String
     private let account = "session"
 
-    public init(service: String = "com.zapacit.zapakid.session") {
+    public init(service: String = "ro.zapakid.app.session") {
         self.service = service
     }
 
