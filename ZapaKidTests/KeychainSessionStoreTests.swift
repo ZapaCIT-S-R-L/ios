@@ -6,7 +6,7 @@ import Testing
 /// The session lives in the Keychain only: this device, while unlocked, never synced to iCloud.
 @Suite(.serialized)
 struct KeychainSessionStoreTests {
-    let store = KeychainSessionStore(service: "com.zapacit.zapakid.tests.\(UUID().uuidString)")
+    let store = KeychainSessionStore(service: "ro.zapakid.app.tests.\(UUID().uuidString)")
     let session = Session(
         token: "zks_1",
         expiresAt: Date(timeIntervalSince1970: 1_800_000_000),

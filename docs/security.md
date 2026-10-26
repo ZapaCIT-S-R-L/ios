@@ -40,7 +40,7 @@ Goal: the API serves only genuine copies of the app on real Apple devices (Devic
 2. `POST /v1/attestation/challenge` → `{challenge, expiresAt}` (single use, 5 minutes, no session needed).
 3. `attestKey(keyID, clientDataHash: SHA256(challenge))` → attestation object.
    `POST /v1/attestation/apple {keyId, attestationObject, challenge}` → 204. The API verifies the chain to Apple's
-   App Attest root, App ID `9572LYGZ7S.com.zapacit.cuzaai`, key ID, counter 0, production `aaguid` in production.
+   App Attest root, App ID `9572LYGZ7S.ro.zapakid.app`, key ID, counter 0, production `aaguid` in production.
 4. Sign-in and other sensitive calls carry an assertion in the `ZapaKid-Attestation` header:
    `generateAssertion(keyID, clientDataHash: SHA256(request body))`; the API checks the signature and that the
    counter goes up. A refused client gets `403 attestation_failed` (the sign-in client already maps it to a

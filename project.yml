@@ -1,7 +1,7 @@
 # XcodeGen spec: `xcodegen generate` writes ZapaKid.xcodeproj (not committed).
 name: ZapaKid
 options:
-  bundleIdPrefix: com.zapacit
+  bundleIdPrefix: ro.zapakid
   deploymentTarget:
     iOS: "17.0"
   createIntermediateGroups: true
@@ -25,8 +25,8 @@ targets:
       - package: ZapaKidKit
     settings:
       base:
-        # Kept from the existing App Store listing (never published), so the app keeps its record.
-        PRODUCT_BUNDLE_IDENTIFIER: com.zapacit.cuzaai
+        # ro.zapakid.app since 2026-10-26 (team 9572LYGZ7S); extensions get ro.zapakid.app.<name>.
+        PRODUCT_BUNDLE_IDENTIFIER: ro.zapakid.app
         PRODUCT_NAME: ZapaKid
         MARKETING_VERSION: "1.0.0"
         CURRENT_PROJECT_VERSION: "1"
@@ -48,7 +48,7 @@ targets:
       - package: ZapaKidKit
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.zapacit.cuzaai.tests
+        PRODUCT_BUNDLE_IDENTIFIER: ro.zapakid.app.tests
         GENERATE_INFOPLIST_FILE: YES
   ZapaKidUITests:
     type: bundle.ui-testing
@@ -58,7 +58,7 @@ targets:
       - target: ZapaKid
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.zapacit.cuzaai.uitests
+        PRODUCT_BUNDLE_IDENTIFIER: ro.zapakid.app.uitests
         GENERATE_INFOPLIST_FILE: YES
         TEST_TARGET_NAME: ZapaKid
 schemes:
