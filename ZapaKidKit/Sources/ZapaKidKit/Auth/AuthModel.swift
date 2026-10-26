@@ -118,7 +118,10 @@ public final class AuthModel {
                 try store.save(session)
             } catch {
                 state = .signedOut
-                errorMessage = String(localized: "Couldn't keep you signed in on this phone. Try again.")
+                errorMessage = String(
+                    localized: "Couldn't keep you signed in on this phone. Try again.",
+                    bundle: .module
+                )
                 await prepareNonce()
                 return
             }
@@ -161,19 +164,22 @@ public final class AuthModel {
     private static func message(for error: Error) -> String {
         switch error as? AuthAPIError {
         case .network:
-            String(localized: "Can't reach ZapaKid. Check your connection and try again.")
+            String(localized: "Can't reach ZapaKid. Check your connection and try again.", bundle: .module)
         case let .rateLimited(retryAfter?):
-            String(localized: "Too many sign-in attempts. Try again in \(retryAfter) seconds.")
+            String(localized: "Too many sign-in attempts. Try again in \(retryAfter) seconds.", bundle: .module)
         case .rateLimited:
-            String(localized: "Too many sign-in attempts. Try again in a few minutes.")
+            String(localized: "Too many sign-in attempts. Try again in a few minutes.", bundle: .module)
         case .invalidNonce, .invalidToken:
-            String(localized: "Sign-in took too long or was already used. Please sign in again.")
+            String(localized: "Sign-in took too long or was already used. Please sign in again.", bundle: .module)
         case .providerUnavailable:
-            String(localized: "Apple or Google can't be reached right now. Try again later.")
+            String(localized: "Apple or Google can't be reached right now. Try again later.", bundle: .module)
         case .attestationFailed:
-            String(localized: "This copy of ZapaKid couldn't be verified. Install it from the App Store.")
+            String(
+                localized: "This copy of ZapaKid couldn't be verified. Install it from the App Store.",
+                bundle: .module
+            )
         default:
-            String(localized: "Sign-in didn't work. Try again.")
+            String(localized: "Sign-in didn't work. Try again.", bundle: .module)
         }
     }
 }

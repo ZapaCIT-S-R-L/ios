@@ -45,8 +45,12 @@ export function problems(keys, catalog) {
     }
     if (VERBATIM.has(key)) continue;
     for (const language of LANGUAGES.filter((l) => l !== catalog.sourceLanguage)) {
-      const unit = entry.localizations?.[language]?.stringUnit;
-      if (!unit || unit.state !== "translated" || !unit.value) {
+      const localization = entry.localizations?.[language];
+      // A plain string, or plural variations (one, few, other...): every form must be translated.
+      const units = localization?.variations?.plural
+        ? Object.values(localization.variations.plural).map((form) => form.stringUnit)
+        : [localization?.stringUnit];
+      if (units.some((unit) => !unit || unit.state !== "translated" || !unit.value)) {
         found.push(`not translated into ${language}: ${JSON.stringify(key)}`);
       }
     }

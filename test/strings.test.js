@@ -39,6 +39,26 @@ const catalog = {
       },
     },
     ZapaKid: {},
+    "%lld seconds": {
+      localizations: {
+        ro: {
+          variations: {
+            plural: {
+              one: { stringUnit: { state: "translated", value: "%lld secundă" } },
+              other: { stringUnit: { state: "new", value: "" } },
+            },
+          },
+        },
+        de: {
+          variations: {
+            plural: {
+              one: { stringUnit: { state: "translated", value: "%lld Sekunde" } },
+              other: { stringUnit: { state: "translated", value: "%lld Sekunden" } },
+            },
+          },
+        },
+      },
+    },
   },
 };
 
@@ -55,6 +75,10 @@ test("a missing or unreviewed translation is reported", () => {
     'not translated into de: "Half done"',
     'not translated into ro: "Needs review"',
   ]);
+});
+
+test("plural forms must all be translated", () => {
+  assert.deepEqual(problems(new Set(["%lld seconds"]), catalog), ['not translated into ro: "%lld seconds"']);
 });
 
 test("the app's strings are all translated into RO and DE", () => {

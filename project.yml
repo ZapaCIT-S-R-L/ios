@@ -2,6 +2,7 @@
 name: ZapaKid
 options:
   bundleIdPrefix: ro.zapakid
+  developmentLanguage: en
   deploymentTarget:
     iOS: "17.0"
   createIntermediateGroups: true

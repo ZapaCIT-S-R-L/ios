@@ -15,10 +15,16 @@ struct LocalizationTests {
     @Test(arguments: [
         ("ro", "Conectează-te cu Google"),
         ("de", "Mit Google anmelden"),
-        ("en", "Sign in with Google"),
     ])
     func appIsTranslated(language: String, expected: String) {
         #expect(text("Sign in with Google", language, in: .main) == expected)
+    }
+
+    /// English is the source language: its text is the key itself, so Xcode writes no en.lproj table.
+    @Test func englishIsTheSourceLanguage() {
+        #expect(Bundle.main.developmentLocalization == "en")
+        #expect(Bundle.main.localizations.contains("ro"))
+        #expect(Bundle.main.localizations.contains("de"))
     }
 
     @Test(arguments: [
