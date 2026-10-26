@@ -21,6 +21,8 @@ struct RootView: View {
                 HomeView(parent: parent) { Task { await auth.logout() } }
             case .blockedMinor:
                 BlockedMinorView()
+            case .ageDeclined:
+                AgeDeclinedView { Task { await auth.tryAgain() } }
             }
         }
         .task { await auth.start() }

@@ -43,7 +43,7 @@ final class GoogleSignIn: NSObject, GoogleSignInProviding, ASWebAuthenticationPr
 
     func idToken(nonce: String) async throws -> String {
         guard !Self.clientID.isEmpty else { throw GoogleSignInError.notConfigured }
-        let verifier = SignInNonce().raw // 43 random base64url characters, a valid PKCE verifier
+        let verifier = try Self.pkceVerifier()
         let challenge = Data(SHA256.hash(data: Data(verifier.utf8))).base64URL
         var components = URLComponents(string: "https://accounts.google.com/o/oauth2/v2/auth")
         components?.queryItems = [
@@ -104,6 +104,15 @@ final class GoogleSignIn: NSObject, GoogleSignInProviding, ASWebAuthenticationPr
             throw GoogleSignInError.noToken
         }
         return idToken
+    }
+
+    /// 32 random bytes from the system generator, base64url: 43 characters, a valid PKCE code verifier (RFC 7636).
+    private static func pkceVerifier() throws -> String {
+        var bytes = [UInt8](repeating: 0, count: 32)
+        guard SecRandomCopyBytes(kSecRandomDefault, bytes.count, &bytes) == errSecSuccess else {
+            throw GoogleSignInError.noToken
+        }
+        return Data(bytes).base64URL
     }
 
     nonisolated func presentationAnchor(for _: ASWebAuthenticationSession) -> ASPresentationAnchor {

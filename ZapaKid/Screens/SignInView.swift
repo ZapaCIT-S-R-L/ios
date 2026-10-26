@@ -9,7 +9,6 @@ struct SignInView: View {
     let ageCheck: AgeRangeProviding
 
     @Environment(\.colorScheme) private var colorScheme
-    @State private var appleNonce = SignInNonce()
 
     var body: some View {
         ScrollView {
@@ -28,15 +27,15 @@ struct SignInView: View {
                     .foregroundStyle(.secondary)
 
                 SignInWithAppleButton(.signIn) { request in
-                    appleNonce = SignInNonce()
-                    request.requestedScopes = []
-                    request.nonce = appleNonce.hashed
+                    // Only the name, for new accounts; the email comes in the token when Apple shares it.
+                    request.requestedScopes = [.fullName]
+                    request.nonce = auth.providerNonce
                 } onCompletion: { result in
                     Task { await finishApple(result) }
                 }
                 .signInWithAppleButtonStyle(colorScheme == .dark ? .white : .black)
                 .frame(minHeight: 50)
-                .disabled(auth.isBusy)
+                .disabled(auth.isBusy || auth.providerNonce == nil)
                 .accessibilityIdentifier("signin.apple")
 
                 Button {
@@ -71,6 +70,7 @@ struct SignInView: View {
         }
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("signin.screen")
+        .task { await auth.prepareNonce() }
     }
 
     private func finishApple(_ result: Result<ASAuthorization, Error>) async {
@@ -83,8 +83,12 @@ struct SignInView: View {
                 auth.signInFailed(String(localized: "Apple didn't return a sign-in token."))
                 return
             }
+            let name = credential.fullName.map { PersonNameComponentsFormatter().string(from: $0) }
             let ageRange = await ageCheck.ageRange()
-            await auth.signIn(provider: .apple, idToken: idToken, nonce: appleNonce.raw, ageRange: ageRange)
+            await auth.signIn(
+                provider: .apple, idToken: idToken, ageRange: ageRange,
+                displayName: name?.isEmpty == false ? name : nil
+            )
         case let .failure(error):
             if (error as? ASAuthorizationError)?.code != .canceled {
                 auth.signInFailed(error.localizedDescription)
@@ -93,11 +97,12 @@ struct SignInView: View {
     }
 
     private func signInWithGoogle() async {
-        let nonce = SignInNonce()
+        await auth.prepareNonce()
+        guard let nonce = auth.providerNonce else { return }
         do {
-            let idToken = try await google.idToken(nonce: nonce.hashed)
+            let idToken = try await google.idToken(nonce: nonce)
             let ageRange = await ageCheck.ageRange()
-            await auth.signIn(provider: .google, idToken: idToken, nonce: nonce.raw, ageRange: ageRange)
+            await auth.signIn(provider: .google, idToken: idToken, ageRange: ageRange, displayName: nil)
         } catch let error as ASWebAuthenticationSessionError where error.code == .canceledLogin {
             return
         } catch {

@@ -7,33 +7,34 @@ import ZapaKidKit
 /// Asks the system whether the person signing in is 18 or older.
 @MainActor
 protocol AgeRangeProviding {
-    /// `nil` when the age can't be known (iOS before 26, or an error); the API then decides.
-    func ageRange() async -> AgeRange?
+    func ageRange() async -> AgeRange
 }
 
-/// Apple's Declared Age Range (iOS 26+, needs the `com.apple.developer.declared-age-range` entitlement).
+/// Apple's Declared Age Range (iOS 26+, needs the `com.apple.developer.declared-age-range` entitlement), mapped as
+/// openapi.yaml says: `.sharing(range)` → shared, `.declinedSharing` → declined, not offered → unavailable.
 struct DeclaredAgeRangeCheck: AgeRangeProviding {
-    func ageRange() async -> AgeRange? {
+    func ageRange() async -> AgeRange {
         #if canImport(DeclaredAgeRange)
             if #available(iOS 26.0, *) {
                 let controller = UIApplication.shared.connectedScenes
                     .compactMap { ($0 as? UIWindowScene)?.keyWindow?.rootViewController }
                     .first
-                guard let controller else { return nil }
+                guard let controller else { return .unavailable }
                 do {
                     switch try await AgeRangeService.shared.requestAgeRange(ageGates: 18, in: controller) {
                     case .declinedSharing:
-                        return AgeRange(lower: nil, upper: nil, declined: true)
+                        return .declined(platformStatus: "declinedSharing")
                     case let .sharing(range):
-                        return AgeRange(lower: range.lowerBound, upper: range.upperBound, declined: false)
+                        return .shared(lower: range.lowerBound, upper: range.upperBound, platformStatus: "sharing")
                     @unknown default:
-                        return nil
+                        return .unavailable
                     }
                 } catch {
-                    return nil
+                    // Not offered here (region, account type) or not available right now.
+                    return .unavailable
                 }
             }
         #endif
-        return nil
+        return .unavailable
     }
 }

@@ -4,26 +4,30 @@
 
     /// Stubbed backend for the UI tests (Debug builds only; this file is not compiled into Release).
     /// Launch with `-zk-ui-test` and set in the environment:
-    ///   ZK_AGREEMENT  accepted | pending        ZK_SESSION  none | signed-in        ZK_AGE  adult | minor | unknown
+    ///   ZK_AGREEMENT  accepted | pending          ZK_SESSION  none | signed-in
+    ///   ZK_AGE        adult | minor | declined | unavailable
+    ///   ZK_SIGNIN     ok | rate-limited (the API answers 429 with Retry-After: 30)
     /// Nothing is stored: a new in-memory session and agreement on every launch, and no network.
     @MainActor
     enum UITestStubs {
         static let launchArgument = "-zk-ui-test"
-        static let parent = ParentProfile(id: "p_test", name: "TEST Parent", email: nil)
+        static let parent = ParentProfile(id: "p_test", email: nil, displayName: "TEST Parent")
 
         static func dependencies(environment: [String: String]) -> AppDependencies {
             let agreement = InMemoryAgreementStore(
                 acceptedVersion: environment["ZK_AGREEMENT"] == "pending" ? nil : ParentalAgreement.currentVersion
             )
-            let session = environment["ZK_SESSION"] == "signed-in" ? Session(token: "stub", parent: parent) : nil
-            let age: AgeRange? = switch environment["ZK_AGE"] {
-            case "minor": AgeRange(lower: nil, upper: 17, declined: false)
-            case "unknown": nil
-            default: AgeRange(lower: 18, upper: nil, declined: false)
+            let session = environment["ZK_SESSION"] == "signed-in"
+                ? Session(token: "stub", expiresAt: .distantFuture, parent: parent) : nil
+            let age: AgeRange = switch environment["ZK_AGE"] {
+            case "minor": .shared(lower: nil, upper: 17, platformStatus: "sharing")
+            case "declined": .declined(platformStatus: "declinedSharing")
+            case "unavailable": .unavailable
+            default: .shared(lower: 18, upper: nil, platformStatus: "sharing")
             }
             return AppDependencies(
                 auth: AuthModel(
-                    api: StubAuthAPI(),
+                    api: StubAuthAPI(rateLimited: environment["ZK_SIGNIN"] == "rate-limited"),
                     store: InMemorySessionStore(session: session),
                     agreement: agreement
                 ),
@@ -34,8 +38,17 @@
     }
 
     struct StubAuthAPI: AuthAPI {
+        let rateLimited: Bool
+
+        func signInNonce() async throws -> SignInNonceGrant {
+            SignInNonceGrant(nonce: "stub-nonce", expiresAt: Date().addingTimeInterval(600))
+        }
+
         func signIn(_: SignInRequest) async throws -> Session {
-            await Session(token: "stub", parent: UITestStubs.parent)
+            if rateLimited {
+                throw AuthAPIError.rateLimited(retryAfter: 30)
+            }
+            return await Session(token: "stub", expiresAt: .distantFuture, parent: UITestStubs.parent)
         }
 
         func me(token _: String) async throws -> ParentProfile {
@@ -52,8 +65,8 @@
     }
 
     struct StubAgeRangeCheck: AgeRangeProviding {
-        let range: AgeRange?
-        func ageRange() async -> AgeRange? {
+        let range: AgeRange
+        func ageRange() async -> AgeRange {
             range
         }
     }

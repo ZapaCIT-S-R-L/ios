@@ -13,7 +13,7 @@ struct HomeView: View {
                     Text("Signed in as")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
-                    Text(parent.name ?? String(localized: "Parent"))
+                    Text(parent.displayName ?? parent.email ?? String(localized: "Parent"))
                         .font(.title2.bold())
                         .accessibilityIdentifier("home.parentName")
                     Text("Your family chats will appear here.")
