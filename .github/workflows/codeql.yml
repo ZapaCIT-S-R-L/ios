@@ -15,9 +15,9 @@ permissions:
 jobs:
   analyze:
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 60
+    timeout-minutes: 90
     env:
-      DEVELOPER_DIR: ${{ matrix.os == 'macos-26' && '/Applications/Xcode_26.6.app/Contents/Developer' || '' }}
+      DEVELOPER_DIR: ${{ startsWith(matrix.os, 'macos') && '/Applications/Xcode_26.6.app/Contents/Developer' || '' }}
     permissions:
       actions: read
       contents: read
@@ -27,7 +27,8 @@ jobs:
       matrix:
         include:
           - language: swift
-            os: macos-26
+            # Intel for now (no arm64 capacity on 2026-10-26); back to macos-26 when it returns, as in ci.yml.
+            os: macos-26-intel
             build-mode: manual
           - language: actions
             os: ubuntu-latest

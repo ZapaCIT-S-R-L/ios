@@ -15,17 +15,24 @@ on:
 permissions:
   contents: read
 
+# A new push to a PR cancels that PR's older run; runs on main always finish.
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   ios:
-    runs-on: macos-26
-    timeout-minutes: 45
+    # Intel (x64) for now: GitHub had no macOS arm64 capacity on 2026-10-26 (jobs on macos-26 were never picked up,
+    # "not acquired by Runner of type hosted even after multiple attempts"). Switch back to macos-26 (arm64, faster)
+    # when its capacity returns, here and in codeql.yml.
+    runs-on: macos-26-intel
+    timeout-minutes: 75
     env:
-      # Pinned Xcode (the runner image default on macOS 26, latest stable). Bump it in a PR.
+      # Pinned Xcode (the default on the macOS 26 images, latest stable). Bump it in a PR.
       DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+      # A simulator the image ships (runner-images macos-26 readme, "Installed Simulators").
+      SIM_DEVICE: iPhone 17
+      SIM_OS: "26.5"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Install XcodeGen (pinned release, checksum verified)
