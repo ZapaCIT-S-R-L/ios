@@ -75,9 +75,9 @@ struct KeySetupTests {
         let kyber = try #require(Data(base64Encoded: keys.pqLastResortPreKey.publicKey))
         let kyberSignature = try #require(Data(base64Encoded: keys.pqLastResortPreKey.signature))
         #expect(try identity.publicKey.verifySignature(message: kyber, signature: kyberSignature))
-        for pq in keys.pqPreKeys {
-            let key = try #require(Data(base64Encoded: pq.publicKey))
-            let sig = try #require(Data(base64Encoded: pq.signature))
+        for kyberPreKey in keys.pqPreKeys {
+            let key = try #require(Data(base64Encoded: kyberPreKey.publicKey))
+            let sig = try #require(Data(base64Encoded: kyberPreKey.signature))
             #expect(try identity.publicKey.verifySignature(message: key, signature: sig))
         }
     }
@@ -92,9 +92,10 @@ struct KeySetupTests {
         #expect(Set(json.keys) == [
             "registrationId", "identityKey", "signedPreKey", "pqLastResortPreKey", "preKeys", "pqPreKeys",
         ])
-        #expect(json["registrationId"] as? try Int == Int(store.localRegistrationId(context: context)))
-        #expect(json["identityKey"] as? try String == (store.identityKeyPair(context: context)).identityKey
-            .serialize().base64EncodedString())
+        let registrationId = try Int(store.localRegistrationId(context: context))
+        let identityKey = try store.identityKeyPair(context: context).identityKey.serialize().base64EncodedString()
+        #expect(json["registrationId"] as? Int == registrationId)
+        #expect(json["identityKey"] as? String == identityKey)
         #expect(keys.preKeys.count == 5)
         #expect(keys.pqPreKeys.count == 5)
         let ids = keys.preKeys.map(\.keyId) + [keys.signedPreKey.keyId]
@@ -151,12 +152,16 @@ struct KeySetupTests {
         let store = try protocolStore()
         _ = try DeviceKeyGenerator(store: store).generate(oneTimeCount: 1)
 
+        #expect(ProtectedFileStore.writeOptions.contains(.completeFileProtection))
         let names = try FileManager.default.contentsOfDirectory(atPath: directory.path)
         #expect(!names.isEmpty)
         for name in names {
-            let attributes = try FileManager.default
-                .attributesOfItem(atPath: directory.appendingPathComponent(name).path)
-            #expect(attributes[.protectionKey] as? FileProtectionType == .complete, "\(name)")
+            // The simulator doesn't record Data Protection classes; a phone does, so check it there.
+            #if !targetEnvironment(simulator)
+                let attributes = try FileManager.default
+                    .attributesOfItem(atPath: directory.appendingPathComponent(name).path)
+                #expect(attributes[.protectionKey] as? FileProtectionType == .complete, "\(name)")
+            #endif
             let values = try directory.appendingPathComponent(name).resourceValues(forKeys: [.isExcludedFromBackupKey])
             #expect(values.isExcludedFromBackup == true, "\(name) is not in iCloud or Finder backups")
         }
