@@ -35,4 +35,4 @@ Simulator builds are signed ad hoc, so no Apple account is needed. Never run tes
 ## License
 
 [AGPL-3.0](LICENSE). Contributions need the CLA, see [CONTRIBUTING.md](CONTRIBUTING.md).
-Security issues: see [SECURITY.md](SECURITY.md).
+Security issues: see [SECURITY.md](SECURITY.md). How the app protects chats and accounts: [docs/security.md](docs/security.md).
