@@ -9,6 +9,13 @@ if [ ! -f "$lockfile" ]; then
   echo "No $lockfile: ZapaKidKit has no package dependencies yet, nothing to scan."
   exit 0
 fi
+# A local osv-scanner (brew install osv-scanner) when there is one, else the pinned image (CI).
+if command -v osv-scanner >/dev/null; then
+  config=()
+  [ -f osv-scanner.toml ] && config=(--config osv-scanner.toml)
+  osv-scanner scan source "${config[@]}" --lockfile "$lockfile"
+  exit
+fi
 config=()
 [ -f osv-scanner.toml ] && config=(--config /repo/osv-scanner.toml)
 docker run --rm -v "$PWD:/repo:ro" \

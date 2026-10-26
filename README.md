@@ -14,7 +14,7 @@ families. One app with a parent mode and a kid mode. ZapaKid (the company and it
 ```sh
 brew install xcodegen swiftformat swiftlint
 xcodegen generate && open ZapaKid.xcodeproj   # Xcode
-scripts/test.sh                               # build + unit + UI tests on a simulator, as CI does
+scripts/ci-local.sh                           # the whole CI suite locally; run before every push
 swiftformat . && swiftlint --strict           # style, as CI does
 npm test                                      # the CLA and release-tag scripts (Node 24, see .nvmrc)
 ```
@@ -24,7 +24,7 @@ Simulator builds are signed ad hoc, so no Apple account is needed. Never run tes
 
 ## How changes ship
 
-1. Open a pull request (run `scripts/test.sh` first: CI runs only the unit tests on PRs). CI (`.github/workflows/ci.yml`) builds the app, runs the unit tests on a simulator (UI tests too on main),
+1. Run `scripts/ci-local.sh` and push only when it is green (CI runs only the unit tests on PRs). Open a pull request. CI (`.github/workflows/ci.yml`) builds the app, runs the unit tests on a simulator (UI tests too on main),
    lints, scans the dependencies (OSV-Scanner) and the whole history (gitleaks), and checks the CLA. CodeQL scans the
    Swift code and the workflows.
 2. A maintainer reviews and merges it.
