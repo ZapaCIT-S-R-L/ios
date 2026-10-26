@@ -1,0 +1,13 @@
+{
+  "name": "zapakid-ios-scripts",
+  "private": true,
+  "type": "module",
+  "description": "Node scripts for the repo checks (CLA, release tags). The app itself is Swift.",
+  "scripts": {
+    "test": "node --test test/*.test.js"
+  },
+  "license": "AGPL-3.0-only",
+  "engines": {
+    "node": ">=24"
+  }
+}

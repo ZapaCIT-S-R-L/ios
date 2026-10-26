@@ -1,0 +1,24 @@
+# SwiftLint settings; CI runs `swiftlint --strict`. Formatting is SwiftFormat's job, so rules it owns are off here.
+included:
+  - ZapaKid
+  - ZapaKidKit
+  - ZapaKidTests
+  - ZapaKidUITests
+excluded:
+  - build
+  - DerivedData
+  - ZapaKidKit/.build
+disabled_rules:
+  - trailing_comma
+  - opening_brace
+  - todo
+opt_in_rules:
+  - force_unwrapping
+  - empty_count
+  - accessibility_label_for_image
+  - accessibility_trait_for_button
+line_length:
+  warning: 120
+  error: 160
+identifier_name:
+  excluded: [id, ok]

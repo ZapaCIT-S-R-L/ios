@@ -1,0 +1,9 @@
+# SwiftFormat settings; CI runs `swiftformat --lint .`
+--swiftversion 6.0
+--indent 4
+--maxwidth 120
+--wraparguments before-first
+--wrapcollections before-first
+--stripunusedargs closure-only
+--header ignore
+--exclude build,DerivedData,.build,node_modules,ZapaKid.xcodeproj

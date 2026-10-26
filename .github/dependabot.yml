@@ -1,0 +1,21 @@
+# Version updates: weekly PRs for the Swift packages and the pinned GitHub Actions. CI must pass, as for any PR.
+# Security updates: Dependabot opens those as soon as an advisory matches (repo setting "Dependabot security
+# updates", on), so they don't wait for this schedule. Versions stay exact: ZapaKidKit/Package.resolved is committed.
+version: 2
+updates:
+  - package-ecosystem: swift
+    directory: /ZapaKidKit
+    schedule:
+      interval: weekly
+    groups:
+      swift:
+        applies-to: version-updates
+        patterns: ["*"]
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        applies-to: version-updates
+        patterns: ["*"]

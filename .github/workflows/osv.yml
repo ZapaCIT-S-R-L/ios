@@ -1,0 +1,17 @@
+# Daily OSV-Scanner run, so a vulnerability published after a merge still turns main red (CI runs it on every PR).
+name: osv
+
+on:
+  schedule:
+    - cron: "41 5 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deps:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: scripts/osv-scan.sh

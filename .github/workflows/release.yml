@@ -1,0 +1,49 @@
+# Tags every merge to main vMAJOR.MINOR.PATCH (scripts/next-version.js) and publishes a GitHub release with an SBOM
+# (SPDX, from GitHub's dependency graph). Patch by default, minor when the merged PR has the `minor` label, major
+# when it has the `major` label. Nothing is uploaded to the App Store here; signing and TestFlight come later.
+name: release
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write # push the tag, create the release
+  pull-requests: read # read the merged PR's labels
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  tag:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - run: npm test
+      - name: Tag the release and attach the SBOM
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+        run: |
+          pr=$(gh api "repos/$REPO/commits/$SHA/pulls" --jq '.[0] // {}')
+          labels=$(jq -r '(.labels // [])[].name' <<<"$pr")
+          title=$(jq -r 'if .number then "PR #\(.number) \(.title)" else empty end' <<<"$pr")
+          # shellcheck disable=SC2086 # one argument per label
+          version=$(git tag -l | node scripts/next-version.js $labels)
+          message=${title:-$(git log -1 --format=%s "$SHA")}
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "$version" -m "$message" "$SHA"
+          git push origin "$version"
+          gh api "repos/$REPO/dependency-graph/sbom" --jq .sbom > "$RUNNER_TEMP/zapakid-ios-$version.spdx.json"
+          gh release create "$version" --repo "$REPO" --verify-tag --title "$version" --notes "$message" \
+            "$RUNNER_TEMP/zapakid-ios-$version.spdx.json"
+          echo "Released $version: $message" >> "$GITHUB_STEP_SUMMARY"
