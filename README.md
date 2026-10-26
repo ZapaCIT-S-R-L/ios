@@ -20,7 +20,7 @@ npm test                                      # the CLA and release-tag scripts 
 ```
 
 `scripts/test.sh` picks an iPhone simulator on the newest iOS runtime; set `SIM_UDID` to use a specific one.
-Simulator builds are not signed, so no Apple account is needed. Never run tests on a physical phone.
+Simulator builds are signed ad hoc, so no Apple account is needed. Never run tests on a physical phone.
 
 ## How changes ship
 
