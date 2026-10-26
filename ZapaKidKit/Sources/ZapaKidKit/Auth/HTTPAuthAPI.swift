@@ -7,19 +7,28 @@ import Foundation
 ///   `POST /v1/auth/google` `{nonce, idToken, ageRange}` → `{session: {token, expiresAt}, parent, newAccount}`
 /// - `GET /v1/me` → `Parent`;  `POST /v1/auth/logout` → 204 (both with `Authorization: Bearer <token>`)
 /// - errors `{"error": {"code", "message"}}`; the app branches on `code` only and never logs bodies or tokens.
-public struct HTTPAuthAPI: AuthAPI {
+/// - Draft: `POST /v1/attestation/challenge`, `POST /v1/attestation/apple`, and the `ZapaKid-Attestation` header on
+///   sign-in (`AppAttestor`).
+public struct HTTPAuthAPI: AuthAPI, AttestationAPI {
     public let baseURL: URL
     private let session: URLSession
+    private let attestor: AppAttestor?
 
-    public init(baseURL: URL, session: URLSession = URLSession(configuration: HTTPAuthAPI.secureConfiguration())) {
+    public init(
+        baseURL: URL,
+        session: URLSession = URLSession(configuration: HTTPAuthAPI.secureConfiguration()),
+        attestor: AppAttestor? = nil
+    ) {
         self.baseURL = baseURL
         self.session = session
+        self.attestor = attestor
     }
 
-    /// The staging API with the secure session.
+    /// The staging API with the secure session and App Attest on sign-in.
     public static var staging: HTTPAuthAPI {
         // swiftlint:disable:next force_unwrapping
-        HTTPAuthAPI(baseURL: URL(string: ZapaKidKit.apiBaseURL)!)
+        let base = URL(string: ZapaKidKit.apiBaseURL)!
+        return HTTPAuthAPI(baseURL: base, attestor: AppAttestor(api: HTTPAuthAPI(baseURL: base)))
     }
 
     /// TLS 1.3 or newer, nothing written to disk: no cookies, no response cache.
@@ -50,8 +59,50 @@ public struct HTTPAuthAPI: AuthAPI {
                 nonce: request.nonce, idToken: request.idToken, ageRange: request.ageRange
             ))
         }
-        let reply: SignInReply = try await send("POST", "v1/auth/\(request.provider.rawValue)", body: body)
-        return Session(token: reply.session.token, expiresAt: reply.session.expiresAt, parent: reply.parent)
+        do {
+            var headers: [String: String] = [:]
+            if let attestor {
+                headers["ZapaKid-Attestation"] = try await Self.attestation(attestor, body: body)
+            }
+            let reply: SignInReply = try await send(
+                "POST", "v1/auth/\(request.provider.rawValue)", body: body, headers: headers
+            )
+            return Session(token: reply.session.token, expiresAt: reply.session.expiresAt, parent: reply.parent)
+        } catch AuthAPIError.attestationFailed {
+            await attestor?.reset()
+            throw AuthAPIError.attestationFailed
+        }
+    }
+
+    /// App Attest's own errors (key invalid, service unavailable) count as a failed attestation.
+    private static func attestation(_ attestor: AppAttestor, body: Data) async throws -> String? {
+        do {
+            return try await attestor.header(for: body)
+        } catch let error as AuthAPIError {
+            throw error
+        } catch {
+            throw AuthAPIError.attestationFailed
+        }
+    }
+
+    public func attestationChallenge() async throws -> String {
+        struct Reply: Decodable {
+            var challenge: String
+        }
+        let reply: Reply = try await send("POST", "v1/attestation/challenge")
+        return reply.challenge
+    }
+
+    public func registerAppleKey(keyID: String, attestationObject: Data, challenge: String) async throws {
+        struct Body: Encodable {
+            var keyId: String
+            var attestationObject: String
+            var challenge: String
+        }
+        let body = try Self.encoder.encode(Body(
+            keyId: keyID, attestationObject: attestationObject.base64EncodedString(), challenge: challenge
+        ))
+        _ = try await data("POST", "v1/attestation/apple", token: nil, body: body)
     }
 
     public func me(token: String) async throws -> ParentProfile {
@@ -118,9 +169,9 @@ public struct HTTPAuthAPI: AuthAPI {
     }()
 
     private func send<Reply: Decodable>(
-        _ method: String, _ path: String, token: String? = nil, body: Data? = nil
+        _ method: String, _ path: String, token: String? = nil, body: Data? = nil, headers: [String: String] = [:]
     ) async throws -> Reply {
-        let data = try await data(method, path, token: token, body: body)
+        let data = try await data(method, path, token: token, body: body, headers: headers)
         do {
             return try Self.decoder.decode(Reply.self, from: data)
         } catch {
@@ -128,9 +179,14 @@ public struct HTTPAuthAPI: AuthAPI {
         }
     }
 
-    private func data(_ method: String, _ path: String, token: String?, body: Data?) async throws -> Data {
+    private func data(
+        _ method: String, _ path: String, token: String?, body: Data?, headers: [String: String] = [:]
+    ) async throws -> Data {
         var request = URLRequest(url: baseURL.appendingPathComponent(path))
         request.httpMethod = method
+        for (name, value) in headers {
+            request.setValue(value, forHTTPHeaderField: name)
+        }
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         if let body {
             request.httpBody = body

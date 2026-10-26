@@ -53,7 +53,7 @@ final class FakeAppAttestService: AppAttestService, @unchecked Sendable {
 @Suite(.serialized)
 struct AppAttestTests {
     let base = URL(string: "https://api.test.invalid")!
-    let keyStore = KeychainItem(service: "com.zapacit.zapakid.tests.attest.\(UUID().uuidString)", account: "keyId")
+    let keyStore = KeychainItem(service: "ro.zapakid.app.tests.attest.\(UUID().uuidString)", account: "keyId")
     let service = FakeAppAttestService()
     let challenge = "Y2hhbGxlbmdl"
     let signedIn = """
@@ -69,18 +69,15 @@ struct AppAttestTests {
 
     /// The API with App Attest, answering by path.
     func api(signInStatus: Int = 200, registerStatus: Int = 204) -> HTTPAuthAPI {
+        let refused = #"{"error":{"code":"attestation_failed","message":"x"}}"#
         let session = MockURLProtocol.session { [challenge, signedIn] request, _ in
             switch request.url?.path {
             case "/v1/attestation/challenge":
                 MockReply(200, #"{"challenge":"\#(challenge)","expiresAt":"2026-10-26T18:05:00Z"}"#)
             case "/v1/attestation/apple":
-                registerStatus == 204
-                    ? MockReply(204)
-                    : MockReply(registerStatus, #"{"error":{"code":"attestation_failed","message":"x"}}"#)
+                MockReply(registerStatus, registerStatus == 204 ? "" : refused)
             case "/v1/auth/apple":
-                signInStatus == 200
-                    ? MockReply(200, signedIn)
-                    : MockReply(signInStatus, #"{"error":{"code":"attestation_failed","message":"x"}}"#)
+                MockReply(signInStatus, signInStatus == 200 ? signedIn : refused)
             default:
                 MockReply(404)
             }
