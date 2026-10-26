@@ -4,12 +4,20 @@ import Testing
 
 /// A fake API that records the calls and answers what the test says.
 actor FakeAuthAPI: AuthAPI {
+    var nonceResult: Result<SignInNonceGrant, AuthAPIError> = .success(
+        SignInNonceGrant(nonce: "nonce-1", expiresAt: Date().addingTimeInterval(600))
+    )
     var signInResult: Result<Session, AuthAPIError> = .failure(.network)
     var meResult: Result<ParentProfile, AuthAPIError> = .failure(.network)
     var logoutError: AuthAPIError?
+    private(set) var nonceCalls = 0
     private(set) var signInCalls: [SignInRequest] = []
     private(set) var meCalls: [String] = []
     private(set) var logoutCalls: [String] = []
+
+    func set(nonce: Result<SignInNonceGrant, AuthAPIError>) {
+        nonceResult = nonce
+    }
 
     func set(signIn: Result<Session, AuthAPIError>) {
         signInResult = signIn
@@ -21,6 +29,11 @@ actor FakeAuthAPI: AuthAPI {
 
     func set(logoutError: AuthAPIError?) {
         self.logoutError = logoutError
+    }
+
+    func signInNonce() async throws -> SignInNonceGrant {
+        nonceCalls += 1
+        return try nonceResult.get()
     }
 
     func signIn(_ request: SignInRequest) async throws -> Session {
@@ -43,12 +56,12 @@ actor FakeAuthAPI: AuthAPI {
 
 @MainActor
 struct AuthModelTests {
-    let parent = ParentProfile(id: "p_1", name: "TEST Parent", email: nil)
+    let parent = ParentProfile(id: "p_1", email: nil, displayName: "TEST Parent")
     var session: Session {
-        Session(token: "tok_1", parent: parent)
+        Session(token: "zks_1", expiresAt: Date().addingTimeInterval(86400), parent: parent)
     }
 
-    let adult = AgeRange(lower: 18, upper: nil, declined: false)
+    let adult = AgeRange.shared(lower: 18, upper: nil, platformStatus: "sharing")
     let api = FakeAuthAPI()
     let store = InMemorySessionStore()
     let agreement = InMemoryAgreementStore()
@@ -57,9 +70,17 @@ struct AuthModelTests {
         AuthModel(api: api, store: store, agreement: agreement)
     }
 
-    func acceptedModel() -> AuthModel {
+    /// Agreement accepted, on the sign-in screen with a nonce from the API.
+    func signInScreen() async -> AuthModel {
         agreement.accept(version: ParentalAgreement.currentVersion)
-        return model()
+        let auth = model()
+        await auth.start()
+        await auth.prepareNonce()
+        return auth
+    }
+
+    func signIn(_ auth: AuthModel, age: AgeRange? = nil, provider: SignInProvider = .apple) async {
+        await auth.signIn(provider: provider, idToken: "jwt", ageRange: age ?? adult, displayName: nil)
     }
 
     // MARK: First launch
@@ -81,35 +102,116 @@ struct AuthModelTests {
     }
 
     @Test func agreementAcceptedBeforeSkipsIt() async {
-        let auth = acceptedModel()
+        agreement.accept(version: ParentalAgreement.currentVersion)
+        let auth = model()
         await auth.start()
         #expect(auth.state == .signedOut)
+    }
+
+    // MARK: Nonce
+
+    @Test func signInScreenGetsANonceFromTheAPI() async {
+        let auth = await signInScreen()
+
+        #expect(auth.nonce?.nonce == "nonce-1")
+        #expect(auth.providerNonce == SignInNonce(raw: "nonce-1").hashed, "the provider gets SHA-256(nonce)")
+        #expect(await api.nonceCalls == 1)
+    }
+
+    @Test func validNonceIsReused() async {
+        let auth = await signInScreen()
+
+        await auth.prepareNonce()
+
+        #expect(await api.nonceCalls == 1)
+    }
+
+    @Test func nonceAboutToExpireIsReplaced() async {
+        await api.set(nonce: .success(SignInNonceGrant(nonce: "old", expiresAt: Date().addingTimeInterval(30))))
+        let auth = await signInScreen()
+        await api.set(nonce: .success(SignInNonceGrant(nonce: "new", expiresAt: Date().addingTimeInterval(600))))
+
+        await auth.prepareNonce()
+
+        #expect(auth.nonce?.nonce == "new")
+    }
+
+    @Test func signInSendsTheRawNonceAndGetsANewOneAfterwards() async {
+        await api.set(signIn: .failure(.network))
+        let auth = await signInScreen()
+        await api.set(nonce: .success(SignInNonceGrant(nonce: "nonce-2", expiresAt: Date().addingTimeInterval(600))))
+
+        await signIn(auth)
+
+        #expect(await api.signInCalls.first?.nonce == "nonce-1")
+        #expect(auth.nonce?.nonce == "nonce-2", "each nonce works once")
+    }
+
+    @Test func signInWithoutANonceFetchesOneFirst() async {
+        await api.set(signIn: .success(session))
+        agreement.accept(version: ParentalAgreement.currentVersion)
+        let auth = model()
+        await auth.start()
+
+        await signIn(auth, provider: .google)
+
+        #expect(await api.signInCalls.first?.nonce == "nonce-1")
+        #expect(auth.state == .signedIn(parent))
+    }
+
+    @Test func noNonceMeansNoSignIn() async {
+        await api.set(nonce: .failure(.network))
+        let auth = await signInScreen()
+
+        await signIn(auth)
+
+        #expect(await api.signInCalls.isEmpty)
+        #expect(auth.state == .signedOut)
+        #expect(auth.errorMessage != nil)
+    }
+
+    @Test func invalidNonceAsksToTryAgain() async {
+        await api.set(signIn: .failure(.invalidNonce))
+        let auth = await signInScreen()
+
+        await signIn(auth)
+
+        #expect(auth.state == .signedOut)
+        #expect(auth.errorMessage != nil)
+        #expect(await api.nonceCalls == 2, "a fresh nonce for the retry")
     }
 
     // MARK: Sign in
 
     @Test func signInStoresTheSessionAndShowsTheParent() async throws {
         await api.set(signIn: .success(session))
-        let auth = acceptedModel()
-        await auth.start()
+        let auth = await signInScreen()
 
-        await auth.signIn(provider: .apple, idToken: "id", nonce: "n", ageRange: adult)
+        await auth.signIn(provider: .apple, idToken: "jwt", ageRange: adult, displayName: "TEST Parent")
 
         #expect(auth.state == .signedIn(parent))
         #expect(try store.load() == session)
         let calls = await api.signInCalls
-        #expect(calls == [SignInRequest(provider: .apple, idToken: "id", nonce: "n", ageRange: adult)])
+        #expect(calls == [SignInRequest(
+            provider: .apple, idToken: "jwt", nonce: "nonce-1", ageRange: adult, displayName: "TEST Parent"
+        )])
+    }
+
+    @Test func unavailableAgeIsSentAndAllowed() async {
+        await api.set(signIn: .success(session))
+        let auth = await signInScreen()
+
+        await signIn(auth, age: .unavailable)
+
+        #expect(await api.signInCalls.first?.ageRange == .unavailable)
+        #expect(auth.state == .signedIn(parent))
     }
 
     @Test func knownMinorIsBlockedWithoutContactingTheAPI() async throws {
         await api.set(signIn: .success(session))
-        let auth = acceptedModel()
-        await auth.start()
+        let auth = await signInScreen()
 
-        await auth.signIn(
-            provider: .google, idToken: "id", nonce: "n",
-            ageRange: AgeRange(lower: 13, upper: 17, declined: false)
-        )
+        await signIn(auth, age: .shared(lower: 13, upper: 17, platformStatus: "sharing"))
 
         #expect(auth.state == .blockedMinor)
         #expect(await api.signInCalls.isEmpty, "a minor's sign-in token is never sent")
@@ -117,22 +219,58 @@ struct AuthModelTests {
     }
 
     @Test func minorRejectedByTheAPIIsBlocked() async throws {
-        await api.set(signIn: .failure(.minor))
-        let auth = acceptedModel()
-        await auth.start()
+        await api.set(signIn: .failure(.minorNotAllowed))
+        let auth = await signInScreen()
 
-        await auth.signIn(provider: .apple, idToken: "id", nonce: "n", ageRange: nil)
+        await signIn(auth)
 
         #expect(auth.state == .blockedMinor)
         #expect(try store.load() == nil)
     }
 
+    @Test func declinedAgeShowsTheDeclinedScreenWithoutContactingTheAPI() async {
+        let auth = await signInScreen()
+
+        await signIn(auth, age: .declined(platformStatus: "declinedSharing"))
+
+        #expect(auth.state == .ageDeclined)
+        #expect(await api.signInCalls.isEmpty)
+    }
+
+    @Test func declinedAgeFromTheAPIShowsTheDeclinedScreen() async {
+        await api.set(signIn: .failure(.ageDeclined))
+        let auth = await signInScreen()
+
+        await signIn(auth)
+
+        #expect(auth.state == .ageDeclined)
+    }
+
+    @Test func afterDecliningTheParentCanTryAgain() async {
+        let auth = await signInScreen()
+        await signIn(auth, age: .declined(platformStatus: nil))
+
+        await auth.tryAgain()
+
+        #expect(auth.state == .signedOut)
+        #expect(auth.nonce != nil)
+    }
+
+    @Test func rateLimitSaysWhenToTryAgain() async {
+        await api.set(signIn: .failure(.rateLimited(retryAfter: 30)))
+        let auth = await signInScreen()
+
+        await signIn(auth)
+
+        #expect(auth.state == .signedOut)
+        #expect(auth.errorMessage?.contains("30") == true)
+    }
+
     @Test func failedSignInStaysSignedOutWithAMessage() async throws {
         await api.set(signIn: .failure(.network))
-        let auth = acceptedModel()
-        await auth.start()
+        let auth = await signInScreen()
 
-        await auth.signIn(provider: .apple, idToken: "id", nonce: "n", ageRange: adult)
+        await signIn(auth)
 
         #expect(auth.state == .signedOut)
         #expect(auth.errorMessage != nil)
@@ -141,12 +279,11 @@ struct AuthModelTests {
 
     @Test func errorMessageClearsOnTheNextSignIn() async {
         await api.set(signIn: .failure(.network))
-        let auth = acceptedModel()
-        await auth.start()
-        await auth.signIn(provider: .apple, idToken: "id", nonce: "n", ageRange: adult)
+        let auth = await signInScreen()
+        await signIn(auth)
         await api.set(signIn: .success(session))
 
-        await auth.signIn(provider: .apple, idToken: "id", nonce: "n", ageRange: adult)
+        await signIn(auth)
 
         #expect(auth.errorMessage == nil)
     }
@@ -154,10 +291,9 @@ struct AuthModelTests {
     @Test func sessionThatCantBeSavedIsNotSignedIn() async {
         await api.set(signIn: .success(session))
         store.failSaves = true
-        let auth = acceptedModel()
-        await auth.start()
+        let auth = await signInScreen()
 
-        await auth.signIn(provider: .apple, idToken: "id", nonce: "n", ageRange: adult)
+        await signIn(auth)
 
         #expect(auth.state == .signedOut)
         #expect(auth.errorMessage != nil)
@@ -167,21 +303,23 @@ struct AuthModelTests {
 
     @Test func storedSessionIsCheckedWithTheAPI() async throws {
         try store.save(session)
-        let renamed = ParentProfile(id: "p_1", name: "TEST Renamed", email: nil)
+        let renamed = ParentProfile(id: "p_1", email: nil, displayName: "TEST Renamed")
         await api.set(me: .success(renamed))
-        let auth = acceptedModel()
+        agreement.accept(version: ParentalAgreement.currentVersion)
+        let auth = model()
 
         await auth.start()
 
         #expect(auth.state == .signedIn(renamed))
-        #expect(await api.meCalls == ["tok_1"])
+        #expect(await api.meCalls == ["zks_1"])
         #expect(try store.load()?.parent == renamed)
     }
 
     @Test func expiredSessionIsClearedAtLaunch() async throws {
         try store.save(session)
         await api.set(me: .failure(.unauthorized))
-        let auth = acceptedModel()
+        agreement.accept(version: ParentalAgreement.currentVersion)
+        let auth = model()
 
         await auth.start()
 
@@ -189,10 +327,23 @@ struct AuthModelTests {
         #expect(try store.load() == nil)
     }
 
+    @Test func sessionPastExpiresAtIsClearedWithoutAsking() async throws {
+        try store.save(Session(token: "zks_old", expiresAt: Date().addingTimeInterval(-60), parent: parent))
+        agreement.accept(version: ParentalAgreement.currentVersion)
+        let auth = model()
+
+        await auth.start()
+
+        #expect(auth.state == .signedOut)
+        #expect(try store.load() == nil)
+        #expect(await api.meCalls.isEmpty)
+    }
+
     @Test func offlineLaunchKeepsTheStoredSession() async throws {
         try store.save(session)
         await api.set(me: .failure(.network))
-        let auth = acceptedModel()
+        agreement.accept(version: ParentalAgreement.currentVersion)
+        let auth = model()
 
         await auth.start()
 
@@ -205,21 +356,23 @@ struct AuthModelTests {
     @Test func logoutClearsTheSessionAndTellsTheAPI() async throws {
         try store.save(session)
         await api.set(me: .success(parent))
-        let auth = acceptedModel()
+        agreement.accept(version: ParentalAgreement.currentVersion)
+        let auth = model()
         await auth.start()
 
         await auth.logout()
 
         #expect(auth.state == .signedOut)
         #expect(try store.load() == nil)
-        #expect(await api.logoutCalls == ["tok_1"])
+        #expect(await api.logoutCalls == ["zks_1"])
     }
 
     @Test func logoutClearsTheSessionEvenWhenTheAPIFails() async throws {
         try store.save(session)
         await api.set(me: .success(parent))
         await api.set(logoutError: .network)
-        let auth = acceptedModel()
+        agreement.accept(version: ParentalAgreement.currentVersion)
+        let auth = model()
         await auth.start()
 
         await auth.logout()
@@ -231,29 +384,21 @@ struct AuthModelTests {
 
 struct AgeRangeTests {
     @Test(arguments: [
-        (AgeRange(lower: 18, upper: nil, declined: false), false),
-        (AgeRange(lower: nil, upper: 17, declined: false), true),
-        (AgeRange(lower: 13, upper: 15, declined: false), true),
-        (AgeRange(lower: nil, upper: nil, declined: true), false),
-        (AgeRange(lower: 18, upper: 18, declined: false), false),
+        (AgeRange.shared(lower: 18, upper: nil, platformStatus: nil), false),
+        (AgeRange.shared(lower: nil, upper: 17, platformStatus: nil), true),
+        (AgeRange.shared(lower: 13, upper: 15, platformStatus: nil), true),
+        (AgeRange.shared(lower: 16, upper: nil, platformStatus: nil), true), // "16 and up" doesn't show 18+
+        (AgeRange.shared(lower: 18, upper: 18, platformStatus: nil), false),
+        (AgeRange.declined(platformStatus: nil), false),
+        (AgeRange.unavailable, false),
     ])
-    func minorOnlyWhenTheUpperBoundIsUnder18(range: AgeRange, minor: Bool) {
-        #expect(range.isMinor == minor)
+    func notAnAdultOnlyWhenASharedRangeDoesNotShow18Plus(range: AgeRange, notAdult: Bool) {
+        #expect(range.isMinor == notAdult)
     }
 }
 
 struct SignInNonceTests {
-    @Test func noncesAreRandomAndHashedForTheProvider() {
-        let first = SignInNonce()
-        let second = SignInNonce()
-        #expect(first.raw != second.raw)
-        #expect(first.raw.count >= 43, "at least 32 random bytes, base64url")
-        #expect(first.hashed.count == 64, "SHA-256 as lowercase hex")
-        #expect(first.hashed == first.hashed.lowercased())
-        #expect(first.hashed != first.raw)
-    }
-
-    @Test func hashIsSHA256OfTheRawNonce() {
+    @Test func hashIsLowercaseHexSHA256OfTheRawNonce() {
         #expect(SignInNonce(raw: "abc").hashed == "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad")
     }
 }

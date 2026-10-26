@@ -12,11 +12,13 @@ final class SignInUITests: XCTestCase {
         agreement: String = "accepted",
         session: String = "none",
         age: String = "adult",
-        extraArguments: [String] = []
+        extraArguments: [String] = [],
+        extraEnvironment: [String: String] = [:]
     ) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["-zk-ui-test"] + extraArguments
         app.launchEnvironment = ["ZK_AGREEMENT": agreement, "ZK_SESSION": session, "ZK_AGE": age]
+            .merging(extraEnvironment) { $1 }
         app.launch()
         return app
     }
@@ -71,6 +73,28 @@ final class SignInUITests: XCTestCase {
 
         XCTAssertTrue(app.screen("blocked.screen").waitForExistence(timeout: 5))
         XCTAssertFalse(app.screen("home.screen").exists)
+    }
+
+    func testDeclinedAgeShowsTheDeclinedScreenAndTryAgainReturnsToSignIn() {
+        let app = launch(age: "declined")
+        XCTAssertTrue(app.buttons["signin.google"].waitForExistence(timeout: 10))
+
+        app.buttons["signin.google"].tap()
+
+        XCTAssertTrue(app.screen("declined.screen").waitForExistence(timeout: 5))
+        app.buttons["declined.tryAgain"].tap()
+        XCTAssertTrue(app.screen("signin.screen").waitForExistence(timeout: 5))
+    }
+
+    func testRateLimitedSignInSaysWhenToTryAgain() {
+        let app = launch(extraEnvironment: ["ZK_SIGNIN": "rate-limited"])
+        XCTAssertTrue(app.buttons["signin.google"].waitForExistence(timeout: 10))
+
+        app.buttons["signin.google"].tap()
+
+        let error = app.staticTexts["signin.error"]
+        XCTAssertTrue(error.waitForExistence(timeout: 5))
+        XCTAssertTrue(error.label.contains("30"), "says to wait 30 seconds")
     }
 
     func testLargestDynamicTypeKeepsSignInReachable() {

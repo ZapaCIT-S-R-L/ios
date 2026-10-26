@@ -7,7 +7,11 @@ import Testing
 @Suite(.serialized)
 struct KeychainSessionStoreTests {
     let store = KeychainSessionStore(service: "com.zapacit.zapakid.tests.\(UUID().uuidString)")
-    let session = Session(token: "tok_1", parent: ParentProfile(id: "p_1", name: "TEST Parent", email: nil))
+    let session = Session(
+        token: "zks_1",
+        expiresAt: Date(timeIntervalSince1970: 1_800_000_000),
+        parent: ParentProfile(id: "p_1", email: nil, displayName: "TEST Parent")
+    )
 
     @Test func savesAndLoadsTheSession() throws {
         defer { try? store.clear() }
@@ -21,7 +25,7 @@ struct KeychainSessionStoreTests {
     @Test func saveReplacesTheOldSession() throws {
         defer { try? store.clear() }
         try store.save(session)
-        let newer = Session(token: "tok_2", parent: session.parent)
+        let newer = Session(token: "zks_2", expiresAt: session.expiresAt, parent: session.parent)
 
         try store.save(newer)
 

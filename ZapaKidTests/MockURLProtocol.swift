@@ -1,9 +1,22 @@
 import Foundation
 
+/// What the fake API answers.
+struct MockReply {
+    var status: Int
+    var body: Data
+    var headers: [String: String] = [:]
+
+    init(_ status: Int, _ body: String = "", headers: [String: String] = [:]) {
+        self.status = status
+        self.body = Data(body.utf8)
+        self.headers = headers
+    }
+}
+
 /// Answers URLSession requests in tests, so the real HTTP client runs against a fake API (no network).
 /// Suites that use it are `.serialized`: there is one handler at a time.
 final class MockURLProtocol: URLProtocol, @unchecked Sendable {
-    typealias Handler = @Sendable (URLRequest, Data?) throws -> (Int, Data)
+    typealias Handler = @Sendable (URLRequest, Data?) throws -> MockReply
 
     private static let lock = NSLock()
     private nonisolated(unsafe) static var handler: Handler?
@@ -40,15 +53,15 @@ final class MockURLProtocol: URLProtocol, @unchecked Sendable {
         }
         do {
             guard let handler, let url = request.url else { throw URLError(.badServerResponse) }
-            let (status, data) = try handler(request, body)
+            let reply = try handler(request, body)
             let response = HTTPURLResponse(
-                url: url, statusCode: status, httpVersion: "HTTP/1.1",
-                headerFields: ["Content-Type": "application/json"]
+                url: url, statusCode: reply.status, httpVersion: "HTTP/1.1",
+                headerFields: ["Content-Type": "application/json"].merging(reply.headers) { $1 }
             )
             if let response {
                 client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
             }
-            client?.urlProtocol(self, didLoad: data)
+            client?.urlProtocol(self, didLoad: reply.body)
             client?.urlProtocolDidFinishLoading(self)
         } catch {
             client?.urlProtocol(self, didFailWithError: error)
