@@ -4,6 +4,19 @@ import Security
 import Testing
 @testable import ZapaKid
 
+/// Records requests to re-share the identity from another family phone.
+final class RecordingReshare: IdentityReshare {
+    private(set) var requests = 0
+
+    func requestReshare() {
+        requests += 1
+    }
+}
+
+struct NoReshare: IdentityReshare {
+    func requestReshare() {}
+}
+
 /// Key setup, PR 1: this phone's libsignal keys and the stores libsignal uses, no network yet.
 /// The private keys never leave the phone: the Keychain (this device only) and Data-Protection-Complete files.
 @Suite(.serialized)
@@ -18,15 +31,22 @@ struct KeySetupTests {
     }
 
     func identityStore() -> LocalIdentityStore {
-        LocalIdentityStore(keychain: KeychainData(service: keychainService, account: "identity"))
+        LocalIdentityStore(keychain: .syncedIdentity(service: keychainService))
+    }
+
+    /// A new account: no identity anywhere yet, so this phone creates it.
+    func newAccountIdentity() throws -> LocalIdentity {
+        guard case let .ready(identity) = try identityStore().resolve(accountHasIdentity: false, reshare: NoReshare())
+        else { throw CancellationError() }
+        return identity
     }
 
     func protocolStore() throws -> ZapaKidProtocolStore {
-        try ZapaKidProtocolStore(identity: identityStore().loadOrCreate(), files: files())
+        try ZapaKidProtocolStore(identity: newAccountIdentity(), files: files())
     }
 
     func cleanUp() {
-        try? KeychainData(service: keychainService, account: "identity").clear()
+        try? KeychainData.syncedIdentity(service: keychainService).clear()
         try? FileManager.default.removeItem(at: directory)
     }
 
@@ -34,30 +54,76 @@ struct KeySetupTests {
 
     @Test func identityIsCreatedOnceAndKept() throws {
         defer { cleanUp() }
-        let first = try identityStore().loadOrCreate()
+        let first = try newAccountIdentity()
 
-        let again = try identityStore().loadOrCreate()
+        let again = try newAccountIdentity()
 
         #expect(again.keyPair.publicKey.serialize() == first.keyPair.publicKey.serialize())
         #expect(again.registrationId == first.registrationId)
         #expect((1 ... 16380).contains(first.registrationId), "libsignal registration IDs are 14-bit, not 0")
     }
 
-    @Test func identityIsInTheKeychainThisDeviceOnly() throws {
+    @Test func identityIsTheOneSyncedItemReadableWhenUnlocked() throws {
         defer { cleanUp() }
-        _ = try identityStore().loadOrCreate()
+        _ = try newAccountIdentity()
 
+        let item = try #require(keychainAttributes(service: keychainService))
+        #expect((item[kSecAttrSynchronizable as String] as? NSNumber)?.boolValue == true, "iCloud Keychain")
+        #expect(item[kSecAttrAccessible as String] as? String == kSecAttrAccessibleWhenUnlocked as String)
+    }
+
+    @Test func identitySurvivesAReinstallWhenTheSyncedItemExists() throws {
+        defer { cleanUp() }
+        let original = try newAccountIdentity()
+        try? FileManager.default.removeItem(at: directory) // a reinstall loses the app's files, not iCloud Keychain
+        let reshare = RecordingReshare()
+
+        let state = try identityStore().resolve(accountHasIdentity: true, reshare: reshare)
+
+        guard case let .ready(restored) = state else {
+            Issue.record("expected the synced identity, got \(state)")
+            return
+        }
+        #expect(restored.keyPair.serialize() == original.keyPair.serialize())
+        #expect(restored.registrationId == original.registrationId)
+        #expect(reshare.requests == 0)
+    }
+
+    @Test func missingSyncedIdentityWaitsForAnotherFamilyPhone() throws {
+        defer { cleanUp() }
+        let reshare = RecordingReshare()
+
+        let state = try identityStore().resolve(accountHasIdentity: true, reshare: reshare)
+
+        #expect(
+            state == .waitingForReshare,
+            "never a new identity for an account that has one: peers would see a change"
+        )
+        #expect(reshare.requests == 1)
+        #expect(try identityStore().load() == nil)
+    }
+
+    @Test func prekeysAndSessionsStayOnThisPhone() throws {
+        defer { cleanUp() }
+        let store = try protocolStore()
+        _ = try DeviceKeyGenerator(store: store).generate(oneTimeCount: 1)
+
+        let names = try FileManager.default.contentsOfDirectory(atPath: directory.path)
+        #expect(names.contains { $0.hasPrefix("prekey-") })
+        let excluded = try directory.resourceValues(forKeys: [.isExcludedFromBackupKey]).isExcludedFromBackup
+        #expect(excluded == true, "files, not the synced Keychain item, and never in backups")
+    }
+
+    func keychainAttributes(service: String) -> [String: Any]? {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: keychainService,
+            kSecAttrService as String: service,
             kSecAttrSynchronizable as String: kSecAttrSynchronizableAny,
             kSecReturnAttributes as String: true,
         ]
         var result: CFTypeRef?
-        #expect(SecItemCopyMatching(query as CFDictionary, &result) == errSecSuccess)
-        let item = try #require(result as? [String: Any])
-        #expect(item[kSecAttrAccessible as String] as? String == kSecAttrAccessibleWhenUnlockedThisDeviceOnly as String)
-        #expect((item[kSecAttrSynchronizable as String] as? NSNumber)?.boolValue != true)
+        guard SecItemCopyMatching(query as CFDictionary, &result) == errSecSuccess else { return nil }
+        return result as? [String: Any]
     }
 
     // MARK: Device keys
