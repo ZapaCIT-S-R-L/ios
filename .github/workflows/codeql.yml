@@ -1,4 +1,5 @@
-# CodeQL code scanning for the Swift code (built on macOS) and these workflows (Actions).
+# CodeQL code scanning for these workflows (Actions, Linux, every PR) and the Swift code (built on macOS, only on
+# main and weekly: our free org runs about 5 macOS jobs at once, and each PR already uses one for its tests).
 # Results show under Security → Code scanning. Free for public repositories.
 name: codeql
 
@@ -12,35 +13,44 @@ on:
 permissions:
   contents: read
 
+# A new push to a PR cancels that PR's older run; runs on main always finish.
+concurrency:
+  group: codeql-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
-  analyze:
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 90
-    env:
-      DEVELOPER_DIR: ${{ startsWith(matrix.os, 'macos') && '/Applications/Xcode_26.6.app/Contents/Developer' || '' }}
+  actions:
+    runs-on: ubuntu-latest
     permissions:
       actions: read
       contents: read
       security-events: write
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - language: swift
-            # Intel for now (no arm64 capacity on 2026-10-26); back to macos-26 when it returns, as in ci.yml.
-            os: macos-26-intel
-            build-mode: manual
-          - language: actions
-            os: ubuntu-latest
-            build-mode: none
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: github/codeql-action/init@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
         with:
-          languages: ${{ matrix.language }}
-          build-mode: ${{ matrix.build-mode }}
+          languages: actions
+          build-mode: none
+      - uses: github/codeql-action/analyze@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
+
+  swift:
+    if: github.event_name != 'pull_request'
+    # Intel for now; back to macos-26 (arm64) when it is reliable again, as in ci.yml.
+    runs-on: macos-26-intel
+    timeout-minutes: 90
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: github/codeql-action/init@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
+        with:
+          languages: swift
+          build-mode: manual
       - name: Build the app for CodeQL
-        if: matrix.language == 'swift'
         env:
           XCODEGEN_VERSION: 2.46.0
           XCODEGEN_SHA256: 4d9e34b62172d645eed6457cac13fc222569974098ef4ee9c3368bedf0196806
