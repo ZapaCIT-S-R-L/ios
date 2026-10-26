@@ -15,6 +15,7 @@ cryptographic primitives of its own.
 | Sign-in | One-time server nonce (`POST /v1/auth/nonce`); Apple and Google tokens carry its SHA-256, the API gets the raw nonce and rejects replays. Google uses PKCE, no client secret, ephemeral browser session | `AuthModel`, `SignInNonce`, `GoogleSignIn` |
 | Minors | A shared age range that doesn't show 18+, or a declined one, is stopped before anything is sent; the API also refuses them (`403 minor_not_allowed`, `403 age_declined`) | `AuthModel.signIn` |
 | UI tests | The stub backend is compiled into Debug builds only | `UITestStubs.swift` (`#if DEBUG`) |
+| App Attest | Every sign-in carries an App Attest assertion over SHA-256 of its body (`ZapaKid-Attestation`); the key is registered once, its ID kept in the Keychain this device only; a refused key is replaced | `AppAttestor`, `HTTPAuthAPI` |
 | Supply chain | Exact versions (`Package.resolved` committed), actions pinned by commit SHA, images by digest; OSV-Scanner on every PR and daily; Dependabot security updates; SBOM on every release; CodeQL; gitleaks | `.github/` |
 
 ## Rules for the next slices
@@ -28,7 +29,7 @@ cryptographic primitives of its own.
 - **No chat content** in logs, crash reports, analytics or push payloads. Pushes carry only an opaque "new message"
   signal; a Notification Service Extension decrypts on the phone.
 
-## Planned: App Attest (later PR, required on sign-in before launch)
+## App Attest (sign-in done; required on sign-in before launch)
 
 Goal: the API serves only genuine copies of the app on real Apple devices (DeviceCheck App Attest). Decided
 2026-10-26: **required on sign-in from launch**. Endpoints from `openapi.yaml` in ZapaCIT-S-R-L/api (tag
@@ -41,7 +42,8 @@ Goal: the API serves only genuine copies of the app on real Apple devices (Devic
 3. `attestKey(keyID, clientDataHash: SHA256(challenge))` → attestation object.
    `POST /v1/attestation/apple {keyId, attestationObject, challenge}` → 204. The API verifies the chain to Apple's
    App Attest root, App ID `9572LYGZ7S.ro.zapakid.app`, key ID, counter 0, production `aaguid` in production.
-4. Sign-in and other sensitive calls carry an assertion in the `ZapaKid-Attestation` header:
+4. Sign-in (done) and later other sensitive calls carry an assertion in the `ZapaKid-Attestation` header, draft
+   format `v1 keyId=<key ID> assertion=<base64>` (to confirm with the API):
    `generateAssertion(keyID, clientDataHash: SHA256(request body))`; the API checks the signature and that the
    counter goes up. A refused client gets `403 attestation_failed` (the sign-in client already maps it to a
    message).
