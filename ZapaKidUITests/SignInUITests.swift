@@ -97,6 +97,15 @@ final class SignInUITests: XCTestCase {
         XCTAssertTrue(error.label.contains("30"), "says to wait 30 seconds")
     }
 
+    func testRomanianAndGermanSignIn() {
+        for (language, label) in [("ro", "Conectează-te cu Google"), ("de", "Mit Google anmelden")] {
+            let app = launch(extraArguments: ["-AppleLanguages", "(\(language))", "-AppleLocale", language])
+            XCTAssertTrue(app.buttons["signin.google"].waitForExistence(timeout: 10))
+            XCTAssertEqual(app.buttons["signin.google"].label, label, "Google button in \(language)")
+            app.terminate()
+        }
+    }
+
     func testLargestDynamicTypeKeepsSignInReachable() {
         let app = launch(extraArguments: [
             "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL",
