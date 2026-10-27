@@ -171,6 +171,8 @@ struct MessageBubble: View {
             AttachmentImage(pointer: pointer, services: services)
         case let .voice(pointer):
             VoiceNoteView(pointer: pointer, services: services)
+        case .call:
+            Label { Text("Call") } icon: { Image(systemName: "phone.fill") }
         }
     }
 }

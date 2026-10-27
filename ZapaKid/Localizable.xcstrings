@@ -33,6 +33,22 @@
         }
       }
     },
+    "Add your kids in Family first.": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Adaugă mai întâi copiii în Familie."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Füge zuerst deine Kinder unter Familie hinzu."
+          }
+        }
+      }
+    },
     "Apple didn't return a sign-in token.": {
       "localizations": {
         "ro": {
@@ -445,6 +461,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Nachricht"
+          }
+        }
+      }
+    },
+    "New chat": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chat nou"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Neuer Chat"
           }
         }
       }
@@ -973,6 +1005,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Meldet dich auf diesem Handy ab"
+          }
+        }
+      }
+    },
+    "Start": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Începe"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Starten"
           }
         }
       }

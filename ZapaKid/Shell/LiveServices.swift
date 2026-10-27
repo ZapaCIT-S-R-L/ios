@@ -7,7 +7,7 @@ import ZapaKidKit
 /// the libsignal message/call-key sealers (stacked on the key-setup PRs) and the WebRTC media engine.
 @MainActor
 enum LiveServices {
-    static func make(me: String, auth: AuthModel) -> AppServices {
+    static func make(me: String, kid: Bool, auth: AuthModel) -> AppServices {
         let tokens = ChatTokenProvider(
             // swiftlint:disable:next force_unwrapping
             api: HTTPChatTokenAPI(baseURL: URL(string: ZapaKidKit.apiBaseURL)!),
@@ -35,7 +35,7 @@ enum LiveServices {
             let system: CallSystem = CallKitSystem()
         #endif
         return AppServices(
-            me: me,
+            me: me, canStartChats: !kid,
             chat: ChatModel(me: me, api: chatAPI, sealer: messageSealer, store: store),
             people: [], log: InMemoryCallLog(), system: system
         ) { _ in

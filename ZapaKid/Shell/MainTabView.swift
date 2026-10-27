@@ -76,7 +76,11 @@ struct MainTabView: View {
                 shownCall = services.calls.current
             }
         }
-        .task { await services.chat.loadConversations() }
+        .task {
+            await services.loadPeople?(services)
+            await services.chat.loadConversations()
+            services.chat.connectAll()
+        }
     }
 
     /// Keeps the ended call on screen until the person taps Close.

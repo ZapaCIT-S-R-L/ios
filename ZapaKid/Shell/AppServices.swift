@@ -25,11 +25,18 @@ final class AppServices {
     /// The peers of the call being placed (the controller factory reads them).
     var placing: [CallPeer] = []
 
+    /// Parents start conversations; kids answer in the ones their parents made.
+    let canStartChats: Bool
+    /// Fills in names and robots from the family (account API).
+    var loadPeople: (@MainActor (AppServices) async -> Void)?
+
     init(
-        me: String, chat: ChatModel, people: [Person], log: CallLogStore, system: CallSystem,
+        me: String, canStartChats: Bool = true, chat: ChatModel, people: [Person], log: CallLogStore,
+        system: CallSystem,
         makeController: @escaping @MainActor (AppServices) -> CallController
     ) {
         self.me = me
+        self.canStartChats = canStartChats
         self.chat = chat
         self.people = Dictionary(people.map { ($0.accountId, $0) }) { first, _ in first }
         self.log = log
@@ -43,6 +50,17 @@ final class AppServices {
             }
         )
         services = self
+        // Until VoIP pushes are set up, calls ring through a sealed message in the chat.
+        chat.onIncomingCall = { [weak self] callId, _, caller in
+            guard let self else { return }
+            placing = peer(caller).map { [$0] } ?? []
+            Task { await self.calls.handle(IncomingCallPush(callId: callId, callerAccountId: caller)) }
+        }
+    }
+
+    /// Everyone this account can chat with (not itself).
+    var contacts: [Person] {
+        people.values.filter { $0.accountId != me }.sorted { $0.name < $1.name }
     }
 
     /// Names and robots from the family (parents and kids).
@@ -77,6 +95,9 @@ final class AppServices {
         let peers = conversation.members.filter { $0.accountId != me }.compactMap { peer($0.accountId) }
         placing = peers
         await calls.startCall(conversationId: conversation.id, peers: peers)
+        if let callId = calls.current?.callId {
+            await chat.announceCall(callId, in: conversation.id)
+        }
     }
 
     func refreshLog() async {
