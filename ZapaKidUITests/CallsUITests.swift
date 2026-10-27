@@ -21,6 +21,7 @@ final class CallsUITests: XCTestCase {
 
         XCTAssertTrue(app.staticTexts["call.status"].waitForExistence(timeout: 10))
         XCTAssertEqual(app.staticTexts["call.status"].label, "Calling…")
+        XCTAssertEqual(app.staticTexts["call.name"].label, "Mama")
         XCTAssertTrue(app.staticTexts["call.timer"].waitForExistence(timeout: 10), "the call clock shows once answered")
 
         let mute = app.buttons["call.mute"]
@@ -36,8 +37,7 @@ final class CallsUITests: XCTestCase {
         XCTAssertEqual(speaker.value as? String, "On")
 
         app.buttons["call.end"].tap()
-        XCTAssertTrue(app.staticTexts["call.status"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["Call ended"].waitForExistence(timeout: 5))
+        waitForLabel(app.staticTexts["call.status"], "Call ended")
     }
 
     func testIncomingCallShowsBigAcceptAndDeclineButtons() {
@@ -49,7 +49,7 @@ final class CallsUITests: XCTestCase {
         XCTAssertEqual(accept.label, "Accept")
         XCTAssertEqual(decline.label, "Decline")
         XCTAssertGreaterThanOrEqual(accept.frame.width, 72, "big round buttons for small fingers")
-        XCTAssertTrue(app.staticTexts["Mama"].exists)
+        XCTAssertEqual(app.staticTexts["call.name"].label, "Mama")
 
         accept.tap()
         XCTAssertTrue(app.buttons["call.end"].waitForExistence(timeout: 5))
@@ -62,7 +62,7 @@ final class CallsUITests: XCTestCase {
         XCTAssertTrue(app.buttons["call.decline"].waitForExistence(timeout: 10))
         app.buttons["call.decline"].tap()
 
-        XCTAssertTrue(app.staticTexts["Declined"].waitForExistence(timeout: 5))
+        waitForLabel(app.staticTexts["call.status"], "Declined")
     }
 
     func testGroupCallShowsEveryoneAsABubbleAndWhoIsSpeaking() {
@@ -77,13 +77,17 @@ final class CallsUITests: XCTestCase {
         waitForExpectations(timeout: 10)
     }
 
+    private func waitForLabel(_ element: XCUIElement, _ label: String, timeout: TimeInterval = 5) {
+        expectation(for: NSPredicate(format: "label == %@", label), evaluatedWith: element)
+        waitForExpectations(timeout: timeout)
+    }
+
     func testCallLogListsCallsAndMissedOnes() {
         let app = launch("log")
 
-        XCTAssertTrue(app.otherElements["calls.log"].waitForExistence(timeout: 10)
-            || app.collectionViews["calls.log"].exists || app.tables["calls.log"].exists)
+        XCTAssertTrue(app.buttons["calls.log.callBack.Mama"].waitForExistence(timeout: 10))
         XCTAssertTrue(app.staticTexts["Missed call"].exists)
-        XCTAssertTrue(app.buttons["calls.log.callBack.Mama"].exists)
+        XCTAssertEqual(app.buttons["calls.log.callBack.Mama"].label, "Call back")
     }
 
     func testRomanianLabels() {
