@@ -48,9 +48,8 @@ final class ThemeUITests: XCTestCase {
         field.typeText(kid ? "Can Maria come over?" : "Yes, after homework!")
         app.buttons["chat.send"].tap()
         XCTAssertTrue(app.staticTexts["Hi! 👋"].waitForExistence(timeout: 10))
-        if app.keyboards.firstMatch.exists {
-            app.scrollViews.firstMatch.swipeDown()
-        }
+        app.staticTexts["Hi! 👋"].tap() // tapping the conversation hides the keyboard
+        XCTAssertTrue(app.keyboards.firstMatch.waitForNonExistence(timeout: 5))
         shoot(app, "\(role)-chat")
 
         // Call: big mute, speaker and hang-up buttons.

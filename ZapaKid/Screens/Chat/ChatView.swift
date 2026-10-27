@@ -11,6 +11,7 @@ struct ChatView: View {
     @State private var text = ""
     @State private var photo: PhotosPickerItem?
     @State private var recorder = VoiceRecorder()
+    @FocusState private var typing: Bool
     @Environment(\.zapaTheme) private var theme
 
     private var messages: [ChatMessage] {
@@ -30,6 +31,8 @@ struct ChatView: View {
             }
             .background(theme.background.color.ignoresSafeArea())
             .scrollDismissesKeyboard(.immediately)
+            // Tapping the conversation hides the keyboard.
+            .onTapGesture { typing = false }
             .onChange(of: messages.count) {
                 if let last = messages.last {
                     withAnimation { scroll.scrollTo(last.id, anchor: .bottom) }
@@ -92,6 +95,7 @@ struct ChatView: View {
                 .background(Capsule().fill(theme.surface.color))
                 .overlay(Capsule().strokeBorder(theme.separator.color, lineWidth: theme.cardShadow ? 2 : 1))
                 .foregroundStyle(theme.text.color)
+                .focused($typing)
                 .accessibilityIdentifier("chat.input")
             if text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 Image(systemName: recorder.isRecording ? "stop.circle.fill" : "mic.circle.fill")
