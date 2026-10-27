@@ -62,7 +62,9 @@ final class ThemeUITests: XCTestCase {
         }
         shoot(app, "\(role)-call")
         app.buttons["call.end"].tap()
+        XCTAssertTrue(app.buttons["call.close"].waitForExistence(timeout: 5))
         app.buttons["call.close"].tap()
+        XCTAssertTrue(app.textFields["chat.input"].waitForExistence(timeout: 5), "back in the chat")
 
         // Family.
         app.tabBars.buttons["Family"].tap()
