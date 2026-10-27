@@ -5,6 +5,7 @@ import PackageDescription
 
 let package = Package(
     name: "ZapaCalls",
+    defaultLocalization: "en",
     platforms: [.iOS(.v17), .macOS(.v14)],
     products: [
         .library(name: "ZapaCalls", targets: ["ZapaCalls"]),
@@ -15,9 +16,11 @@ let package = Package(
         .package(url: "https://github.com/livekit/webrtc-xcframework.git", exact: "150.7871.04"),
     ],
     targets: [
+        // Localizable.xcstrings: RO, EN, DE (scripts/strings.js checks every string is translated).
         .target(
             name: "ZapaCalls",
-            dependencies: [.product(name: "LiveKitWebRTC", package: "webrtc-xcframework")]
+            dependencies: [.product(name: "LiveKitWebRTC", package: "webrtc-xcframework")],
+            resources: [.process("Localizable.xcstrings")]
         ),
     ]
 )
