@@ -46,7 +46,12 @@ targets:
   ZapaKidTests:
     type: bundle.unit-test
     platform: iOS
-    sources: [ZapaKidTests]
+    sources:
+      - ZapaKidTests
+      # The API contract fixtures (also checked against openapi.yaml by test/contract.test.js).
+      - path: contract/fixtures
+        type: folder
+        buildPhase: resources
     dependencies:
       - target: ZapaKid
       - package: ZapaKidKit
