@@ -7,7 +7,8 @@ import Testing
 ///   TEST_RUNNER_ZK_CALLS_E2E_URL=http://127.0.0.1:8790
 ///   TEST_RUNNER_ZK_CALLS_E2E_CONVERSATION=<conversation id>
 ///   TEST_RUNNER_ZK_CALLS_E2E_TOKEN_A=<chat token, device A>   TEST_RUNNER_ZK_CALLS_E2E_TOKEN_B=<chat token, device B>
-///   TEST_RUNNER_ZK_CALLS_E2E_DEVICE_A=<accountId>.<deviceId>   TEST_RUNNER_ZK_CALLS_E2E_DEVICE_B=<accountId>.<deviceId>
+///   TEST_RUNNER_ZK_CALLS_E2E_DEVICE_A=<accountId>.<deviceId>  
+/// TEST_RUNNER_ZK_CALLS_E2E_DEVICE_B=<accountId>.<deviceId>
 /// (xcodebuild passes TEST_RUNNER_-prefixed variables to the tests without the prefix.)
 @Suite(.enabled(if: CallsE2E.configured, "set ZK_CALLS_E2E_* to run against a local calls service"))
 struct CallsServiceE2ETests {
@@ -29,7 +30,11 @@ struct CallsServiceE2ETests {
 
         // Both see the roster with both devices, the server's epoch and key leader.
         let call = try await CallsE2E.first(in: bobEvents) { signal -> CallSnapshot? in
-            if case let .roster(call) = signal, call.participants.count == 2 { call } else { nil }
+            if case let .roster(call) = signal, call.participants.count == 2 {
+                call
+            } else {
+                nil
+            }
         }
         #expect(call.participants.map(\.name).sorted() == [env.deviceA, env.deviceB].sorted())
         let leader = try #require(call.keyLeader?.name)
@@ -41,7 +46,11 @@ struct CallsServiceE2ETests {
         let envelope = KeyEnvelope(epoch: call.epoch, fromDevice: leader, toDevice: follower, blob: Data([1, 2, 3, 4]))
         try await leaderSocket.send(.keys(epoch: call.epoch, [envelope]))
         let relayed = try await CallsE2E.first(in: followerEvents) { signal -> KeyEnvelope? in
-            if case let .key(got) = signal { got } else { nil }
+            if case let .key(got) = signal {
+                got
+            } else {
+                nil
+            }
         }
         #expect(relayed.blob == envelope.blob)
         #expect(relayed.fromDevice == leader)
@@ -49,7 +58,11 @@ struct CallsServiceE2ETests {
 
         try await bob.leave(callId: grant.callId)
         let left = try await CallsE2E.first(in: aliceEvents) { signal -> String? in
-            if case let .left(device, _) = signal { device.name } else { nil }
+            if case let .left(device, _) = signal {
+                device.name
+            } else {
+                nil
+            }
         }
         #expect(left == env.deviceB)
         try await alice.leave(callId: grant.callId)

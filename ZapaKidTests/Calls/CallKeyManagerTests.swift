@@ -110,11 +110,15 @@ struct CallKeyManagerTests {
 
     @Test func aKeyThatArrivesBeforeItsRosterIsUsedOnceTheRosterComes() async throws {
         let phones = ["a.1": phone("a.1"), "b.1": phone("b.1")]
-        let envelopes = try await phones["a.1"]!.manager.rosterChanged(["a.1", "b.1"], epoch: 5, leader: "a.1")
+        let envelopes = try #require(try await phones["a.1"]?.manager.rosterChanged(
+            ["a.1", "b.1"],
+            epoch: 5,
+            leader: "a.1"
+        ))
 
         try await deliver(envelopes, to: phones) // b.1 hasn't seen epoch 5 yet
         #expect(phones["b.1"]?.frames.installed.isEmpty == true)
-        _ = try await phones["b.1"]!.manager.rosterChanged(["a.1", "b.1"], epoch: 5, leader: "a.1")
+        _ = try #require(try await phones["b.1"]?.manager.rosterChanged(["a.1", "b.1"], epoch: 5, leader: "a.1"))
 
         #expect(phones["b.1"]?.frames.installed.last?.epoch == 5)
     }
@@ -122,7 +126,8 @@ struct CallKeyManagerTests {
     @Test func tamperedBlobsAreRefused() async throws {
         let alice = phone("a.1")
         let bob = phone("b.1")
-        var envelope = try #require(try await alice.manager.rosterChanged(["a.1", "b.1"], epoch: 1, leader: "a.1").first)
+        var envelope = try #require(try await alice.manager.rosterChanged(["a.1", "b.1"], epoch: 1, leader: "a.1")
+            .first)
         _ = try await bob.manager.rosterChanged(["a.1", "b.1"], epoch: 1, leader: "a.1")
         envelope.blob[envelope.blob.startIndex] ^= 0xFF
 

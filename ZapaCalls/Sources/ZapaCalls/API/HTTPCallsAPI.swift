@@ -71,7 +71,7 @@ public struct HTTPCallsAPI: CallsAPI {
     }
 
     public func newSession(callId: String) async throws -> String {
-        let reply: NewSession = try await send("POST", rtc(callId, "sessions", "new"))
+        let reply: NewSession = try await send("POST", ["v1", "calls", callId, "sessions"])
         return reply.sessionId
     }
 
@@ -94,7 +94,7 @@ public struct HTTPCallsAPI: CallsAPI {
     }
 
     private func rtc(_ callId: String, _ rest: String...) -> [String] {
-        ["v1", "calls", callId, "rtc"] + rest
+        ["v1", "calls", callId] + rest
     }
 
     // MARK: Events

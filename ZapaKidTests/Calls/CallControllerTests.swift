@@ -35,7 +35,7 @@ struct CallControllerTests {
         ))
     }
 
-    @Test func anOutgoingCallRingsThenConnectsWhenSomeoneJoins() async throws {
+    @Test func anOutgoingCallRingsThenConnectsWhenSomeoneJoins() async {
         let call = controller()
 
         await call.startCall(conversationId: "conv-1", peers: [mama])
@@ -53,7 +53,7 @@ struct CallControllerTests {
         #expect(await eventually { call.phase == .active })
     }
 
-    @Test func theServersLeaderSendsOneKeysBatchForTheServersEpoch() async throws {
+    @Test func theServersLeaderSendsOneKeysBatchForTheServersEpoch() async {
         let call = controller(me: "acc-k.1")
         await call.startCall(conversationId: "conv-1", peers: [mama])
 
@@ -80,7 +80,7 @@ struct CallControllerTests {
         #expect(engine.keys.sendingEpoch == 5)
     }
 
-    @Test func anIncomingCallIsAcceptedAndJoined() async throws {
+    @Test func anIncomingCallIsAcceptedAndJoined() async {
         let call = controller()
         call.reportIncoming(callId: "c_9", caller: mama)
         #expect(call.phase == .ringing)

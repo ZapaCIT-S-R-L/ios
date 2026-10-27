@@ -46,7 +46,10 @@ enum LiveServices {
             let device = box.sessions.map {
                 LibsignalCallKeySealer.deviceName(account: me, device: Int($0.local.deviceId))
             } ?? me
-            return CallController(me: device, api: callsAPI, engine: engine, sealer: callSealer)
+            return CallController(
+                me: device, api: callsAPI, engine: engine, sealer: callSealer,
+                directory: { [weak services] account in services?.peer(account) }
+            )
         }
         services.prepare = {
             // Register this phone with the key directory (once), then seal with its sessions.
