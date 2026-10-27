@@ -1,0 +1,13 @@
+{
+  "operation": "GET /v1/accounts/{accountId}/identity",
+  "request": null,
+  "response": {
+    "status": 404,
+    "body": {
+      "error": {
+        "code": "not_found",
+        "message": "TEST"
+      }
+    }
+  }
+}

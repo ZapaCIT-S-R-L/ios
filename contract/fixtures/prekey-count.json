@@ -1,0 +1,11 @@
+{
+  "operation": "GET /v1/keys/prekeys",
+  "request": null,
+  "response": {
+    "status": 200,
+    "body": {
+      "preKeys": 17,
+      "pqPreKeys": 19
+    }
+  }
+}

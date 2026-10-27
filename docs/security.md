@@ -15,16 +15,17 @@ cryptographic primitives of its own.
 | Sign-in | One-time server nonce (`POST /v1/auth/nonce`); Apple and Google tokens carry its SHA-256, the API gets the raw nonce and rejects replays. Google uses PKCE, no client secret, ephemeral browser session | `AuthModel`, `SignInNonce`, `GoogleSignIn` |
 | Minors | A shared age range that doesn't show 18+, or a declined one, is stopped before anything is sent; the API also refuses them (`403 minor_not_allowed`, `403 age_declined`) | `AuthModel.signIn` |
 | UI tests | The stub backend is compiled into Debug builds only | `UITestStubs.swift` (`#if DEBUG`) |
-| Chat keys | libsignal (CocoaPod, pinned tag + prebuilt checksum) makes every key. Identity key pair and registration ID in the Keychain, this device only; private prekeys, Kyber prekeys and sessions in Data-Protection-Complete files excluded from backups; only public keys and their signatures are published | `ZapaKid/Keys/` |
-| Key changes | A peer whose identity key changed can't be sent to until the parent acknowledges the change (also after a restart); receiving still works so the warning can show | `ZapaKidProtocolStore` |
+| Chat keys | libsignal (CocoaPod, pinned tag + prebuilt checksum) makes every key. Identity key pair and registration ID: one per account, the one deliberately synchronizable Keychain item (iCloud Keychain, when unlocked); a phone without it waits for a re-share, never makes a new identity; private prekeys, Kyber prekeys and sessions in Data-Protection-Complete files excluded from backups; only public keys and their signatures are published | `ZapaKid/Keys/` |
+| Accounts on one phone | Everything kept for an account (synced identity item, key directory, device ID) is keyed by the account ID, and the identity item carries the account ID and is refused in another account's slot; a second account never reuses the first one's identity or device | `AccountKeys` |
+| Key changes | A peer whose identity key changed can't be sent to until the parent acknowledges the change (also after a restart and a reinstall: the trusted-peer list is a synced Keychain item of the account, next to the identity); receiving still works so the warning can show | `ZapaKidProtocolStore`, `PeerTrustStore` |
 | Supply chain | Exact versions (`Package.resolved` committed), actions pinned by commit SHA, images by digest; OSV-Scanner on every PR and daily; Dependabot security updates; SBOM on every release; CodeQL; gitleaks | `.github/` |
 
 ## Rules for the next slices
 
-- **Keys:** libsignal identity and session keys in the Keychain, `kSecAttrAccessibleWhenUnlockedThisDeviceOnly`.
-  The only exception is the chat-history backup key: one deliberately synchronizable item (iCloud Keychain, end-to-end
-  encrypted by Apple), so a new phone of the same parent gets the history back. Signing in to the account alone never
-  restores keys.
+- **Keys:** one libsignal identity per account. The identity key pair is the one deliberately synchronizable Keychain
+  item (iCloud Keychain, end-to-end encrypted by Apple, readable when unlocked), so the parent's phones and a
+  reinstall share it; a phone without it waits for a re-share from another family phone. Prekeys and sessions stay
+  this-device-only. Signing in to the account alone never restores keys.
 - **Chat data at rest:** in files with `NSFileProtectionComplete` (the default above); no chat content in
   `UserDefaults`, caches or the pasteboard by default.
 - **No chat content** in logs, crash reports, analytics or push payloads. Pushes carry only an opaque "new message"
@@ -33,7 +34,7 @@ cryptographic primitives of its own.
 ## Planned: App Attest (later PR, required on sign-in before launch)
 
 Goal: the API serves only genuine copies of the app on real Apple devices (DeviceCheck App Attest). Decided
-2026-10-26: **required on sign-in from launch**. Endpoints from `openapi.yaml` in ZapaCIT-S-R-L/zapakid-api (tag
+2026-10-26: **required on sign-in from launch**. Endpoints from `openapi.yaml` in ZapaCIT-S-R-L/api (tag
 `Draft: App attestation`, still a draft there):
 
 1. First launch: `DCAppAttestService.shared.isSupported` (false on the simulator: UI tests keep the stub backend;

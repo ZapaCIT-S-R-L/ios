@@ -11,6 +11,8 @@ import Testing
 struct KeySetupTests {
     let directory = FileManager.default.temporaryDirectory.appendingPathComponent("keys-\(UUID().uuidString)")
     let keychainService = "ro.zapakid.app.tests.identity.\(UUID().uuidString)"
+    let accountId = "6f1c0e2a-0000-4000-8000-000000000001"
+    let peersService = "ro.zapakid.app.tests.peers.\(UUID().uuidString)"
     let context = NullContext()
 
     func files() throws -> ProtectedFileStore {
@@ -18,15 +20,31 @@ struct KeySetupTests {
     }
 
     func identityStore() -> LocalIdentityStore {
-        LocalIdentityStore(keychain: KeychainData(service: keychainService, account: "identity"))
+        LocalIdentityStore(
+            accountId: accountId,
+            keychain: .syncedIdentity(service: keychainService, accountId: accountId)
+        )
+    }
+
+    /// A new account: no identity anywhere yet, so this phone creates it.
+    func newAccountIdentity() throws -> LocalIdentity {
+        guard case let .ready(identity) = try identityStore().resolve(accountHasIdentity: false, reshare: NoReshare())
+        else { throw CancellationError() }
+        return identity
     }
 
     func protocolStore() throws -> ZapaKidProtocolStore {
-        try ZapaKidProtocolStore(identity: identityStore().loadOrCreate(), files: files())
+        try ZapaKidProtocolStore(identity: newAccountIdentity(), files: files(), peers: peers())
+    }
+
+    func peers() -> PeerTrustStore {
+        PeerTrustStore(accountId: accountId, keychain: .syncedPeers(service: peersService, accountId: accountId))
     }
 
     func cleanUp() {
-        try? KeychainData(service: keychainService, account: "identity").clear()
+        try? KeychainData.syncedPeers(service: peersService, accountId: accountId).clear()
+        try? KeychainData.syncedPeers(service: peersService, accountId: "bob").clear()
+        try? KeychainData.syncedIdentity(service: keychainService, accountId: accountId).clear()
         try? FileManager.default.removeItem(at: directory)
     }
 
@@ -34,30 +52,13 @@ struct KeySetupTests {
 
     @Test func identityIsCreatedOnceAndKept() throws {
         defer { cleanUp() }
-        let first = try identityStore().loadOrCreate()
+        let first = try newAccountIdentity()
 
-        let again = try identityStore().loadOrCreate()
+        let again = try newAccountIdentity()
 
         #expect(again.keyPair.publicKey.serialize() == first.keyPair.publicKey.serialize())
         #expect(again.registrationId == first.registrationId)
         #expect((1 ... 16380).contains(first.registrationId), "libsignal registration IDs are 14-bit, not 0")
-    }
-
-    @Test func identityIsInTheKeychainThisDeviceOnly() throws {
-        defer { cleanUp() }
-        _ = try identityStore().loadOrCreate()
-
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: keychainService,
-            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny,
-            kSecReturnAttributes as String: true,
-        ]
-        var result: CFTypeRef?
-        #expect(SecItemCopyMatching(query as CFDictionary, &result) == errSecSuccess)
-        let item = try #require(result as? [String: Any])
-        #expect(item[kSecAttrAccessible as String] as? String == kSecAttrAccessibleWhenUnlockedThisDeviceOnly as String)
-        #expect((item[kSecAttrSynchronizable as String] as? NSNumber)?.boolValue != true)
     }
 
     // MARK: Device keys
@@ -233,7 +234,8 @@ struct KeySetupTests {
         let alice = try protocolStore()
         let bob = try ZapaKidProtocolStore(
             identity: LocalIdentity(keyPair: IdentityKeyPair.generate(), registrationId: 42),
-            files: ProtectedFileStore(directory: other)
+            files: ProtectedFileStore(directory: other),
+            peers: PeerTrustStore(accountId: "bob", keychain: .syncedPeers(service: peersService, accountId: "bob"))
         )
         let bobKeys = try DeviceKeyGenerator(store: bob).generate(oneTimeCount: 1)
         let aliceAddress = try ProtocolAddress(name: "alice", deviceId: 1)

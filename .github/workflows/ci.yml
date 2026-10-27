@@ -2,7 +2,8 @@
 #   changes  does this PR touch more than docs? (docs-only PRs skip the macOS job)
 #   ios      the only macOS job: XcodeGen project, build and unit tests on an iOS simulator (scripts/test.sh unit);
 #            on main also the UI tests. Our free org runs about 5 macOS jobs at once, so each PR uses one.
-#   scripts  the Node scripts for the CLA check and release tags (npm test)
+#   scripts  Node checks (npm test): CLA, release tags, strings, bundle ID, and the API contract test (fixtures vs
+#            the api's openapi.yaml at the commit in contract/api.json)
 #   deps     OSV-Scanner: known vulnerabilities in the pinned Swift packages (ZapaKidKit/Package.resolved)
 #   secrets  gitleaks scan of the whole history
 #   cla      the PR author signed the CLA (CLA-SIGNATURES.md), or is ZapaCIT staff or a bot
@@ -92,6 +93,7 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .nvmrc
+      - run: npm ci
       - run: npm test
 
   deps:

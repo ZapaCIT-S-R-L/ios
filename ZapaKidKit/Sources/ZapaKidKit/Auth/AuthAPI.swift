@@ -124,6 +124,8 @@ public enum AuthAPIError: Error, Equatable, Sendable {
     case ageDeclined
     /// `403 attestation_failed`: not a genuine app on a genuine device (App Attest, required before launch).
     case attestationFailed
+    /// `409 identity_mismatch`: the uploaded identity key isn't the account's identity key.
+    case identityMismatch
     /// `429 rate_limited`, with `Retry-After` in seconds when the API sent it.
     case rateLimited(retryAfter: Int?)
     /// `503 provider_unavailable`: Apple's or Google's keys couldn't be fetched.
