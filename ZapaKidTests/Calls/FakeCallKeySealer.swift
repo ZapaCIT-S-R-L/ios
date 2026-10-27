@@ -16,8 +16,8 @@ struct FakeCallKeySealer: CallKeySealer {
         try AES.GCM.open(AES.GCM.SealedBox(combined: blob), using: Self.pairKey(from: fromDevice, to: me))
     }
 
-    static func pairKey(from: String, to: String) -> SymmetricKey {
-        SymmetricKey(data: SHA256.hash(data: Data("TEST|\(from)|\(to)".utf8)))
+    static func pairKey(from sender: String, to recipient: String) -> SymmetricKey {
+        SymmetricKey(data: SHA256.hash(data: Data("TEST|\(sender)|\(recipient)".utf8)))
     }
 }
 

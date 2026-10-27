@@ -71,17 +71,35 @@ struct CallStateMachineTests {
     }
 
     @Test func theCallClockStartsWhenTheCallIsFirstActive() {
-        var now = Date(timeIntervalSince1970: 1000)
-        var machine = CallStateMachine(clock: { now })
+        let now = TestClock(Date(timeIntervalSince1970: 1000))
+        var machine = CallStateMachine(clock: { now.date })
         machine.handle(.placeCall)
-        now += 5
+        now.advance(5)
         machine.handle(.answered)
         #expect(machine.connectedAt == nil)
         machine.handle(.mediaConnected)
         #expect(machine.connectedAt == Date(timeIntervalSince1970: 1005))
-        now += 30
+        now.advance(30)
         machine.handle(.mediaInterrupted)
         machine.handle(.mediaConnected)
         #expect(machine.connectedAt == Date(timeIntervalSince1970: 1005), "a reconnect keeps the clock running")
+    }
+}
+
+/// A clock the test moves by hand.
+final class TestClock: @unchecked Sendable {
+    private let lock = NSLock()
+    private var now: Date
+
+    init(_ start: Date) {
+        now = start
+    }
+
+    var date: Date {
+        lock.withLock { now }
+    }
+
+    func advance(_ seconds: TimeInterval) {
+        lock.withLock { now += seconds }
     }
 }
