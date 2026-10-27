@@ -61,7 +61,7 @@ struct AppDependencies {
             ageCheck: DeclaredAgeRangeCheck(),
             families: HTTPFamiliesAPI.staging,
             fingerprint: { accountId in
-                (try? AccountKeys.app(accountId: accountId).identity.load()).flatMap { $0 }.map {
+                (try? AccountKeys.app(accountId: accountId).identity.load()).flatMap(\.self).map {
                     IdentityFingerprint.hex(Data($0.keyPair.publicKey.serialize()))
                 }
             },

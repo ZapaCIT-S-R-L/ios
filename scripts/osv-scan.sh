@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Scans the pinned dependencies for known vulnerabilities with OSV-Scanner (CI on every PR and daily, and
 # scripts/ci-local.sh):
-#   ZapaKidKit/Package.resolved   our Swift packages: fails on ANY known vulnerability
+#   ZapaKidKit/ and ZapaCalls/Package.resolved   our Swift packages: fails on ANY known vulnerability
 #   package-lock.json             the Node test tools (contract test): fails on ANY known vulnerability
 #   libsignal's Cargo.lock        the Rust crates inside Signal's prebuilt libsignal_ffi.a, at the tag in Podfile.lock
 #                                 (OSV can't read Podfile.lock): fails on HIGH or CRITICAL (CVSS >= 7); others,
@@ -35,12 +35,14 @@ judge() {
 }
 
 status=0
-if [ -f ZapaKidKit/Package.resolved ]; then
-  echo "== ZapaKidKit/Package.resolved (any finding fails)"
-  osv_json "$PWD/ZapaKidKit/Package.resolved" | judge 0 || status=1
-else
-  echo "== ZapaKidKit has no package dependencies yet"
-fi
+for package in ZapaKidKit ZapaCalls; do
+  if [ -f "$package/Package.resolved" ]; then
+    echo "== $package/Package.resolved (any finding fails)"
+    osv_json "$PWD/$package/Package.resolved" | judge 0 || status=1
+  else
+    echo "== $package has no package dependencies yet"
+  fi
+done
 
 if [ -f package-lock.json ]; then
   echo "== package-lock.json (any finding fails)"

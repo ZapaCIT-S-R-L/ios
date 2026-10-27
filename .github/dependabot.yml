@@ -19,6 +19,14 @@ updates:
       npm:
         applies-to: version-updates
         patterns: ["*"]
+  - package-ecosystem: swift
+    directory: /ZapaCalls
+    schedule:
+      interval: weekly
+    groups:
+      swift-calls:
+        applies-to: version-updates
+        patterns: ["*"]
   - package-ecosystem: github-actions
     directory: /
     schedule:
