@@ -28,12 +28,15 @@ final class AppShellUITests: XCTestCase {
         XCTAssertTrue(app.buttons["family.addKid"].waitForExistence(timeout: 5))
     }
 
-    func testKidSeesChatsAndCallsOnly() {
+    func testKidSeesTheirFamilyButCannotManageIt() {
         let app = launch(session: "none", kid: true)
 
         XCTAssertTrue(app.tabBars.buttons["Chats"].waitForExistence(timeout: 10))
         XCTAssertTrue(app.tabBars.buttons["Calls"].exists)
-        XCTAssertFalse(app.tabBars.buttons["Family"].exists)
+        app.tabBars.buttons["Family"].tap()
+        XCTAssertTrue(app.descendants(matching: .any)["family.screen"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["family.addKid"].exists)
+        XCTAssertFalse(app.buttons["family.inviteParent"].exists)
     }
 
     func testSendingATextShowsItInTheChatAndTheReplyArrives() {
