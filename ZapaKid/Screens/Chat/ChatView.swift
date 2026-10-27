@@ -29,6 +29,7 @@ struct ChatView: View {
                 .padding(12)
             }
             .background(theme.background.color.ignoresSafeArea())
+            .scrollDismissesKeyboard(.immediately)
             .onChange(of: messages.count) {
                 if let last = messages.last {
                     withAnimation { scroll.scrollTo(last.id, anchor: .bottom) }

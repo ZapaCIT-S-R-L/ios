@@ -49,7 +49,7 @@ final class ThemeUITests: XCTestCase {
         app.buttons["chat.send"].tap()
         XCTAssertTrue(app.staticTexts["Hi! 👋"].waitForExistence(timeout: 10))
         if app.keyboards.firstMatch.exists {
-            app.swipeDown()
+            app.scrollViews.firstMatch.swipeDown()
         }
         shoot(app, "\(role)-chat")
 
