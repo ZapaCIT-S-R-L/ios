@@ -2,12 +2,14 @@
 included:
   - ZapaKid
   - ZapaKidKit
+  - ZapaCalls
   - ZapaKidTests
   - ZapaKidUITests
 excluded:
   - build
   - DerivedData
   - ZapaKidKit/.build
+  - ZapaCalls/.build
   - Pods
 disabled_rules:
   - trailing_comma

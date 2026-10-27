@@ -9,6 +9,8 @@ options:
 packages:
   ZapaKidKit:
     path: ZapaKidKit
+  ZapaCalls:
+    path: ZapaCalls
 settings:
   base:
     SWIFT_VERSION: "6.0"
@@ -28,6 +30,7 @@ targets:
     sources: [ZapaKid]
     dependencies:
       - package: ZapaKidKit
+      - package: ZapaCalls
     settings:
       base:
         # ro.zapakid.app since 2026-10-26 (team 9572LYGZ7S); extensions get ro.zapakid.app.<name>.
@@ -53,6 +56,7 @@ targets:
     dependencies:
       - target: ZapaKid
       - package: ZapaKidKit
+      - package: ZapaCalls
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: ro.zapakid.app.tests

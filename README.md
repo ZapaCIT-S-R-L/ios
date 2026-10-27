@@ -7,7 +7,8 @@ families. One app with a parent mode and a kid mode. ZapaKid (the company and it
   [XcodeGen](https://github.com/yonaskolb/XcodeGen) and not committed.
 - `ZapaKid/`: the app (screens). libsignal (Signal's `LibSignalClient` CocoaPod, `Podfile`) does all chat
   cryptography. `ZapaKidKit/`: the logic without UI (API client, session), a local
-  Swift package. `ZapaKidTests/`: unit tests (Swift Testing). `ZapaKidUITests/`: UI tests (XCUITest).
+  Swift package. `ZapaCalls/`: voice calls (1:1 and groups), end-to-end encrypted per audio frame, a local Swift
+  package (one per backend service). `ZapaKidTests/`: unit tests (Swift Testing). `ZapaKidUITests/`: UI tests (XCUITest).
 - API: `https://api-staging.zapakid.ro` (Cloudflare Workers), see the `api` repository.
 
 ## Build and test
