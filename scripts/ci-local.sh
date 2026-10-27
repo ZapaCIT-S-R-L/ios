@@ -9,14 +9,14 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 # The tool versions CI pins (by image tag), so a local pass means a CI pass.
-want() { grep -oE "$1:[0-9.v]+" .github/workflows/ci.yml | head -1 | sed -E "s/.*:v?//"; }
+want() { grep -oE "$1:[0-9.v]+" .github/workflows/ci.yml | sed -n 1p | sed -E "s/.*:v?//"; }
 check_version() {
   local name=$1 have=$2 expected=$3
   [ "$have" = "$expected" ] || echo "warning: local $name $have, CI uses $expected" >&2
 }
 check_version swiftformat "$(swiftformat --version)" "$(want swiftformat)"
 check_version swiftlint "$(swiftlint version)" "$(want swiftlint)"
-check_version actionlint "$(actionlint --version | head -1)" "$(want actionlint)"
+check_version actionlint "$(actionlint --version | sed -n 1p)" "$(want actionlint)"
 check_version gitleaks "$(gitleaks version | sed 's/^v//')" "$(want gitleaks)"
 
 summary=()
@@ -51,7 +51,7 @@ for runtime, devices in json.load(sys.stdin)["devices"].items():
 ' "$udid")
 unit=$(grep -oE "Test run with [0-9]+ tests in [0-9]+ suites passed" "$log" | tail -1 | grep -oE "[0-9]+ tests" || echo "?")
 ui=$(grep -cE "Test Case .* passed" "$log" || true)
-xcode=$(xcodebuild -version | head -1)
+xcode=$(xcodebuild -version | sed -n 1p)
 
 echo
 echo "Local CI: all green"
