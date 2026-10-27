@@ -25,42 +25,62 @@ enum GoogleSignInError: LocalizedError {
 /// the code is exchanged for an ID token, which the API verifies (signature, audience, nonce).
 @MainActor
 final class GoogleSignIn: NSObject, GoogleSignInProviding, ASWebAuthenticationPresentationContextProviding {
-    /// The iOS OAuth client ID from Google Cloud Console (type iOS, bundle ID ro.zapakid.app).
-    /// Not a secret (it ships in every copy of the app); the API lists the same ID as an allowed audience.
-    /// TODO: set once Stefan creates the client.
-    static let clientID = ""
+    /// The iOS OAuth client of ro.zapakid.app (Google Cloud, team 9572LYGZ7S). Not a secret: it ships in every copy
+    /// of the app. The ID token's audience is this client, so the API must list it as an allowed audience.
+    /// While the OAuth consent screen is in Testing mode, only Google accounts added as test users can sign in.
+    static let clientID = "64042746735-lgdmtj9vvd3kiu7g9qc2elu22la6o1id.apps.googleusercontent.com"
+
+    static var isConfigured: Bool {
+        !clientID.isEmpty
+    }
 
     private var session: ASWebAuthenticationSession?
 
-    /// "1234-abc.apps.googleusercontent.com" → "com.googleusercontent.apps.1234-abc".
-    private static var scheme: String {
+    /// "1234-abc.apps.googleusercontent.com" → "com.googleusercontent.apps.1234-abc" (the scheme registered for the
+    /// iOS client; ASWebAuthenticationSession receives the callback, no Info.plist URL type needed).
+    static var scheme: String {
         clientID.split(separator: ".").reversed().joined(separator: ".")
     }
 
-    private static var redirect: String {
+    static var redirect: String {
         "\(scheme):/oauth2redirect"
     }
 
-    func idToken(nonce: String) async throws -> String {
-        guard !Self.clientID.isEmpty else { throw GoogleSignInError.notConfigured }
-        let verifier = try Self.pkceVerifier()
-        let challenge = Data(SHA256.hash(data: Data(verifier.utf8))).base64URL
+    static func authorizationURL(nonce: String, challenge: String, state: String) -> URL? {
         var components = URLComponents(string: "https://accounts.google.com/o/oauth2/v2/auth")
         components?.queryItems = [
-            .init(name: "client_id", value: Self.clientID),
-            .init(name: "redirect_uri", value: Self.redirect),
+            .init(name: "client_id", value: clientID),
+            .init(name: "redirect_uri", value: redirect),
             .init(name: "response_type", value: "code"),
             .init(name: "scope", value: "openid email profile"),
             .init(name: "code_challenge", value: challenge),
             .init(name: "code_challenge_method", value: "S256"),
             .init(name: "nonce", value: nonce),
+            .init(name: "state", value: state),
             .init(name: "prompt", value: "select_account"),
         ]
-        guard let url = components?.url else { throw GoogleSignInError.notConfigured }
+        return components?.url
+    }
+
+    /// The authorization code, only when the callback belongs to this sign-in (same `state`).
+    static func code(from callback: URL, state: String) -> String? {
+        let items = URLComponents(url: callback, resolvingAgainstBaseURL: false)?.queryItems ?? []
+        guard items.first(where: { $0.name == "state" })?.value == state else { return nil }
+        return items.first { $0.name == "code" }?.value
+    }
+
+    func idToken(nonce: String) async throws -> String {
+        guard Self.isConfigured else { throw GoogleSignInError.notConfigured }
+        let verifier = try Self.randomBase64URL()
+        let state = try Self.randomBase64URL()
+        let challenge = Data(SHA256.hash(data: Data(verifier.utf8))).base64URL
+        guard let url = Self.authorizationURL(nonce: nonce, challenge: challenge, state: state) else {
+            throw GoogleSignInError.notConfigured
+        }
         let callback = try await authorize(url)
-        let code = URLComponents(url: callback, resolvingAgainstBaseURL: false)?
-            .queryItems?.first { $0.name == "code" }?.value
-        guard let code else { throw ASWebAuthenticationSessionError(.canceledLogin) }
+        guard let code = Self.code(from: callback, state: state) else {
+            throw ASWebAuthenticationSessionError(.canceledLogin)
+        }
         return try await exchange(code: code, verifier: verifier)
     }
 
@@ -106,8 +126,9 @@ final class GoogleSignIn: NSObject, GoogleSignInProviding, ASWebAuthenticationPr
         return idToken
     }
 
-    /// 32 random bytes from the system generator, base64url: 43 characters, a valid PKCE code verifier (RFC 7636).
-    private static func pkceVerifier() throws -> String {
+    /// 32 random bytes from the system generator, base64url: 43 characters (a valid PKCE code verifier, RFC 7636,
+    /// and an unguessable OAuth state).
+    private static func randomBase64URL() throws -> String {
         var bytes = [UInt8](repeating: 0, count: 32)
         guard SecRandomCopyBytes(kSecRandomDefault, bytes.count, &bytes) == errSecSuccess else {
             throw GoogleSignInError.noToken
