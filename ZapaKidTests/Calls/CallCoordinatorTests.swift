@@ -12,7 +12,7 @@ struct CallCoordinatorTests {
     let mama = CallPeer(accountId: "acc-m", deviceId: "dev-m", displayName: "Mama", avatar: "robot-1", role: .parent)
 
     func makeController() -> CallController {
-        CallController(me: "dev-k", api: api, engine: engine, sealer: FakeCallKeySealer(me: "dev-k"))
+        CallController(me: "acc-k.1", api: api, engine: engine, sealer: FakeCallKeySealer(me: "acc-k.1"))
     }
 
     func coordinator() -> CallCoordinator {
@@ -95,10 +95,13 @@ struct CallCoordinatorTests {
 
         let uuid = try #require(system.started.first)
         engine.emit(.connected)
-        api.push(.roster([
-            RosterParticipant(accountId: "acc-k", deviceId: "dev-k", role: .kid),
-            RosterParticipant(accountId: "acc-m", deviceId: "dev-m", role: .parent),
-        ]))
+        api.push(.roster(CallSnapshot(
+            callId: "c_1", state: .active, epoch: 2, keyLeader: CallDevice(accountId: "acc-m", deviceId: 1),
+            participants: [
+                RosterParticipant(accountId: "acc-k", deviceId: 1, role: .kid, sessionId: "s_k", tracks: []),
+                RosterParticipant(accountId: "acc-m", deviceId: 1, role: .parent, sessionId: "s_m", tracks: []),
+            ]
+        )))
         #expect(await eventually { system.connected.contains(uuid) })
     }
 
@@ -107,7 +110,7 @@ struct CallCoordinatorTests {
         await calls.startCall(conversationId: "conv-1", peers: [mama])
         let uuid = try #require(system.started.first)
 
-        api.push(.ringTimeout)
+        api.push(.ended(reason: "no_answer"))
 
         #expect(await eventually { system.ended.first?.uuid == uuid })
         #expect(system.ended.first?.reason == .unanswered)

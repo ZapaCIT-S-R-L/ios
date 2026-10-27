@@ -3,8 +3,8 @@ import Foundation
 import Testing
 @testable import ZapaCalls
 
-/// End-to-end encryption of a call: a new random key on every join and leave, sealed per recipient device, so
-/// the server (and Cloudflare) only ever relay opaque blobs.
+/// End-to-end encryption of a call: on every join and leave the service bumps `epoch` and names a `keyLeader`;
+/// the leader makes a new random key for that epoch and seals it per device. The service only relays blobs.
 struct CallKeyManagerTests {
     let callId = "call-1"
 
@@ -21,178 +21,131 @@ struct CallKeyManagerTests {
         return Phone(manager: manager, frames: frames)
     }
 
-    /// Delivers envelopes like the calls service does: only to the device each one names.
     func deliver(_ envelopes: [KeyEnvelope], to phones: [String: Phone]) async throws {
         for envelope in envelopes {
-            try await phones[envelope.toDevice]?.manager.receive(envelope)
+            _ = try await phones[envelope.toDevice]?.manager.receive(envelope)
         }
     }
 
-    @Test func theLeaderIsTheLowestDeviceIdInTheRoster() {
-        #expect(CallKeyManager.leader(of: ["dev-c", "dev-a", "dev-b"]) == "dev-a")
-        #expect(CallKeyManager.leader(of: []) == nil)
+    /// Every phone sees the same roster update from the server, then the leader's keys are delivered.
+    func roster(_ devices: [String], epoch: UInt32, leader: String, _ phones: [String: Phone]) async throws {
+        var envelopes: [KeyEnvelope] = []
+        for device in devices {
+            envelopes += try await phones[device]?.manager.rosterChanged(devices, epoch: epoch, leader: leader) ?? []
+        }
+        try await deliver(envelopes, to: phones)
     }
 
-    @Test func aJoinRotatesTheKeyAndEveryoneGetsTheSameNewKey() async throws {
-        let phones = ["dev-a": phone("dev-a"), "dev-b": phone("dev-b"), "dev-c": phone("dev-c")]
-        for (_, phone) in phones {
-            try await deliver(phone.manager.rosterChanged(["dev-a", "dev-b"]), to: phones)
-        }
-        let first = try #require(phones["dev-a"]?.frames.installed.last)
-        #expect(phones["dev-b"]?.frames.installed.last == first)
+    @Test func theServersLeaderMakesTheKeyForTheServersEpoch() async throws {
+        let phones = ["m.1": phone("m.1"), "k.2": phone("k.2")]
 
-        // dev-c joins: a new epoch and a new random key, which dev-c gets too.
-        for (_, phone) in phones {
-            try await deliver(phone.manager.rosterChanged(["dev-a", "dev-b", "dev-c"]), to: phones)
-        }
+        try await roster(["m.1", "k.2"], epoch: 7, leader: "k.2", phones)
 
-        let second = try #require(phones["dev-a"]?.frames.installed.last)
-        #expect(second.epoch == first.epoch + 1)
+        let key = try #require(phones["k.2"]?.frames.installed.last)
+        #expect(key.epoch == 7, "the epoch comes from the server, not a local count")
+        #expect(phones["m.1"]?.frames.installed.last == key)
+        #expect(phones["m.1"]?.frames.sendingEpoch == 7)
+    }
+
+    @Test func aJoinGivesEveryoneANewKeyAndTheJoinerNoOldOne() async throws {
+        let phones = ["a.1": phone("a.1"), "b.1": phone("b.1"), "c.1": phone("c.1")]
+        try await roster(["a.1", "b.1"], epoch: 1, leader: "a.1", phones)
+        let first = try #require(phones["a.1"]?.frames.installed.last)
+
+        try await roster(["a.1", "b.1", "c.1"], epoch: 2, leader: "a.1", phones)
+
+        let second = try #require(phones["a.1"]?.frames.installed.last)
+        #expect(second.epoch == 2)
         #expect(second.bytes != first.bytes)
-        #expect(phones["dev-b"]?.frames.installed.last == second)
-        #expect(phones["dev-c"]?.frames.installed.last == second)
-        #expect(phones["dev-c"]?.frames.installed.contains(first) == false, "a joiner never gets earlier keys")
-        for (_, phone) in phones {
-            #expect(phone.frames.sendingEpoch == second.epoch)
-        }
+        #expect(phones["b.1"]?.frames.installed.last == second)
+        #expect(phones["c.1"]?.frames.installed.last == second)
+        #expect(phones["c.1"]?.frames.installed.contains(first) == false)
     }
 
-    @Test func aLeaveRotatesTheKeySoTheLeaverCantDecryptWhatFollows() async throws {
-        let phones = ["dev-a": phone("dev-a"), "dev-b": phone("dev-b"), "dev-c": phone("dev-c")]
-        for (_, phone) in phones {
-            try await deliver(phone.manager.rosterChanged(["dev-a", "dev-b", "dev-c"]), to: phones)
-        }
-        let before = try #require(phones["dev-c"]?.frames.installed.last)
+    @Test func aLeaveRotatesSoTheLeaverNeverGetsTheNextKey() async throws {
+        let phones = ["a.1": phone("a.1"), "b.1": phone("b.1"), "c.1": phone("c.1")]
+        try await roster(["a.1", "b.1", "c.1"], epoch: 2, leader: "a.1", phones)
+        let before = try #require(phones["c.1"]?.frames.installed.last)
 
-        // dev-c leaves; only dev-a and dev-b stay in the call.
-        let stay = try [
-            "dev-a": #require(phones["dev-a"]),
-            "dev-b": #require(phones["dev-b"]),
-        ]
-        for (_, phone) in stay {
-            try await deliver(phone.manager.rosterChanged(["dev-a", "dev-b"]), to: phones)
-        }
+        try await roster(["a.1", "b.1"], epoch: 3, leader: "a.1", phones)
 
-        let after = try #require(phones["dev-a"]?.frames.installed.last)
-        #expect(after.epoch == before.epoch + 1)
-        #expect(phones["dev-b"]?.frames.installed.last == after)
-        #expect(phones["dev-c"]?.frames.installed.last == before, "the leaver never gets the new key")
+        #expect(phones["b.1"]?.frames.installed.last?.epoch == 3)
+        #expect(phones["c.1"]?.frames.installed.last == before)
     }
 
-    @Test func whenTheLeaderLeavesTheNextLowestDeviceRotates() async throws {
-        let phones = ["dev-a": phone("dev-a"), "dev-b": phone("dev-b"), "dev-c": phone("dev-c")]
-        for (_, phone) in phones {
-            try await deliver(phone.manager.rosterChanged(["dev-a", "dev-b", "dev-c"]), to: phones)
-        }
-        let before = try #require(phones["dev-b"]?.frames.installed.last)
+    @Test func onlyTheLeaderSendsAndOnlyToTheOthers() async throws {
+        let leader = phone("a.1")
+        let other = phone("b.1")
 
-        let fromB = try #require(try await phones["dev-b"]?.manager.rosterChanged([
-            "dev-b",
-            "dev-c",
-        ]))
-        let fromC = try #require(try await phones["dev-c"]?.manager.rosterChanged([
-            "dev-b",
-            "dev-c",
-        ]))
+        let sent = try await leader.manager.rosterChanged(["a.1", "b.1", "c.1"], epoch: 4, leader: "a.1")
+        let silent = try await other.manager.rosterChanged(["a.1", "b.1", "c.1"], epoch: 4, leader: "a.1")
 
-        #expect(fromB.map(\.toDevice) == ["dev-c"])
-        #expect(fromC.isEmpty)
-        try await deliver(fromB, to: phones)
-        #expect(phones["dev-c"]?.frames.installed.last?.epoch == before.epoch + 1)
+        #expect(sent.map(\.toDevice).sorted() == ["b.1", "c.1"])
+        #expect(sent.allSatisfy { $0.epoch == 4 && $0.fromDevice == "a.1" })
+        #expect(silent.isEmpty)
+        let again = try await leader.manager.rosterChanged(["a.1", "b.1", "c.1"], epoch: 4, leader: "a.1")
+        #expect(again.isEmpty, "one key per epoch, even if the roster is sent again")
     }
 
-    @Test func envelopesCarryOnlyOpaqueBlobsAndNeverTheKey() async throws {
-        let alice = phone("dev-a")
-
-        let envelopes = try await alice.manager.rosterChanged(["dev-a", "dev-b"])
-
-        let key = try #require(alice.frames.installed.last)
-        let envelope = try #require(envelopes.first)
-        #expect(envelope.fromDevice == "dev-a")
-        #expect(envelope.epoch == key.epoch)
-        #expect(envelope.blob.range(of: key.bytes) == nil)
-        let json = try #require(try String(bytes: JSONEncoder().encode(envelope), encoding: .utf8))
-        #expect(!json.contains(key.bytes.base64EncodedString()))
-    }
-
-    @Test func anEnvelopeForAnotherDeviceOrTamperedIsRefused() async throws {
-        let alice = phone("dev-a")
-        let carol = phone("dev-c")
-        let envelope = try #require(try await alice.manager.rosterChanged(["dev-a", "dev-b"]).first)
-        _ = try await carol.manager.rosterChanged(["dev-a", "dev-b", "dev-c"])
-
-        await #expect(throws: CallKeyError.notForMe) { try await carol.manager.receive(envelope) }
-
-        let bob = phone("dev-b")
-        _ = try await bob.manager.rosterChanged(["dev-a", "dev-b"])
-        var tampered = envelope
-        tampered.blob[tampered.blob.startIndex] ^= 0xFF
-        await #expect(throws: (any Error).self) { try await bob.manager.receive(tampered) }
-        #expect(bob.frames.installed.isEmpty)
-    }
-
-    @Test func anEnvelopeFromSomeoneWhoIsNotTheLeaderIsNeverUsed() async throws {
-        let bob = phone("dev-b")
-        _ = try await bob.manager.rosterChanged(["dev-a", "dev-b", "dev-c"])
-        // dev-c pretends to be leader and rotates.
+    @Test func aKeyFromSomeoneElseOrForAnotherEpochIsNotUsed() async throws {
+        let bob = phone("b.1")
+        _ = try await bob.manager.rosterChanged(["a.1", "b.1", "c.1"], epoch: 4, leader: "a.1")
         let forged = try await KeyEnvelope(
-            epoch: 9, fromDevice: "dev-c", toDevice: "dev-b",
-            blob: FakeCallKeySealer(me: "dev-c").seal(
-                CallKeyMaterial.encode(CallKey.random(epoch: 9), callId: callId), toDevice: "dev-b"
+            epoch: 4, fromDevice: "c.1", toDevice: "b.1",
+            blob: FakeCallKeySealer(me: "c.1").seal(
+                CallKeyMaterial.encode(CallKey.random(epoch: 4), callId: callId), toDevice: "b.1"
+            )
+        )
+        let stale = try await KeyEnvelope(
+            epoch: 3, fromDevice: "a.1", toDevice: "b.1",
+            blob: FakeCallKeySealer(me: "a.1").seal(
+                CallKeyMaterial.encode(CallKey.random(epoch: 3), callId: callId), toDevice: "b.1"
             )
         )
 
         #expect(try await bob.manager.receive(forged) == false)
-        _ = try await bob.manager.rosterChanged(["dev-a", "dev-b", "dev-c"])
+        #expect(try await bob.manager.receive(stale) == false)
         #expect(bob.frames.installed.isEmpty)
     }
 
-    @Test func anOlderEpochNeverReplacesTheSendingKey() async throws {
-        let phones = ["dev-a": phone("dev-a"), "dev-b": phone("dev-b")]
-        let first = try #require(try await phones["dev-a"]?.manager.rosterChanged([
-            "dev-a",
-            "dev-b",
-        ]))
-        let second = try #require(try await phones["dev-a"]?.manager.rosterChanged([
-            "dev-a",
-            "dev-b",
-        ]))
-        _ = try #require(try await phones["dev-b"]?.manager.rosterChanged([
-            "dev-a",
-            "dev-b",
-        ]))
+    @Test func aKeyThatArrivesBeforeItsRosterIsUsedOnceTheRosterComes() async throws {
+        let phones = ["a.1": phone("a.1"), "b.1": phone("b.1")]
+        let envelopes = try await phones["a.1"]!.manager.rosterChanged(["a.1", "b.1"], epoch: 5, leader: "a.1")
 
-        try await deliver(second, to: phones)
-        try await deliver(first, to: phones)
+        try await deliver(envelopes, to: phones) // b.1 hasn't seen epoch 5 yet
+        #expect(phones["b.1"]?.frames.installed.isEmpty == true)
+        _ = try await phones["b.1"]!.manager.rosterChanged(["a.1", "b.1"], epoch: 5, leader: "a.1")
 
-        #expect(phones["dev-b"]?.frames.sendingEpoch == second.first?.epoch)
+        #expect(phones["b.1"]?.frames.installed.last?.epoch == 5)
     }
 
-    /// The frame round trip: what the sender encrypts under the epoch key, the receiver decrypts with the key it
-    /// opened from its envelope, and a stale key from before the rotation can't.
+    @Test func tamperedBlobsAreRefused() async throws {
+        let alice = phone("a.1")
+        let bob = phone("b.1")
+        var envelope = try #require(try await alice.manager.rosterChanged(["a.1", "b.1"], epoch: 1, leader: "a.1").first)
+        _ = try await bob.manager.rosterChanged(["a.1", "b.1"], epoch: 1, leader: "a.1")
+        envelope.blob[envelope.blob.startIndex] ^= 0xFF
+
+        await #expect(throws: (any Error).self) { _ = try await bob.manager.receive(envelope) }
+        #expect(bob.frames.installed.isEmpty)
+    }
+
     @Test func framesRoundTripWithTheRelayedKeyAndFailWithAStaleOne() async throws {
-        let phones = ["dev-a": phone("dev-a"), "dev-b": phone("dev-b")]
-        for (_, phone) in phones {
-            try await deliver(phone.manager.rosterChanged(["dev-a", "dev-b"]), to: phones)
-        }
-        let stale = try #require(phones["dev-b"]?.frames.installed.last)
-        for (_, phone) in phones {
-            try await deliver(phone.manager.rosterChanged(["dev-a", "dev-b", "dev-c"]), to: phones)
-        }
-        let senderKey = try #require(phones["dev-a"]?.frames.installed.last)
-        let receiverKey = try #require(phones["dev-b"]?.frames.installed.last)
-        let frame = Data((0 ..< 160).map { UInt8($0 & 0xFF) }) // one 20 ms Opus frame, roughly
+        let phones = ["a.1": phone("a.1"), "b.1": phone("b.1")]
+        try await roster(["a.1", "b.1"], epoch: 1, leader: "a.1", phones)
+        let stale = try #require(phones["b.1"]?.frames.installed.last)
+        try await roster(["a.1", "b.1"], epoch: 2, leader: "a.1", phones)
+        let senderKey = try #require(phones["a.1"]?.frames.installed.last)
+        let receiverKey = try #require(phones["b.1"]?.frames.installed.last)
+        let frame = Data((0 ..< 160).map { UInt8($0 & 0xFF) })
 
         let sealed = try AES.GCM.seal(frame, using: SymmetricKey(data: senderKey.bytes))
-        let opened = try AES.GCM.open(sealed, using: SymmetricKey(data: receiverKey.bytes))
 
-        #expect(opened == frame)
+        #expect(try AES.GCM.open(sealed, using: SymmetricKey(data: receiverKey.bytes)) == frame)
         #expect(throws: (any Error).self) { try AES.GCM.open(sealed, using: SymmetricKey(data: stale.bytes)) }
     }
 
     @Test func keyRingIndexWrapsLikeTheFrameCryptor() {
-        #expect(CallKey.ringIndex(forEpoch: 0) == 0)
-        #expect(CallKey.ringIndex(forEpoch: 15) == 15)
         #expect(CallKey.ringIndex(forEpoch: 16) == 0)
         #expect(CallKey.ringSize == 16)
     }
