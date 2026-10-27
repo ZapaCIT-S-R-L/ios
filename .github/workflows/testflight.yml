@@ -1,0 +1,93 @@
+# Archives a signed Release build and uploads it to TestFlight (App Store Connect app ro.zapakid.app).
+# Runs on every merge to main and by hand (Actions → testflight → Run workflow), from main only.
+# Credentials live only in the protected `testflight` environment (Settings → Environments), see docs/testflight.md:
+#   ASC_KEY_ID      App Store Connect API key ID
+#   ASC_ISSUER_ID   its issuer ID
+#   ASC_KEY_P8      the .p8 file, base64
+# Until they exist the job skips with a notice. Signing is automatic with that key (cloud-managed certificate and
+# profile); the key file exists on the runner only during the archive and upload, and is deleted afterwards.
+name: testflight
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: testflight
+  cancel-in-progress: false
+
+jobs:
+  upload:
+    if: github.ref == 'refs/heads/main'
+    # Intel like ci.yml until macos-26 (arm64) is reliable for this org.
+    runs-on: macos-26-intel
+    timeout-minutes: 90
+    environment: testflight
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+      ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+      ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+    steps:
+      - name: Check the App Store Connect key
+        id: key
+        run: |
+          if [ -z "$ASC_KEY_ID" ] || [ -z "$ASC_ISSUER_ID" ] || [ -z "$ASC_KEY_P8" ]; then
+            echo "::notice title=TestFlight skipped::The testflight environment has no App Store Connect API key yet (ASC_KEY_ID, ASC_ISSUER_ID, ASC_KEY_P8). See docs/testflight.md."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+      - if: steps.key.outputs.ready == 'true'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install XcodeGen (pinned release, checksum verified)
+        if: steps.key.outputs.ready == 'true'
+        env:
+          XCODEGEN_VERSION: 2.46.0
+          XCODEGEN_SHA256: 4d9e34b62172d645eed6457cac13fc222569974098ef4ee9c3368bedf0196806
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/xcodegen.zip" \
+            "https://github.com/yonaskolb/XcodeGen/releases/download/$XCODEGEN_VERSION/xcodegen.zip"
+          echo "$XCODEGEN_SHA256  $RUNNER_TEMP/xcodegen.zip" | shasum -a 256 -c -
+          unzip -q "$RUNNER_TEMP/xcodegen.zip" -d "$RUNNER_TEMP/xcodegen"
+          echo "$RUNNER_TEMP/xcodegen/xcodegen/bin" >> "$GITHUB_PATH"
+      - name: Generate the project
+        if: steps.key.outputs.ready == 'true'
+        env:
+          COCOAPODS_VERSION: 1.17.0
+        run: |
+          test "$(pod --version)" = "$COCOAPODS_VERSION" || { echo "CocoaPods $(pod --version), expected $COCOAPODS_VERSION"; exit 1; }
+          xcodegen generate --quiet
+          pod install --silent
+      - name: Write the key
+        if: steps.key.outputs.ready == 'true'
+        run: |
+          umask 077
+          printf '%s' "$ASC_KEY_P8" | base64 --decode > "$RUNNER_TEMP/AuthKey.p8"
+      - name: Archive (signed, Release)
+        if: steps.key.outputs.ready == 'true'
+        env:
+          # Every upload needs a higher build number; the marketing version comes from project.yml.
+          BUILD_NUMBER: ${{ github.run_number }}
+        run: >-
+          xcodebuild archive -workspace ZapaKid.xcworkspace -scheme ZapaKid -configuration Release
+          -destination generic/platform=iOS -archivePath "$RUNNER_TEMP/ZapaKid.xcarchive"
+          -allowProvisioningUpdates
+          -authenticationKeyPath "$RUNNER_TEMP/AuthKey.p8"
+          -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID"
+          CURRENT_PROJECT_VERSION="$BUILD_NUMBER" -quiet
+      - name: Upload to TestFlight
+        if: steps.key.outputs.ready == 'true'
+        run: >-
+          xcodebuild -exportArchive -archivePath "$RUNNER_TEMP/ZapaKid.xcarchive"
+          -exportOptionsPlist scripts/ExportOptions-TestFlight.plist -exportPath "$RUNNER_TEMP/export"
+          -allowProvisioningUpdates
+          -authenticationKeyPath "$RUNNER_TEMP/AuthKey.p8"
+          -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID"
+      - name: Remove the key
+        if: always() && steps.key.outputs.ready == 'true'
+        run: rm -f "$RUNNER_TEMP/AuthKey.p8"
