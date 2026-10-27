@@ -66,7 +66,7 @@ final class ThemeUITests: XCTestCase {
 
         // Family.
         app.tabBars.buttons["Family"].tap()
-        XCTAssertTrue(app.descendants(matching: .any)["family.screen"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.navigationBars["Family"].waitForExistence(timeout: 5))
         XCTAssertEqual(app.buttons["family.addKid"].exists, !kid, "only parents add kids")
         shoot(app, "\(role)-family")
     }
