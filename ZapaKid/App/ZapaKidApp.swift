@@ -38,8 +38,8 @@ struct AppDependencies {
     let google: GoogleSignInProviding
     let ageCheck: AgeRangeProviding
     let families: FamiliesAPI
-    /// This phone's identity key fingerprint (hex) for the kid pairing QR.
-    let fingerprint: () -> String?
+    /// This phone's identity key fingerprint (hex) for the kid pairing QR, per account.
+    let fingerprint: (String) -> String?
     /// The chats and calls of the signed-in account (`me`; `kid` for a kid's phone).
     let makeServices: @MainActor (_ me: String, _ kid: Bool) -> AppServices
 
@@ -60,8 +60,8 @@ struct AppDependencies {
             google: GoogleSignIn(),
             ageCheck: DeclaredAgeRangeCheck(),
             families: HTTPFamiliesAPI.staging,
-            fingerprint: {
-                (try? LocalIdentityStore().loadOrCreate()).map {
+            fingerprint: { accountId in
+                (try? AccountKeys.app(accountId: accountId).identity.load()).flatMap { $0 }.map {
                     IdentityFingerprint.hex(Data($0.keyPair.publicKey.serialize()))
                 }
             },

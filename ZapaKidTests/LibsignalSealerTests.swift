@@ -62,13 +62,21 @@ struct LibsignalSealerTests {
     }
 
     func conversation(_ phones: [Phone]) -> Conversation {
-        Conversation(id: "c_1", kind: .direct, state: .open, members: Dictionary(grouping: phones, by: \.account)
-            .map { account, devices in
-                ConversationMember(
-                    accountId: account, role: .parent, guardian: false,
-                    devices: devices.map { DeviceRef(deviceId: Int($0.device), registrationId: Int($0.registrationId)) }
-                )
-            })
+        Conversation(
+            id: "c_1",
+            kind: .direct,
+            state: .open,
+            members: Dictionary(grouping: phones, by: \.account)
+                .map { account, devices in
+                    ConversationMember(
+                        accountId: account, role: .parent, guardian: false,
+                        devices: devices.map { DeviceRef(
+                            deviceId: Int($0.device),
+                            registrationId: Int($0.registrationId)
+                        ) }
+                    )
+                }
+        )
     }
 
     func envelope(_ outgoing: OutgoingEnvelope, from phone: Phone) -> Envelope {
@@ -82,8 +90,8 @@ struct LibsignalSealerTests {
         let mama = try Phone(account: "acc-m", device: 1, registrationId: 11)
         let ana = try Phone(account: "acc-a", device: 1, registrationId: 22)
         let directory = FakeKeyDirectory(phones: [mama, ana])
-        let mamaSealer = LibsignalMessageSealer(sessions: try mama.sessions(directory: directory))
-        let anaSealer = LibsignalMessageSealer(sessions: try ana.sessions(directory: directory))
+        let mamaSealer = try LibsignalMessageSealer(sessions: mama.sessions(directory: directory))
+        let anaSealer = try LibsignalMessageSealer(sessions: ana.sessions(directory: directory))
         let chat = conversation([mama, ana])
 
         let sealed = try await mamaSealer.seal(Data("Salut, Ana!".utf8), for: chat, me: "acc-m")
@@ -105,7 +113,7 @@ struct LibsignalSealerTests {
         let mama2 = try Phone(account: "acc-m", device: 2, registrationId: 12)
         let ana = try Phone(account: "acc-a", device: 1, registrationId: 22)
         let directory = FakeKeyDirectory(phones: [mama1, mama2, ana])
-        let sealer = LibsignalMessageSealer(sessions: try mama1.sessions(directory: directory))
+        let sealer = try LibsignalMessageSealer(sessions: mama1.sessions(directory: directory))
 
         let sealed = try await sealer.seal(Data("x".utf8), for: conversation([mama1, mama2, ana]), me: "acc-m")
 
@@ -117,13 +125,13 @@ struct LibsignalSealerTests {
         let mama = try Phone(account: "acc-m", device: 1, registrationId: 11)
         let ana = try Phone(account: "acc-a", device: 1, registrationId: 22)
         let directory = FakeKeyDirectory(phones: [mama, ana])
-        let sealed = try #require(try await LibsignalMessageSealer(sessions: try mama.sessions(directory: directory))
+        let sealed = try #require(try await LibsignalMessageSealer(sessions: mama.sessions(directory: directory))
             .seal(Data("hi".utf8), for: conversation([mama, ana]), me: "acc-m").first)
         var tampered = sealed
         tampered.content[tampered.content.index(tampered.content.endIndex, offsetBy: -5)] ^= 0x01
 
         await #expect(throws: (any Error).self) {
-            _ = try await LibsignalMessageSealer(sessions: try ana.sessions(directory: directory))
+            _ = try await LibsignalMessageSealer(sessions: ana.sessions(directory: directory))
                 .open(envelope(tampered, from: mama))
         }
     }
@@ -132,8 +140,8 @@ struct LibsignalSealerTests {
         let mama = try Phone(account: "acc-m", device: 1, registrationId: 11)
         let ana = try Phone(account: "acc-a", device: 1, registrationId: 22)
         let directory = FakeKeyDirectory(phones: [mama, ana])
-        let mamaCalls = LibsignalCallKeySealer(sessions: try mama.sessions(directory: directory))
-        let anaCalls = LibsignalCallKeySealer(sessions: try ana.sessions(directory: directory))
+        let mamaCalls = try LibsignalCallKeySealer(sessions: mama.sessions(directory: directory))
+        let anaCalls = try LibsignalCallKeySealer(sessions: ana.sessions(directory: directory))
         let material = CallKeyMaterial.encode(CallKey.random(epoch: 1), callId: "call-1")
 
         let blob = try await mamaCalls.seal(material, toDevice: "acc-a.1")

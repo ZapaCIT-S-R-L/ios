@@ -3,8 +3,9 @@ import ZapaCalls
 import ZapaChat
 import ZapaKidKit
 
-/// The real chat and call services (staging). Two pieces arrive in their own PRs and refuse until then:
-/// the libsignal message/call-key sealers (stacked on the key-setup PRs) and the WebRTC media engine.
+/// The real chat and call services (staging). Messages and call keys are sealed with libsignal once this phone is
+/// registered with the key directory; until then the pending sealers refuse (nothing is ever sent unencrypted).
+/// The WebRTC media engine arrives in its own PR.
 @MainActor
 enum LiveServices {
     static func make(me: String, auth: AuthModel) -> AppServices {
@@ -21,6 +22,16 @@ enum LiveServices {
         let store: ChatStore = (try? EncryptedChatStore(
             directory: URL.applicationSupportDirectory.appending(path: "chats"), key: ChatStoreKey.loadOrCreate()
         )) ?? InMemoryChatStore()
+        // swiftlint:disable:next force_unwrapping
+        let bundles = HTTPPreKeyBundles(baseURL: URL(string: ZapaKidKit.apiBaseURL)!, session: .shared) {
+            await MainActor.run { auth.sessionToken }
+        }
+        let sessions = SecureSessions.make(accountId: me, bundles: bundles)
+        let messageSealer: MessageSealer = sessions
+            .map { LibsignalMessageSealer(sessions: $0) } ?? PendingMessageSealer()
+        let callSealer: CallKeySealer = sessions.map { LibsignalCallKeySealer(sessions: $0) } ?? PendingCallKeySealer()
+        let callDevice = sessions
+            .map { LibsignalCallKeySealer.deviceName(account: me, device: Int($0.local.deviceId)) } ?? me
         #if targetEnvironment(simulator)
             let system: CallSystem = InAppCallSystem()
         #else
@@ -28,10 +39,10 @@ enum LiveServices {
         #endif
         return AppServices(
             me: me,
-            chat: ChatModel(me: me, api: chatAPI, sealer: PendingMessageSealer(), store: store),
+            chat: ChatModel(me: me, api: chatAPI, sealer: messageSealer, store: store),
             people: [], log: InMemoryCallLog(), system: system
         ) { _ in
-            CallController(me: me, api: callsAPI, engine: PendingMediaEngine(), sealer: PendingCallKeySealer())
+            CallController(me: callDevice, api: callsAPI, engine: PendingMediaEngine(), sealer: callSealer)
         }
     }
 }
