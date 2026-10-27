@@ -65,6 +65,38 @@
         }
       }
     },
+    "Call": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sună"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anrufen"
+          }
+        }
+      }
+    },
+    "Calls": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apeluri"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anrufe"
+          }
+        }
+      }
+    },
     "Cancel": {
       "localizations": {
         "ro": {
@@ -77,6 +109,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "Abbrechen"
+          }
+        }
+      }
+    },
+    "Chats": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chaturi"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chats"
+          }
+        }
+      }
+    },
+    "Chats with your family show up here.": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chaturile cu familia ta apar aici."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chats mit deiner Familie erscheinen hier."
           }
         }
       }
@@ -225,6 +289,22 @@
         }
       }
     },
+    "Hold to record a voice message": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ține apăsat ca să înregistrezi un mesaj vocal"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gedrückt halten für eine Sprachnachricht"
+          }
+        }
+      }
+    },
     "I agree": {
       "localizations": {
         "ro": {
@@ -353,6 +433,22 @@
         }
       }
     },
+    "Message": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mesaj"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nachricht"
+          }
+        }
+      }
+    },
     "Nickname": {
       "localizations": {
         "ro": {
@@ -369,6 +465,22 @@
         }
       }
     },
+    "No chats yet": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Niciun chat încă"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Noch keine Chats"
+          }
+        }
+      }
+    },
     "No grade": {
       "localizations": {
         "ro": {
@@ -381,6 +493,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Keine Klasse"
+          }
+        }
+      }
+    },
+    "Not sent. Tap to try again.": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Netrimis. Atinge ca să încerci din nou."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nicht gesendet. Tippe, um es noch einmal zu versuchen."
           }
         }
       }
@@ -577,6 +705,22 @@
         }
       }
     },
+    "Photo": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Poză"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Foto"
+          }
+        }
+      }
+    },
     "Placeholder: the final text is being reviewed.": {
       "localizations": {
         "ro": {
@@ -685,6 +829,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "QR-Code scannen"
+          }
+        }
+      }
+    },
+    "Send": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trimite"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Senden"
+          }
+        }
+      }
+    },
+    "Send a photo": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trimite o poză"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Foto senden"
           }
         }
       }
@@ -865,6 +1041,22 @@
         }
       }
     },
+    "Unread messages: %lld": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mesaje necitite: %lld"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ungelesene Nachrichten: %lld"
+          }
+        }
+      }
+    },
     "Valid for 3 days. It works once.": {
       "localizations": {
         "ro": {
@@ -877,6 +1069,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "3 Tage gültig. Funktioniert einmal."
+          }
+        }
+      }
+    },
+    "Voice message": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mesaj vocal"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sprachnachricht"
           }
         }
       }

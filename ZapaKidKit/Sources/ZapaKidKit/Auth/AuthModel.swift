@@ -62,6 +62,15 @@ public final class AuthModel {
         return try? store.load()?.token
     }
 
+    /// The session token for the account API (parent or kid), e.g. to get a chat token.
+    public var sessionToken: String? {
+        switch state {
+        case .signedIn: try? store.load()?.token
+        case let .kid(session): session.token
+        default: nil
+        }
+    }
+
     /// A kid's phone was paired: keep the kid session and open in kid mode.
     public func kidPaired(_ session: KidSession) {
         do {

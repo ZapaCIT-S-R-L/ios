@@ -18,8 +18,8 @@ final class FamilyUITests: XCTestCase {
 
     func testParentAddsAKidAndShowsThePairingQR() {
         let app = launch(session: "signed-in")
-        XCTAssertTrue(app.buttons["home.family"].waitForExistence(timeout: 10))
-        app.buttons["home.family"].tap()
+        XCTAssertTrue(app.tabBars.buttons["Family"].waitForExistence(timeout: 10))
+        app.tabBars.buttons["Family"].tap()
 
         XCTAssertTrue(app.buttons["family.addKid"].waitForExistence(timeout: 5))
         app.buttons["family.addKid"].tap()
@@ -39,8 +39,8 @@ final class FamilyUITests: XCTestCase {
 
     func testParentInvitesTheSecondParent() {
         let app = launch(session: "signed-in")
-        XCTAssertTrue(app.buttons["home.family"].waitForExistence(timeout: 10))
-        app.buttons["home.family"].tap()
+        XCTAssertTrue(app.tabBars.buttons["Family"].waitForExistence(timeout: 10))
+        app.tabBars.buttons["Family"].tap()
 
         XCTAssertTrue(app.buttons["family.inviteParent"].waitForExistence(timeout: 5))
         app.buttons["family.inviteParent"].tap()

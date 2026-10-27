@@ -25,7 +25,8 @@ struct ZapaKidApp: App {
             google: dependencies.google,
             ageCheck: dependencies.ageCheck,
             families: dependencies.families,
-            fingerprint: dependencies.fingerprint
+            fingerprint: dependencies.fingerprint,
+            makeServices: dependencies.makeServices
         )
     }
 }
@@ -39,6 +40,8 @@ struct AppDependencies {
     let families: FamiliesAPI
     /// This phone's identity key fingerprint (hex) for the kid pairing QR.
     let fingerprint: () -> String?
+    /// The chats and calls of the signed-in account (`me`; `kid` for a kid's phone).
+    let makeServices: @MainActor (_ me: String, _ kid: Bool) -> AppServices
 
     static func make() -> AppDependencies {
         #if DEBUG
@@ -46,13 +49,14 @@ struct AppDependencies {
                 return UITestStubs.dependencies(environment: ProcessInfo.processInfo.environment)
             }
         #endif
+        let auth = AuthModel(
+            api: HTTPAuthAPI.staging,
+            store: KeychainSessionStore(),
+            agreement: UserDefaultsAgreementStore(),
+            kidStore: KeychainKidSessionStore()
+        )
         return AppDependencies(
-            auth: AuthModel(
-                api: HTTPAuthAPI.staging,
-                store: KeychainSessionStore(),
-                agreement: UserDefaultsAgreementStore(),
-                kidStore: KeychainKidSessionStore()
-            ),
+            auth: auth,
             google: GoogleSignIn(),
             ageCheck: DeclaredAgeRangeCheck(),
             families: HTTPFamiliesAPI.staging,
@@ -60,7 +64,8 @@ struct AppDependencies {
                 (try? LocalIdentityStore().loadOrCreate()).map {
                     IdentityFingerprint.hex(Data($0.keyPair.publicKey.serialize()))
                 }
-            }
+            },
+            makeServices: { me, _ in LiveServices.make(me: me, auth: auth) }
         )
     }
 }

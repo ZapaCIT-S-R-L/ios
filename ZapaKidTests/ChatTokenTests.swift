@@ -11,9 +11,11 @@ struct ChatTokenTests {
     @Test func theTokenIsFetchedOnceAndReusedUntilItNearlyExpires() async throws {
         let now = Date(timeIntervalSince1970: 1000)
         let clock = Clock(now)
-        var issued = 0
         let session = MockURLProtocol.session(host: host) { _, _ in
-            MockReply(200, #"{"token":"jwt-\#(Int(clock.now.timeIntervalSince1970))","expiresAt":"1970-01-01T00:26:40Z"}"#)
+            MockReply(
+                200,
+                #"{"token":"jwt-\#(Int(clock.now.timeIntervalSince1970))","expiresAt":"1970-01-01T00:26:40Z"}"#
+            )
         }
         let provider = ChatTokenProvider(
             api: HTTPChatTokenAPI(baseURL: URL(string: "https://\(host)") ?? URL(filePath: "/"), session: session),
@@ -25,7 +27,7 @@ struct ChatTokenTests {
         let second = try await provider.token()
         clock.now += 60
         let third = try await provider.token()
-        issued = MockURLProtocol.requests(host: host).count
+        let issued = MockURLProtocol.requests(host: host).count
 
         #expect(first == "jwt-1000")
         #expect(second == first)

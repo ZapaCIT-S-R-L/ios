@@ -1,5 +1,7 @@
 #if DEBUG
     import Foundation
+    import ZapaCalls
+    import ZapaChat
     import ZapaKidKit
 
     /// Stubbed backend for the UI tests (Debug builds only; this file is not compiled into Release).
@@ -7,6 +9,8 @@
     ///   ZK_AGREEMENT  accepted | pending          ZK_SESSION  none | signed-in
     ///   ZK_AGE        adult | minor | declined | unavailable
     ///   ZK_SIGNIN     ok | rate-limited (the API answers 429 with Retry-After: 30)
+    ///   ZK_KID        none | paired (this is a kid's phone, paired as "Ana")
+    /// Chats: one conversation with Ana, who answers every message; calls use the demo call engine.
     /// Nothing is stored: a new in-memory session and agreement on every launch, and no network.
     @MainActor
     enum UITestStubs {
@@ -32,17 +36,39 @@
             case "unavailable": .unavailable
             default: .shared(lower: 18, upper: nil, platformStatus: "sharing")
             }
+            let kid = environment["ZK_KID"] == "paired" ? KidSession(
+                token: "zkk_stub", expiresAt: .distantFuture, kid: Kid(id: "k1", nickname: "Ana", avatar: "robot-4"),
+                familyId: "f_test", familyName: nil
+            ) : nil
             return AppDependencies(
                 auth: AuthModel(
                     api: StubAuthAPI(rateLimited: environment["ZK_SIGNIN"] == "rate-limited"),
                     store: InMemorySessionStore(session: session),
-                    agreement: agreement
+                    agreement: agreement,
+                    kidStore: InMemoryKidSessionStore(session: kid)
                 ),
                 google: StubGoogleSignIn(),
                 ageCheck: StubAgeRangeCheck(range: age),
                 families: StubFamiliesAPI(),
-                fingerprint: { String(repeating: "ab", count: 32) }
+                fingerprint: { String(repeating: "ab", count: 32) },
+                makeServices: { me, isKid in stubServices(me: me, kid: isKid) }
             )
+        }
+
+        static func stubServices(me: String, kid: Bool) -> AppServices {
+            let other = kid
+                ? Person(accountId: "p_test", name: "Mama", avatar: "robot-2", role: .parent)
+                : Person(accountId: "k1", name: "Ana", avatar: "robot-4", role: .kid)
+            let myself = kid
+                ? Person(accountId: me, name: "Ana", avatar: "robot-4", role: .kid)
+                : Person(accountId: me, name: "TEST Parent", avatar: "robot-2", role: .parent)
+            let api = StubChatAPI(me: me, other: other.accountId)
+            return AppServices(
+                me: me, chat: ChatModel(me: me, api: api, sealer: PassthroughSealer(), store: InMemoryChatStore()),
+                people: [other, myself], log: InMemoryCallLog(), system: InAppCallSystem()
+            ) { services in
+                DemoCalls.controller(peers: services.placing)
+            }
         }
     }
 
@@ -96,6 +122,111 @@
                 familyId: "f_test", familyName: nil
             )
         }
+    }
+
+    /// "Encrypts" by not encrypting: UI tests only, never compiled into Release.
+    struct PassthroughSealer: MessageSealer {
+        func seal(_ plaintext: Data, for conversation: Conversation, me: String) async throws -> [OutgoingEnvelope] {
+            conversation.members.filter { $0.accountId != me }.flatMap { member in
+                member.devices.map {
+                    OutgoingEnvelope(
+                        recipientAccountId: member.accountId, recipientDeviceId: $0.deviceId,
+                        recipientRegistrationId: $0.registrationId, type: .message, content: plaintext
+                    )
+                }
+            }
+        }
+
+        func open(_ envelope: Envelope) async throws -> Data {
+            envelope.content
+        }
+    }
+
+    /// One conversation with the other person, who answers "Hi! 👋" to every message over the stream.
+    final class StubChatAPI: ChatAPI, @unchecked Sendable {
+        let me: String
+        let other: String
+        private let lock = NSLock()
+        private var continuation: AsyncThrowingStream<StreamFrame, Error>.Continuation?
+
+        init(me: String, other: String) {
+            self.me = me
+            self.other = other
+        }
+
+        private var conversation: Conversation {
+            Conversation(id: "c_ana", kind: .direct, state: .open, members: [
+                ConversationMember(
+                    accountId: me,
+                    role: .parent,
+                    guardian: false,
+                    devices: [DeviceRef(deviceId: 1, registrationId: 1)]
+                ),
+                ConversationMember(
+                    accountId: other,
+                    role: .kid,
+                    guardian: false,
+                    devices: [DeviceRef(deviceId: 1, registrationId: 2)]
+                ),
+            ])
+        }
+
+        func conversations() async throws -> [Conversation] {
+            [conversation]
+        }
+
+        func conversation(id _: String) async throws -> Conversation {
+            conversation
+        }
+
+        func createConversation(members _: [String]) async throws -> Conversation {
+            conversation
+        }
+
+        func send(conversationId: String, messageId _: String, envelopes _: [OutgoingEnvelope]) async throws -> Date {
+            let reply = ChatContent(id: UUID().uuidString, sentAt: Date(), body: .text("Hi! 👋"))
+            let envelope = try Envelope(
+                id: UUID().uuidString, conversationId: conversationId, messageId: reply.id, senderAccountId: other,
+                senderDeviceId: 1, type: .message, content: reply.encoded(), serverTimestamp: 0
+            )
+            let continuation = lock.withLock { self.continuation }
+            Task {
+                try? await Task.sleep(for: .milliseconds(800))
+                continuation?.yield(.envelope(envelope))
+            }
+            return Date()
+        }
+
+        func fetch(conversationId _: String) async throws -> EnvelopePage {
+            EnvelopePage(envelopes: [], more: false)
+        }
+
+        func ack(conversationId _: String, envelopeIds _: [String]) async throws {}
+
+        func upload(conversationId _: String, ciphertext _: Data) async throws -> String {
+            "a_stub"
+        }
+
+        func download(attachmentId _: String) async throws -> Data {
+            Data()
+        }
+
+        func openStream(conversationId _: String) async throws -> ChatStreamConnection {
+            let (stream, continuation) = AsyncThrowingStream<StreamFrame, Error>.makeStream()
+            lock.withLock { self.continuation = continuation }
+            return StubStream(stream: stream)
+        }
+    }
+
+    struct StubStream: ChatStreamConnection {
+        let stream: AsyncThrowingStream<StreamFrame, Error>
+
+        func frames() -> AsyncThrowingStream<StreamFrame, Error> {
+            stream
+        }
+
+        func ack(_: [String]) async throws {}
+        func close() {}
     }
 
     struct StubAuthAPI: AuthAPI {

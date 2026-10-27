@@ -113,23 +113,3 @@ struct QRScanner: UIViewControllerRepresentable {
         }
     }
 }
-
-/// A paired kid's phone. Chats and calls come with the app shell.
-struct KidHomeView: View {
-    let session: KidSession
-
-    var body: some View {
-        NavigationStack {
-            VStack(spacing: 20) {
-                RobotAvatarView(avatar: session.kid.avatar, size: 120)
-                (Text("Hello,") + Text(verbatim: " \(session.kid.nickname)!"))
-                    .font(.largeTitle.bold())
-                    .accessibilityIdentifier("kid.hello")
-                Text("Your family chats will appear here.")
-                    .foregroundStyle(.secondary)
-            }
-            .padding(24)
-        }
-        .accessibilityIdentifier("kid.screen")
-    }
-}
