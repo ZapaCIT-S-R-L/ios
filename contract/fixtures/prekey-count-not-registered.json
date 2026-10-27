@@ -1,0 +1,13 @@
+{
+  "operation": "GET /v1/keys/prekeys",
+  "request": null,
+  "response": {
+    "status": 409,
+    "body": {
+      "error": {
+        "code": "device_not_registered",
+        "message": "TEST"
+      }
+    }
+  }
+}

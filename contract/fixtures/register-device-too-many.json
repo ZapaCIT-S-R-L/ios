@@ -1,0 +1,13 @@
+{
+  "operation": "POST /v1/devices",
+  "request": null,
+  "response": {
+    "status": 409,
+    "body": {
+      "error": {
+        "code": "too_many_devices",
+        "message": "TEST"
+      }
+    }
+  }
+}

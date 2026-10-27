@@ -1,6 +1,6 @@
 {
   "repository": "ZapaCIT-S-R-L/api",
-  "commit": "759c39f3a74c3f9c4b2bcbee837c44d8485286e2",
+  "commit": "7d8a1b7a8abf76fbc29a82f26fc4ec46f2018bd0",
   "file": "openapi.yaml",
-  "comment": "The API contract the app is built against. Bump `commit` (a full SHA on api main) in its own PR; test/contract.test.js then checks every fixture against it."
+  "comment": "The API contract the app is built against. Bump `commit` (a full SHA) in its own PR; test/contract.test.js then checks every fixture against it. Now api PR #20 (device registration, not merged yet): move back to an api main SHA once it merges."
 }
