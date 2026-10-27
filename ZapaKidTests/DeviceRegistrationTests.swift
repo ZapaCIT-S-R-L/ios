@@ -46,18 +46,32 @@ struct DeviceRegistrationTests {
     )
 
     func identityStore() -> LocalIdentityStore {
-        LocalIdentityStore(keychain: .syncedIdentity(service: keychainService))
-    }
-
-    func registration(_ api: FakeDeviceAPI, reshare: IdentityReshare = NoReshare()) throws -> DeviceRegistration {
-        try DeviceRegistration(
-            api: api, identity: identityStore(), files: ProtectedFileStore(directory: directory), reshare: reshare,
-            oneTimeCount: 3
+        LocalIdentityStore(
+            accountId: session.parent.id,
+            keychain: .syncedIdentity(service: keychainService, accountId: session.parent.id)
         )
     }
 
+    func registration(_ api: FakeDeviceAPI, reshare: IdentityReshare = NoReshare()) -> DeviceRegistration {
+        DeviceRegistration(
+            api: api,
+            keyspace: { [directory, keychainService] accountId in
+                try AccountKeys(accountId: accountId, root: directory, keychainService: keychainService)
+            },
+            reshare: reshare, oneTimeCount: 3
+        )
+    }
+
+    /// Every regular file below `url` (key directories themselves don't count).
+    func storedFiles(under url: URL) -> [URL] {
+        let walk = FileManager.default.enumerator(at: url, includingPropertiesForKeys: [.isRegularFileKey])
+        return (walk?.allObjects as? [URL] ?? []).filter {
+            (try? $0.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile) == true
+        }
+    }
+
     func cleanUp() {
-        try? KeychainData.syncedIdentity(service: keychainService).clear()
+        try? KeychainData.syncedIdentity(service: keychainService, accountId: session.parent.id).clear()
         try? FileManager.default.removeItem(at: directory)
     }
 
@@ -65,7 +79,7 @@ struct DeviceRegistrationTests {
         defer { cleanUp() }
         let api = FakeDeviceAPI(identity: nil)
 
-        let result = try await registration(api).run(session: session)
+        let result = await registration(api).run(session: session)
 
         #expect(result == .ready(deviceId: 3))
         let upload = try #require(await api.uploads.first)
@@ -76,7 +90,7 @@ struct DeviceRegistrationTests {
         #expect(try identity.keyPair.publicKey.verifySignature(message: signed, signature: signature))
         #expect(await api.lookups == [session.parent.id])
 
-        let again = try await registration(api).run(session: session)
+        let again = await registration(api).run(session: session)
 
         #expect(again == .ready(deviceId: 3))
         #expect(await api.uploads.count == 1, "a registered phone does no more network work")
@@ -90,7 +104,7 @@ struct DeviceRegistrationTests {
         let reshare = RecordingReshare()
         let api = FakeDeviceAPI(identity: key)
 
-        let result = try await registration(api, reshare: reshare).run(session: session)
+        let result = await registration(api, reshare: reshare).run(session: session)
 
         #expect(result == .ready(deviceId: 3))
         #expect(await api.uploads.first?.identityKey == key)
@@ -103,24 +117,23 @@ struct DeviceRegistrationTests {
         let reshare = RecordingReshare()
         let api = FakeDeviceAPI(identity: other)
 
-        let result = try await registration(api, reshare: reshare).run(session: session)
+        let result = await registration(api, reshare: reshare).run(session: session)
 
         #expect(result == .waitingForReshare)
         #expect(await api.uploads.isEmpty)
         #expect(reshare.requests == 1)
         #expect(try identityStore().load() == nil, "no new identity")
-        let files = (try? FileManager.default.contentsOfDirectory(atPath: directory.path)) ?? []
-        #expect(files.isEmpty, "no keys made")
+        #expect(storedFiles(under: directory).isEmpty, "no keys made")
     }
 
-    @Test func failedUploadIsRetriedWithTheSameKeys() async throws {
+    @Test func failedUploadIsRetriedWithTheSameKeys() async {
         defer { cleanUp() }
         let api = FakeDeviceAPI(identity: nil)
         await api.set(registerResult: .failure(.network))
 
-        let first = try await registration(api).run(session: session)
+        let first = await registration(api).run(session: session)
         await api.set(registerResult: .success(5))
-        let second = try await registration(api).run(session: session)
+        let second = await registration(api).run(session: session)
 
         #expect(first == .failed(.network))
         #expect(second == .ready(deviceId: 5))
@@ -136,12 +149,12 @@ struct DeviceRegistrationTests {
         (.attestationFailed, .failed(.attestationFailed)),
         (.server(status: 409, code: "too_many_devices"), .failed(.server)),
     ])
-    func uploadErrorsBecomeResults(error: AuthAPIError, expected: DeviceSetupResult) async throws {
+    func uploadErrorsBecomeResults(error: AuthAPIError, expected: DeviceSetupResult) async {
         defer { cleanUp() }
         let api = FakeDeviceAPI(identity: nil)
         await api.set(registerResult: .failure(error))
 
-        let result = try await registration(api).run(session: session)
+        let result = await registration(api).run(session: session)
 
         #expect(result == expected)
     }
@@ -152,7 +165,7 @@ struct DeviceRegistrationTests {
         let someoneElses = IdentityKeyPair.generate().identityKey.serialize().base64EncodedString()
         let api = FakeDeviceAPI(identity: someoneElses)
 
-        let result = try await registration(api).run(session: session)
+        let result = await registration(api).run(session: session)
 
         #expect(result == .failed(.identityMismatch))
         #expect(await api.uploads.isEmpty, "never upload keys for an identity the directory doesn't know")

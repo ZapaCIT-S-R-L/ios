@@ -11,6 +11,7 @@ import Testing
 struct KeySetupTests {
     let directory = FileManager.default.temporaryDirectory.appendingPathComponent("keys-\(UUID().uuidString)")
     let keychainService = "ro.zapakid.app.tests.identity.\(UUID().uuidString)"
+    let accountId = "6f1c0e2a-0000-4000-8000-000000000001"
     let context = NullContext()
 
     func files() throws -> ProtectedFileStore {
@@ -18,7 +19,10 @@ struct KeySetupTests {
     }
 
     func identityStore() -> LocalIdentityStore {
-        LocalIdentityStore(keychain: .syncedIdentity(service: keychainService))
+        LocalIdentityStore(
+            accountId: accountId,
+            keychain: .syncedIdentity(service: keychainService, accountId: accountId)
+        )
     }
 
     /// A new account: no identity anywhere yet, so this phone creates it.
@@ -33,7 +37,7 @@ struct KeySetupTests {
     }
 
     func cleanUp() {
-        try? KeychainData.syncedIdentity(service: keychainService).clear()
+        try? KeychainData.syncedIdentity(service: keychainService, accountId: accountId).clear()
         try? FileManager.default.removeItem(at: directory)
     }
 
