@@ -52,6 +52,8 @@ public final class CallController {
     private let engine: CallMediaEngine
     private let sealer: CallKeySealer
     private let reconnectTimeout: Duration
+    /// Names and robots by account (the family); the server's roster has neither.
+    private let directory: ((String) -> CallPeer?)?
     private var machine = CallStateMachine()
     private var keys: CallKeyManager?
     private var events: CallEventsConnection?
@@ -63,8 +65,9 @@ public final class CallController {
 
     public init(
         me: String, api: CallsAPI, engine: CallMediaEngine, sealer: CallKeySealer,
-        reconnectTimeout: Duration = .seconds(20)
+        reconnectTimeout: Duration = .seconds(20), directory: ((String) -> CallPeer?)? = nil
     ) {
+        self.directory = directory
         self.me = me
         self.api = api
         self.engine = engine
@@ -115,7 +118,6 @@ public final class CallController {
     public func setMuted(_ muted: Bool) async {
         isMuted = muted
         engine.setMuted(muted)
-        try? await events?.send(.muted(muted))
     }
 
     public func setSpeakerOn(_ speakerOn: Bool) {
@@ -147,49 +149,48 @@ public final class CallController {
         )
     }
 
-    public static func trackName(for device: String) -> String {
-        "audio-\(device)"
+    /// `audio-<accountId>_<deviceId>`: the API allows only `A-Za-z0-9_-` in track names (the same on Android).
+    public nonisolated static func trackName(for device: String) -> String {
+        guard let parsed = CallDevice(name: device) else { return "audio-\(device)" }
+        return "audio-\(parsed.accountId)_\(parsed.deviceId)"
     }
 
     private func handle(_ signal: CallSignal) async {
         switch signal {
-        case let .roster(people): await rosterChanged(people)
-        case let .joined(person):
-            await rosterChanged(currentRoster.filter { $0.deviceId != person.deviceId } + [person])
-        case let .left(device): await rosterChanged(currentRoster.filter { $0.deviceId != device })
-        case let .key(envelope): _ = try? await keys?.receive(envelope)
-        case .declined: break
-        case .ringTimeout: await end(.ringTimeout)
-        case .ended: await end(.remoteEnded)
-        case .unknown: break
+        case let .roster(call): await rosterChanged(call)
+        case var .key(envelope):
+            envelope.toDevice = me
+            _ = try? await keys?.receive(envelope)
+        case let .ended(reason): await end(reason == "no_answer" ? .ringTimeout : .remoteEnded)
+        case .joined, .left, .declined, .error, .unknown: break // a roster follows every change
         }
     }
 
-    private var currentRoster: [RosterParticipant] = []
-
-    private func rosterChanged(_ people: [RosterParticipant]) async {
-        currentRoster = people
-        let others = people.filter { $0.deviceId != me }
+    private func rosterChanged(_ call: CallSnapshot) async {
+        let others = call.participants.filter { $0.name != me }
         participants = others.map { person in
-            let known = participants.first { $0.deviceId == person.deviceId }
+            let known = participants.first { $0.deviceId == person.name } ?? participants.first {
+                $0.accountId == person.accountId
+            }
+            let listed = directory?(person.accountId)
             return CallPeer(
-                accountId: person.accountId, deviceId: person.deviceId,
-                displayName: person.displayName ?? known?.displayName ?? "",
-                avatar: person.avatar ?? known?.avatar ?? "robot-1", role: person.role,
-                isMuted: person.muted, isSpeaking: known?.isSpeaking ?? false
+                accountId: person.accountId, deviceId: person.name,
+                displayName: listed?.displayName ?? known?.displayName ?? "",
+                avatar: listed?.avatar ?? known?.avatar ?? "robot-1", role: person.role,
+                isMuted: false, isSpeaking: known?.isSpeaking ?? false
             )
         }
         trackOwner = Dictionary(
-            others.flatMap { person in person.tracks.map { ($0.trackName, person.deviceId) } }
+            others.flatMap { person in person.tracks.map { ($0, person.name) } }
         ) { first, _ in first }
 
-        if let keys, let envelopes = try? await keys.rosterChanged(people.map(\.deviceId)) {
-            for envelope in envelopes {
-                try? await events?.send(.key(envelope))
-            }
+        if let keys, let envelopes = try? await keys.rosterChanged(
+            call.participants.map(\.name), epoch: call.epoch, leader: call.keyLeader?.name
+        ), !envelopes.isEmpty {
+            try? await events?.send(.keys(epoch: call.epoch, envelopes))
         }
 
-        let tracks = Set(others.flatMap(\.tracks))
+        let tracks = Set(others.flatMap(\.trackRefs))
         let added = tracks.subtracting(subscribed)
         let removed = subscribed.subtracting(tracks)
         subscribed = tracks
