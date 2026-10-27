@@ -1,0 +1,182 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "Apple or Google can't be reached right now. Try again later.": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple sau Google nu pot fi contactate acum. Încearcă mai târziu."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple oder Google ist gerade nicht erreichbar. Versuche es später noch einmal."
+          }
+        }
+      }
+    },
+    "Can't reach ZapaKid. Check your connection and try again.": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nu ne putem conecta la ZapaKid. Verifică conexiunea și încearcă din nou."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ZapaKid ist nicht erreichbar. Prüfe deine Verbindung und versuche es noch einmal."
+          }
+        }
+      }
+    },
+    "Couldn't keep you signed in on this phone. Try again.": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nu te-am putut păstra conectat pe acest telefon. Încearcă din nou."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wir konnten dich auf diesem Handy nicht angemeldet halten. Versuche es noch einmal."
+          }
+        }
+      }
+    },
+    "Sign-in didn't work. Try again.": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conectarea nu a reușit. Încearcă din nou."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Anmeldung hat nicht geklappt. Versuche es noch einmal."
+          }
+        }
+      }
+    },
+    "Sign-in took too long or was already used. Please sign in again.": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conectarea a durat prea mult sau a fost deja folosită. Conectează-te din nou."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Anmeldung hat zu lange gedauert oder wurde schon verwendet. Bitte melde dich erneut an."
+          }
+        }
+      }
+    },
+    "This copy of ZapaKid couldn't be verified. Install it from the App Store.": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Această copie ZapaKid nu a putut fi verificată. Instaleaz-o din App Store."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diese ZapaKid-Kopie konnte nicht überprüft werden. Installiere sie aus dem App Store."
+          }
+        }
+      }
+    },
+    "Too many sign-in attempts. Try again in %lld seconds.": {
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Too many sign-in attempts. Try again in %lld second."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Too many sign-in attempts. Try again in %lld seconds."
+                }
+              }
+            }
+          }
+        },
+        "ro": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Prea multe încercări de conectare. Încearcă din nou peste %lld secundă."
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Prea multe încercări de conectare. Încearcă din nou peste %lld secunde."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Prea multe încercări de conectare. Încearcă din nou peste %lld de secunde."
+                }
+              }
+            }
+          }
+        },
+        "de": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Zu viele Anmeldeversuche. Versuche es in %lld Sekunde noch einmal."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Zu viele Anmeldeversuche. Versuche es in %lld Sekunden noch einmal."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Too many sign-in attempts. Try again in a few minutes.": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prea multe încercări de conectare. Încearcă din nou peste câteva minute."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zu viele Anmeldeversuche. Versuche es in ein paar Minuten noch einmal."
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}
