@@ -11,10 +11,17 @@ struct CallCoordinatorTests {
     let system = FakeCallSystem()
     let mama = CallPeer(accountId: "acc-m", deviceId: "dev-m", displayName: "Mama", avatar: "robot-1", role: .parent)
 
+    func makeController() -> CallController {
+        CallController(me: "dev-k", api: api, engine: engine, sealer: FakeCallKeySealer(me: "dev-k"))
+    }
+
     func coordinator() -> CallCoordinator {
-        CallCoordinator(system: system, lookup: { [mama] account in account == "acc-m" ? mama : nil }) { [api, engine] in
-            CallController(me: "dev-k", api: api, engine: engine, sealer: FakeCallKeySealer(me: "dev-k"))
-        }
+        let mama = mama
+        return CallCoordinator(
+            system: system,
+            lookup: { account in account == "acc-m" ? mama : nil },
+            makeController: makeController
+        )
     }
 
     @Test func pushPayloadsCarryOnlyTheCallId() throws {
@@ -68,7 +75,7 @@ struct CallCoordinatorTests {
         #expect(calls.current == nil)
     }
 
-    @Test func aSecondCallWhileBusyIsDeclined() async throws {
+    @Test func aSecondCallWhileBusyIsDeclined() async {
         let calls = coordinator()
         await calls.handle(IncomingCallPush(callId: "c_9", callerAccountId: "acc-m"))
 
@@ -119,15 +126,17 @@ struct CallCoordinatorTests {
 
     @Test func endedCallsGoToTheLog() async throws {
         let log = InMemoryCallLog()
-        let calls = CallCoordinator(system: system, log: log, lookup: { _ in nil }) { [api, engine] in
-            CallController(me: "dev-k", api: api, engine: engine, sealer: FakeCallKeySealer(me: "dev-k"))
-        }
+        let calls = CallCoordinator(system: system, log: log, lookup: { _ in nil }, makeController: makeController)
         await calls.handle(IncomingCallPush(callId: "c_9", callerAccountId: nil))
         let uuid = try #require(system.reported.first?.uuid)
 
         await system.end(uuid)
 
-        let entries = await log.entries()
+        var entries: [CallLogEntry] = []
+        for _ in 0 ..< 200 where entries.isEmpty {
+            entries = await log.entries()
+            try await Task.sleep(for: .milliseconds(10))
+        }
         #expect(entries.first?.id == "c_9")
         #expect(entries.first?.outcome == .declined)
         #expect(entries.first?.direction == .incoming)
