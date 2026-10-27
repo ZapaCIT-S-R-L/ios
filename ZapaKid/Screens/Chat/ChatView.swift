@@ -32,7 +32,7 @@ struct ChatView: View {
             .background(theme.background.color.ignoresSafeArea())
             .scrollDismissesKeyboard(.immediately)
             // Tapping the conversation hides the keyboard.
-            .onTapGesture { typing = false }
+            .simultaneousGesture(TapGesture().onEnded { typing = false })
             .onChange(of: messages.count) {
                 if let last = messages.last {
                     withAnimation { scroll.scrollTo(last.id, anchor: .bottom) }
