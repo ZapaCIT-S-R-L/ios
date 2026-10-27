@@ -19,6 +19,11 @@ struct KeychainData {
         KeychainData(service: service, account: "identity.\(accountId)", synchronizable: true)
     }
 
+    /// The peers one account trusts (public keys), synced with the identity: see `PeerTrustStore`.
+    static func syncedPeers(service: String = "ro.zapakid.app.peers", accountId: String) -> KeychainData {
+        KeychainData(service: service, account: "peers.\(accountId)", synchronizable: true)
+    }
+
     private var query: [String: Any] {
         [
             kSecClass as String: kSecClassGenericPassword,
@@ -112,12 +117,16 @@ struct ProtectedFileStore {
 struct AccountKeys {
     let accountId: String
     let identity: LocalIdentityStore
+    let peers: PeerTrustStore
     let files: ProtectedFileStore
 
     init(accountId: String, root: URL, keychainService: String = "ro.zapakid.app.identity") throws {
         self.accountId = accountId
         identity = LocalIdentityStore(
             accountId: accountId, keychain: .syncedIdentity(service: keychainService, accountId: accountId)
+        )
+        peers = PeerTrustStore(
+            accountId: accountId, keychain: .syncedPeers(service: keychainService + ".peers", accountId: accountId)
         )
         // Hex of the ID: always one plain path component, whatever the server sends.
         let folder = Data(accountId.utf8).map { String(format: "%02x", $0) }.joined()

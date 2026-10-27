@@ -234,7 +234,8 @@ struct KeySetupTests {
         let alice = try protocolStore()
         let bob = try ZapaKidProtocolStore(
             identity: LocalIdentity(keyPair: IdentityKeyPair.generate(), registrationId: 42),
-            files: ProtectedFileStore(directory: other)
+            files: ProtectedFileStore(directory: other),
+            peers: PeerTrustStore(accountId: "bob", keychain: .syncedPeers(service: peersService, accountId: "bob"))
         )
         let bobKeys = try DeviceKeyGenerator(store: bob).generate(oneTimeCount: 1)
         let aliceAddress = try ProtocolAddress(name: "alice", deviceId: 1)

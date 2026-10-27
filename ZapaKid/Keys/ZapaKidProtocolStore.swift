@@ -12,20 +12,15 @@ final class ZapaKidProtocolStore: IdentityKeyStore, PreKeyStore, SignedPreKeySto
 {
     private let identity: LocalIdentity
     private let files: ProtectedFileStore
+    private let peerTrust: PeerTrustStore
     private var peers: [String: PeerIdentity]
 
-    private struct PeerIdentity: Codable {
-        var key: Data
-        var needsAcknowledgement: Bool
-    }
-
-    private static let peersFile = "identities.json"
-
-    init(identity: LocalIdentity, files: ProtectedFileStore) throws {
+    /// `peers` is the account's synced trusted-peer list, so trust survives a reinstall (no new first contact).
+    init(identity: LocalIdentity, files: ProtectedFileStore, peers: PeerTrustStore) throws {
         self.identity = identity
         self.files = files
-        peers = try files.read(Self.peersFile).map { try JSONDecoder().decode([String: PeerIdentity].self, from: $0) }
-            ?? [:]
+        peerTrust = peers
+        self.peers = try peers.load()
     }
 
     /// Peers (account IDs) whose identity key changed and who can't be sent to until the parent acknowledges it.
@@ -162,6 +157,6 @@ final class ZapaKidProtocolStore: IdentityKeyStore, PreKeyStore, SignedPreKeySto
     }
 
     private func savePeers() throws {
-        try files.write(JSONEncoder().encode(peers), to: Self.peersFile)
+        try peerTrust.save(peers)
     }
 }
