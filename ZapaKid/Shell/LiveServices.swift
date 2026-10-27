@@ -4,7 +4,7 @@ import ZapaChat
 import ZapaKidKit
 
 /// The real chat and call services (staging). Messages and call keys are sealed with libsignal once this phone is
-/// registered with the key directory; until then the pending sealers refuse (nothing is ever sent unencrypted).
+/// registered with the key directory; until then they refuse (nothing is ever sent unencrypted).
 /// Audio is WebRTC (Cloudflare Realtime) with per-frame AES-GCM.
 @MainActor
 enum LiveServices {
@@ -27,9 +27,9 @@ enum LiveServices {
             await MainActor.run { auth.sessionToken }
         }
         let sessions = SecureSessions.make(accountId: me, bundles: bundles)
-        let messageSealer: MessageSealer = sessions
-            .map { LibsignalMessageSealer(sessions: $0) } ?? PendingMessageSealer()
-        let callSealer: CallKeySealer = sessions.map { LibsignalCallKeySealer(sessions: $0) } ?? PendingCallKeySealer()
+        // Only real sealers (Release*Sealer): without a registered device they refuse, never send in the clear.
+        let messageSealer: any ReleaseMessageSealer = LibsignalMessageSealer(sessions: sessions)
+        let callSealer: any ReleaseCallKeySealer = LibsignalCallKeySealer(sessions: sessions)
         let callDevice = sessions
             .map { LibsignalCallKeySealer.deviceName(account: me, device: Int($0.local.deviceId)) } ?? me
         #if targetEnvironment(simulator)
@@ -64,31 +64,5 @@ enum ChatStoreKey {
         let key = Data(bytes)
         try keychain.save(key)
         return key
-    }
-}
-
-enum PendingCrypto: Error {
-    /// libsignal isn't wired into chat and calls yet (its own PR, stacked on the key-setup PRs).
-    case notReady
-}
-
-/// Refuses until the libsignal sealer replaces it: nothing is ever sent unencrypted.
-struct PendingMessageSealer: MessageSealer {
-    func seal(_: Data, for _: Conversation, me _: String) async throws -> [OutgoingEnvelope] {
-        throw PendingCrypto.notReady
-    }
-
-    func open(_: Envelope) async throws -> Data {
-        throw PendingCrypto.notReady
-    }
-}
-
-struct PendingCallKeySealer: CallKeySealer {
-    func seal(_: Data, toDevice _: String) async throws -> Data {
-        throw PendingCrypto.notReady
-    }
-
-    func open(_: Data, fromDevice _: String) async throws -> Data {
-        throw PendingCrypto.notReady
     }
 }

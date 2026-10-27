@@ -136,6 +136,15 @@ struct LibsignalSealerTests {
         }
     }
 
+    @Test func withoutARegisteredDeviceNothingIsSealed() async {
+        await #expect(throws: SealerError.notRegistered) {
+            _ = try await LibsignalMessageSealer(sessions: nil).seal(Data("x".utf8), for: conversation([]), me: "a")
+        }
+        await #expect(throws: SealerError.notRegistered) {
+            _ = try await LibsignalCallKeySealer(sessions: nil).seal(Data("x".utf8), toDevice: "acc-a.1")
+        }
+    }
+
     @Test func callKeysAreSealedPerDeviceWithTheSameSessions() async throws {
         let mama = try Phone(account: "acc-m", device: 1, registrationId: 11)
         let ana = try Phone(account: "acc-a", device: 1, registrationId: 22)

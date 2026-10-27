@@ -31,3 +31,6 @@ public struct KeyEnvelope: Codable, Sendable, Equatable {
         self.blob = blob
     }
 }
+
+/// A call key sealer allowed in release builds (libsignal). Fakes must stay inside `#if DEBUG`.
+public protocol ReleaseCallKeySealer: CallKeySealer {}
