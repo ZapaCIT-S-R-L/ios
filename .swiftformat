@@ -6,4 +6,4 @@
 --wrapcollections before-first
 --stripunusedargs closure-only
 --header ignore
---exclude build,DerivedData,.build,node_modules,ZapaKid.xcodeproj
+--exclude build,DerivedData,.build,node_modules,ZapaKid.xcodeproj,Pods

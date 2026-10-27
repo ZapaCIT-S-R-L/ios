@@ -1,23 +1,52 @@
 #!/usr/bin/env bash
-# Scans the pinned Swift packages (ZapaKidKit/Package.resolved) for known vulnerabilities with OSV-Scanner.
-# Fails on any known vulnerability (stricter than high/critical only). A finding that can't be fixed yet is
-# ignored only in osv-scanner.toml, with a reason and an expiry date, in a reviewed PR.
+# Scans the pinned dependencies for known vulnerabilities with OSV-Scanner (CI on every PR and daily, and
+# scripts/ci-local.sh):
+#   ZapaKidKit/Package.resolved   our Swift packages: fails on ANY known vulnerability
+#   libsignal's Cargo.lock        the Rust crates inside Signal's prebuilt libsignal_ffi.a, at the tag in Podfile.lock
+#                                 (OSV can't read Podfile.lock): fails on HIGH or CRITICAL (CVSS >= 7); others,
+#                                 like "unmaintained" notices, are listed. We can't patch them: bump libsignal.
+# A finding that can't be fixed yet is ignored only in osv-scanner.toml, with a reason and an expiry date, in a PR.
 set -euo pipefail
 cd "$(dirname "$0")/.."
-lockfile=ZapaKidKit/Package.resolved
-if [ ! -f "$lockfile" ]; then
-  echo "No $lockfile: ZapaKidKit has no package dependencies yet, nothing to scan."
-  exit 0
-fi
-# A local osv-scanner (brew install osv-scanner) when there is one, else the pinned image (CI).
-if command -v osv-scanner >/dev/null; then
-  config=()
-  [ -f osv-scanner.toml ] && config=(--config osv-scanner.toml)
-  osv-scanner scan source "${config[@]}" --lockfile "$lockfile"
-  exit
-fi
+image=ghcr.io/google/osv-scanner:v2.7.0@sha256:4f3b7e2c64b9d38a5febc5a7e4a3dfef1d1362f726dea7a2ef4762b46469fcd0
 config=()
-[ -f osv-scanner.toml ] && config=(--config /repo/osv-scanner.toml)
-docker run --rm -v "$PWD:/repo:ro" \
-  ghcr.io/google/osv-scanner:v2.7.0@sha256:4f3b7e2c64b9d38a5febc5a7e4a3dfef1d1362f726dea7a2ef4762b46469fcd0 \
-  scan source "${config[@]}" --lockfile "/repo/$lockfile"
+[ -f osv-scanner.toml ] && config=(--config "$PWD/osv-scanner.toml")
+
+# OSV JSON for one lockfile (absolute path), from a local osv-scanner (brew) or else the pinned image (CI).
+osv_json() {
+  local dir file
+  dir=$(dirname "$1")
+  file=$(basename "$1")
+  if command -v osv-scanner >/dev/null; then
+    osv-scanner scan source "${config[@]}" --format json --lockfile "$1" 2>/dev/null || true
+  else
+    local mount=()
+    [ -f osv-scanner.toml ] && mount=(-v "$PWD/osv-scanner.toml:/config/osv-scanner.toml:ro") \
+      && config=(--config /config/osv-scanner.toml)
+    docker run --rm -v "$dir:/scan:ro" "${mount[@]}" "$image" \
+      scan source "${config[@]}" --format json --lockfile "/scan/$file" 2>/dev/null || true
+  fi
+}
+
+# Prints the findings; exits 1 when one is at or above the threshold (0 = any finding).
+judge() {
+  python3 -I scripts/osv-judge.py "$1"
+}
+
+status=0
+if [ -f ZapaKidKit/Package.resolved ]; then
+  echo "== ZapaKidKit/Package.resolved (any finding fails)"
+  osv_json "$PWD/ZapaKidKit/Package.resolved" | judge 0 || status=1
+else
+  echo "== ZapaKidKit has no package dependencies yet"
+fi
+
+tag=$(sed -nE 's/^ *:tag: (v[0-9]+\.[0-9]+\.[0-9]+)$/\1/p' Podfile.lock | sed -n 1p)
+if [ -n "$tag" ]; then
+  echo "== libsignal $tag Cargo.lock (HIGH/CRITICAL fail)"
+  tmp=$(mktemp -d)
+  trap 'rm -rf "$tmp"' EXIT
+  curl -fsSL -o "$tmp/Cargo.lock" "https://raw.githubusercontent.com/signalapp/libsignal/$tag/Cargo.lock"
+  osv_json "$tmp/Cargo.lock" | judge 7 || status=1
+fi
+exit $status

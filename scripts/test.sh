@@ -15,10 +15,12 @@ udid="$(scripts/pick-simulator.sh)"
 echo "Simulator: $udid"
 
 xcodegen generate --quiet
+# libsignal (Podfile). The prebuilt libsignal_ffi.a is fetched during the build and checked against its SHA-256.
+pod install --silent
 rm -rf "$results" && mkdir -p "$results"
 
 common=(
-  -project ZapaKid.xcodeproj -scheme ZapaKid
+  -workspace ZapaKid.xcworkspace -scheme ZapaKid
   -destination "platform=iOS Simulator,id=$udid"
   -derivedDataPath "$derived"
   CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY=- DEVELOPMENT_TEAM= PROVISIONING_PROFILE_SPECIFIER=

@@ -5,15 +5,16 @@ families. One app with a parent mode and a kid mode. ZapaKid (the company and it
 
 - Swift 6 + SwiftUI, iOS 17 or later. The Xcode project is generated from `project.yml` with
   [XcodeGen](https://github.com/yonaskolb/XcodeGen) and not committed.
-- `ZapaKid/`: the app (screens). `ZapaKidKit/`: the logic without UI (API client, session, later the libsignal
-  crypto), a local Swift package. `ZapaKidTests/`: unit tests (Swift Testing). `ZapaKidUITests/`: UI tests (XCUITest).
+- `ZapaKid/`: the app (screens). libsignal (Signal's `LibSignalClient` CocoaPod, `Podfile`) does all chat
+  cryptography. `ZapaKidKit/`: the logic without UI (API client, session), a local
+  Swift package. `ZapaKidTests/`: unit tests (Swift Testing). `ZapaKidUITests/`: UI tests (XCUITest).
 - API: `https://api-staging.zapakid.ro` (Cloudflare Workers), see the `api` repository.
 
 ## Build and test
 
 ```sh
-brew install xcodegen swiftformat swiftlint
-xcodegen generate && open ZapaKid.xcodeproj   # Xcode
+brew install xcodegen cocoapods swiftformat swiftlint
+xcodegen generate && pod install && open ZapaKid.xcworkspace   # Xcode
 scripts/ci-local.sh                           # the whole CI suite locally; run before every push
 swiftformat . && swiftlint --strict           # style, as CI does
 npm test                                      # the CLA and release-tag scripts (Node 24, see .nvmrc)
