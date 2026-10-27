@@ -66,10 +66,16 @@ final class ThemeUITests: XCTestCase {
         app.buttons["call.close"].tap()
         XCTAssertTrue(app.textFields["chat.input"].waitForExistence(timeout: 5), "back in the chat")
 
-        // Family.
+        // Family: parents manage it, kids see who is in it.
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        XCTAssertTrue(app.tabBars.buttons["Family"].waitForExistence(timeout: 5))
         app.tabBars.buttons["Family"].tap()
-        XCTAssertTrue(app.navigationBars["Family"].waitForExistence(timeout: 5))
-        XCTAssertEqual(app.buttons["family.addKid"].exists, !kid, "only parents add kids")
+        if kid {
+            XCTAssertTrue(app.staticTexts["My family"].waitForExistence(timeout: 5))
+            XCTAssertFalse(app.buttons["family.addKid"].exists, "only parents add kids")
+        } else {
+            XCTAssertTrue(app.buttons["family.addKid"].waitForExistence(timeout: 5))
+        }
         shoot(app, "\(role)-family")
     }
 
