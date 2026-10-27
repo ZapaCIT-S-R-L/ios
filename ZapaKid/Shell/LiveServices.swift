@@ -21,6 +21,14 @@ enum LiveServices {
         let store: ChatStore = (try? EncryptedChatStore(
             directory: URL.applicationSupportDirectory.appending(path: "chats"), key: ChatStoreKey.loadOrCreate()
         )) ?? InMemoryChatStore()
+        #if DEBUG
+            // Debug builds without libsignal yet: the sealers refuse, so nothing is ever sent unencrypted.
+            let messageSealer: any MessageSealer = PendingMessageSealer()
+            let callSealer: any CallKeySealer = PendingCallKeySealer()
+        #else
+            // Release builds take only real sealers (ReleaseMessageSealer / ReleaseCallKeySealer, libsignal).
+            #error("No real MessageSealer/CallKeySealer is wired in: release builds need the libsignal sealers.")
+        #endif
         #if targetEnvironment(simulator)
             let system: CallSystem = InAppCallSystem()
         #else
@@ -28,10 +36,10 @@ enum LiveServices {
         #endif
         return AppServices(
             me: me,
-            chat: ChatModel(me: me, api: chatAPI, sealer: PendingMessageSealer(), store: store),
+            chat: ChatModel(me: me, api: chatAPI, sealer: messageSealer, store: store),
             people: [], log: InMemoryCallLog(), system: system
         ) { _ in
-            CallController(me: me, api: callsAPI, engine: PendingMediaEngine(), sealer: PendingCallKeySealer())
+            CallController(me: me, api: callsAPI, engine: PendingMediaEngine(), sealer: callSealer)
         }
     }
 }
@@ -58,26 +66,28 @@ enum PendingCrypto: Error {
     case notReady
 }
 
-/// Refuses until the libsignal sealer replaces it: nothing is ever sent unencrypted.
-struct PendingMessageSealer: MessageSealer {
-    func seal(_: Data, for _: Conversation, me _: String) async throws -> [OutgoingEnvelope] {
-        throw PendingCrypto.notReady
+#if DEBUG
+    /// Refuses until the libsignal sealer replaces it: nothing is ever sent unencrypted. Debug builds only.
+    struct PendingMessageSealer: MessageSealer {
+        func seal(_: Data, for _: Conversation, me _: String) async throws -> [OutgoingEnvelope] {
+            throw PendingCrypto.notReady
+        }
+
+        func open(_: Envelope) async throws -> Data {
+            throw PendingCrypto.notReady
+        }
     }
 
-    func open(_: Envelope) async throws -> Data {
-        throw PendingCrypto.notReady
-    }
-}
+    struct PendingCallKeySealer: CallKeySealer {
+        func seal(_: Data, toDevice _: String) async throws -> Data {
+            throw PendingCrypto.notReady
+        }
 
-struct PendingCallKeySealer: CallKeySealer {
-    func seal(_: Data, toDevice _: String) async throws -> Data {
-        throw PendingCrypto.notReady
+        func open(_: Data, fromDevice _: String) async throws -> Data {
+            throw PendingCrypto.notReady
+        }
     }
-
-    func open(_: Data, fromDevice _: String) async throws -> Data {
-        throw PendingCrypto.notReady
-    }
-}
+#endif
 
 /// Until the WebRTC engine PR: a call can ring and signal, but carries no audio.
 final class PendingMediaEngine: CallMediaEngine, @unchecked Sendable {
