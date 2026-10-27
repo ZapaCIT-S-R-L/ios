@@ -28,6 +28,8 @@ public struct ChatContent: Codable, Sendable, Equatable {
         case text(String)
         case image(AttachmentPointer)
         case voice(AttachmentPointer)
+        /// "I'm calling you": rings the others while VoIP pushes aren't set up, and shows in the chat as a call.
+        case call(callId: String)
     }
 
     public static let version = 1

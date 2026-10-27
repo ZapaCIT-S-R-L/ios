@@ -16,6 +16,12 @@ public final class ChatModel {
     private let sealer: MessageSealer
     private let store: ChatStore
     private var streams: [String: Task<Void, Never>] = [:]
+    /// A call message from the last minute arrived: (callId, conversationId, caller account).
+    public var onIncomingCall: ((String, String, String) -> Void)?
+
+    public var connectedConversations: [String] {
+        streams.keys.sorted()
+    }
 
     public init(me: String, api: ChatAPI, sealer: MessageSealer, store: ChatStore) {
         self.me = me
@@ -50,6 +56,21 @@ public final class ChatModel {
             messages[conversation.id] = []
         }
         return conversation
+    }
+
+    /// Keeps every conversation's stream open, so messages and call rings arrive while the app is open.
+    public func connectAll() {
+        for conversation in conversations where conversation.state == .open {
+            connect(conversation.id)
+        }
+    }
+
+    /// Tells the others in the conversation that this phone is calling (sealed like any message).
+    public func announceCall(_ callId: String, in conversationId: String) async {
+        await deliver(
+            ChatContent(id: UUID().uuidString.lowercased(), sentAt: Date(), body: .call(callId: callId)),
+            in: conversationId
+        )
     }
 
     public func markRead(_ conversationId: String) {
@@ -190,6 +211,9 @@ public final class ChatModel {
         ))
         unread[conversationId, default: 0] += 1
         await persist(conversationId)
+        if case let .call(callId) = content.body, abs(content.sentAt.timeIntervalSinceNow) < 60 {
+            onIncomingCall?(callId, conversationId, envelope.senderAccountId)
+        }
     }
 
     // MARK: Helpers

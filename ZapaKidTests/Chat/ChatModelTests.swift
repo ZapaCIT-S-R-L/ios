@@ -107,6 +107,44 @@ struct ChatModelTests {
         #expect(try AttachmentCrypto.decrypt(uploaded, key: pointer.key, digest: pointer.digest) == photo)
     }
 
+    /// Until VoIP pushes are set up, a call rings through the chat: the caller sends a sealed "call" message.
+    @Test func aCallMessageRingsAndIsShownInTheChat() async throws {
+        let chat = model()
+        await chat.loadConversations()
+        var rang: [String] = []
+        chat.onIncomingCall = { callId, conversationId, caller in rang.append("\(callId) \(conversationId) \(caller)") }
+        let fresh = ChatContent(id: "m5", sentAt: Date(), body: .call(callId: "call-7"))
+        let stale = ChatContent(id: "m6", sentAt: Date().addingTimeInterval(-600), body: .call(callId: "call-8"))
+        for content in [fresh, stale] {
+            try await chat.receive(Envelope(
+                id: content.id, conversationId: "c_1", messageId: content.id, senderAccountId: "acc-k",
+                senderDeviceId: 1, type: .message, content: Data("SEALED".utf8) + content.encoded(),
+                serverTimestamp: 0
+            ))
+        }
+
+        #expect(rang == ["call-7 c_1 acc-k"], "only a call from the last minute rings")
+        #expect(chat.messages["c_1"]?.count == 2, "both show in the chat as calls")
+    }
+
+    @Test func announcingACallSendsASealedCallMessage() async throws {
+        let chat = model()
+        await chat.loadConversations()
+
+        await chat.announceCall("call-9", in: "c_1")
+
+        let sent = try #require(api.sent.first?.envelopes.first?.content)
+        let content = try ChatContent.decode(sent.dropFirst(6))
+        #expect(content.body == .call(callId: "call-9"))
+    }
+
+    @Test func loadingConversationsConnectsEveryStream() async {
+        let chat = model()
+        await chat.loadConversations()
+        chat.connectAll()
+        #expect(chat.connectedConversations == ["c_1"])
+    }
+
     @Test func markingReadClearsTheUnreadCount() async {
         let chat = model()
         await chat.loadConversations()
