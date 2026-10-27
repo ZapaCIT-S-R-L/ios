@@ -1,4 +1,5 @@
 import SwiftUI
+import ZapaCalls
 import ZapaKidKit
 
 /// Shows the screen for where the person is: sign-in, or the app's tabs (parent or kid).
@@ -26,6 +27,7 @@ struct RootView: View {
                 )
             case let .signedIn(parent):
                 MainTabView(
+                    role: auth.state.themeRole,
                     services: services(for: parent.id, kid: false),
                     family: FamilyModel(
                         api: families,
@@ -37,6 +39,7 @@ struct RootView: View {
                 )
             case let .kid(session):
                 MainTabView(
+                    role: auth.state.themeRole,
                     services: services(for: session.kid.id, kid: true), family: nil,
                     greeting: session.kid.nickname, onSignOut: nil
                 )
@@ -46,6 +49,7 @@ struct RootView: View {
                 AgeDeclinedView { Task { await auth.tryAgain() } }
             }
         }
+        .zapaTheme(auth.state.themeRole)
         .task { await auth.start() }
     }
 
@@ -57,5 +61,16 @@ struct RootView: View {
         let made = makeServices(me, kid)
         Task { @MainActor in services = made }
         return made
+    }
+}
+
+extension AuthState {
+    /// Kids get the playful look; everything else (parents, sign-in) the calm one.
+    var themeRole: ZapaTheme.Role {
+        if case .kid = self {
+            .kid
+        } else {
+            .parent
+        }
     }
 }

@@ -7,17 +7,36 @@ struct ChatListView: View {
     let services: AppServices
     @State private var choosing = false
     @State private var opened: Conversation?
+    @Environment(\.zapaTheme) private var theme
 
     var body: some View {
-        List(services.chat.conversations) { conversation in
-            NavigationLink {
-                ChatView(services: services, conversation: conversation)
-            } label: {
-                row(conversation)
+        List {
+            Section {
+                ForEach(Array(services.chat.conversations.enumerated()), id: \.element.id) { index, conversation in
+                    NavigationLink {
+                        ChatView(services: services, conversation: conversation)
+                    } label: {
+                        row(conversation)
+                    }
+                    .accessibilityIdentifier("chats.row.\(services.name(of: conversation))")
+                    .listRowSeparator(theme.cardShadow ? .hidden : .visible)
+                    .listRowSeparatorTint(theme.separator.color)
+                    .listRowBackground(rowBackground(index))
+                }
+            } header: {
+                Label { Text("End-to-end encrypted") } icon: { Image(systemName: "lock.fill") }
+                    .font(.footnote)
+                    .foregroundStyle(theme.secondaryText.color)
+                    .frame(maxWidth: .infinity)
+                    .textCase(nil)
+                    .accessibilityElement(children: .combine)
+                    .accessibilityIdentifier("theme.e2ee")
+                    .accessibilityValue(Text(verbatim: theme.role.rawValue))
             }
-            .accessibilityIdentifier("chats.row.\(services.name(of: conversation))")
         }
         .listStyle(.plain)
+        .scrollContentBackground(.hidden)
+        .background(theme.background.color.ignoresSafeArea())
         .overlay {
             if services.chat.conversations.isEmpty {
                 ContentUnavailableView {
@@ -44,6 +63,7 @@ struct ChatListView: View {
                 services.chat.connect(conversation.id)
                 opened = conversation
             }
+            .zapaTheme(theme.role)
         }
         .navigationDestination(isPresented: Binding(get: { opened != nil }, set: {
             if !$0 {
@@ -56,16 +76,35 @@ struct ChatListView: View {
         }
     }
 
+    /// Parents: plain rows with thin lines. Kids: a chunky tinted card per conversation.
+    @ViewBuilder private func rowBackground(_ index: Int) -> some View {
+        if theme.cardShadow {
+            RoundedRectangle(cornerRadius: theme.cardRadius, style: .continuous)
+                .fill(theme.cardTints[index % theme.cardTints.count].color)
+                .overlay(
+                    RoundedRectangle(cornerRadius: theme.cardRadius, style: .continuous)
+                        .strokeBorder(theme.separator.color, lineWidth: 2)
+                )
+                .shadow(color: .black.opacity(0.06), radius: 6, y: 2)
+                .padding(.vertical, 6)
+                .padding(.horizontal, 12)
+        } else {
+            theme.background.color
+        }
+    }
+
     private func row(_ conversation: Conversation) -> some View {
         HStack(spacing: 12) {
-            RobotAvatarView(avatar: services.avatar(of: conversation), size: 48)
-            VStack(alignment: .leading, spacing: 2) {
+            RobotAvatarView(avatar: services.avatar(of: conversation), size: theme.cardShadow ? 58 : 50)
+                .background(Circle().fill(theme.secondary.color.opacity(0.25)))
+            VStack(alignment: .leading, spacing: 4) {
                 Text(verbatim: services.name(of: conversation))
-                    .font(.headline)
+                    .font(theme.cardShadow ? .title3.bold() : .headline)
+                    .foregroundStyle(theme.text.color)
                 if let last = services.chat.messages[conversation.id]?.last {
                     ChatPreview(content: last.content)
                         .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(theme.secondaryText.color)
                         .lineLimit(1)
                 }
             }
@@ -73,14 +112,16 @@ struct ChatListView: View {
             if let unread = services.chat.unread[conversation.id] {
                 Text(verbatim: "\(unread)")
                     .font(.caption.bold())
-                    .foregroundStyle(.white)
+                    .foregroundStyle(theme.onDanger.color)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
-                    .background(Capsule().fill(Color.accentColor))
+                    .background(Capsule().fill(theme.danger.color))
                     .accessibilityLabel(Text("Unread messages: \(unread)"))
             }
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, theme.cardShadow ? 18 : 10)
+        .padding(.horizontal, theme.cardShadow ? 16 : 0)
+        .frame(minHeight: theme.minTapTarget)
     }
 }
 

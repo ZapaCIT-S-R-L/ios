@@ -2,8 +2,10 @@ import SwiftUI
 import ZapaCalls
 import ZapaKidKit
 
-/// Chats, Calls and (for parents) Family. A call shows full screen over everything.
+/// Chats, Calls and Family (parents manage it, kids see who is in it). A call shows full screen over everything.
+/// Parents get the calm look, kids the playful one (`ZapaTheme`).
 struct MainTabView: View {
+    let role: ZapaTheme.Role
     let services: AppServices
     let family: FamilyModel?
     /// A kid's nickname, greeted above the chats.
@@ -11,16 +13,23 @@ struct MainTabView: View {
     let onSignOut: (() -> Void)?
 
     var body: some View {
+        tabs.zapaTheme(role)
+    }
+
+    private var tabs: some View {
         TabView {
             NavigationStack {
                 ChatListView(services: services)
                     .safeAreaInset(edge: .top) {
                         if let greeting {
-                            (Text("Hello,") + Text(verbatim: " \(greeting)!"))
-                                .font(.title2.bold())
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .padding(.horizontal, 16)
-                                .accessibilityIdentifier("kid.hello")
+                            HStack {
+                                (Text("Hello,") + Text(verbatim: " \(greeting)!"))
+                                    .font(.title2.bold())
+                                    .accessibilityIdentifier("kid.hello")
+                                Sparkles()
+                                Spacer()
+                            }
+                            .padding(.horizontal, 16)
                         }
                     }
             }
@@ -54,8 +63,14 @@ struct MainTabView: View {
                         }
                 }
                 .tabItem { Label("Family", systemImage: "person.3.fill") }
+            } else {
+                NavigationStack {
+                    KidFamilyView(services: services)
+                }
+                .tabItem { Label("Family", systemImage: "person.3.fill") }
             }
         }
+        .modifier(ThemedBars(role: role))
         .fullScreenCover(isPresented: Binding(
             get: { services.calls.current != nil || shownCall != nil },
             set: {
@@ -69,6 +84,7 @@ struct MainTabView: View {
                     shownCall = nil
                     Task { await services.refreshLog() }
                 }
+                .zapaTheme(role)
             }
         }
         .onChange(of: services.calls.current == nil) { _, ended in
@@ -86,4 +102,63 @@ struct MainTabView: View {
 
     /// Keeps the ended call on screen until the person taps Close.
     @State private var shownCall: CallController?
+}
+
+/// Tab and navigation bars in the theme's colors.
+private struct ThemedBars: ViewModifier {
+    let role: ZapaTheme.Role
+    @Environment(\.zapaTheme) private var theme
+
+    func body(content: Content) -> some View {
+        content
+            .toolbarBackground(theme.surface.color, for: .tabBar)
+            .toolbarBackground(.visible, for: .tabBar)
+    }
+}
+
+/// A kid's family: everyone they can chat with and call, as big cards. Parents manage the family on their phones.
+struct KidFamilyView: View {
+    let services: AppServices
+    @Environment(\.zapaTheme) private var theme
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: theme.spacing) {
+                HStack {
+                    Text("My family")
+                        .font(.title.bold())
+                        .foregroundStyle(theme.onPrimary.color)
+                    Sparkles()
+                    Spacer()
+                }
+                .zapaCard(theme, tint: theme.primary)
+                LazyVGrid(
+                    columns: [GridItem(.adaptive(minimum: 150), spacing: theme.spacing)],
+                    spacing: theme.spacing
+                ) {
+                    ForEach(
+                        Array(services.people.values.sorted { $0.name < $1.name }.enumerated()),
+                        id: \.element.accountId
+                    ) { index, person in
+                        VStack(spacing: 8) {
+                            RobotAvatarView(avatar: person.avatar, size: 72)
+                            Text(verbatim: person.name)
+                                .font(.headline)
+                                .foregroundStyle(theme.text.color)
+                            (person.role == .parent ? Text("Parent") : Text("Kid"))
+                                .font(.subheadline)
+                                .foregroundStyle(theme.secondaryText.color)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .zapaCard(theme, tint: theme.cardTints[index % theme.cardTints.count])
+                        .accessibilityElement(children: .combine)
+                    }
+                }
+            }
+            .padding(theme.spacing)
+        }
+        .background(theme.background.color.ignoresSafeArea())
+        .navigationTitle(Text("Family"))
+        .accessibilityIdentifier("family.screen")
+    }
 }

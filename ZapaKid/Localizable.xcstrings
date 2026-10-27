@@ -177,6 +177,22 @@
         }
       }
     },
+    "End-to-end encrypted": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Criptat end-to-end"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ende-zu-Ende-verschlüsselt"
+          }
+        }
+      }
+    },
     "Expires in": {
       "localizations": {
         "ro": {
@@ -369,6 +385,22 @@
         }
       }
     },
+    "Kid": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copil"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kind"
+          }
+        }
+      }
+    },
     "Kid's phone": {
       "localizations": {
         "ro": {
@@ -461,6 +493,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Nachricht"
+          }
+        }
+      }
+    },
+    "My family": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Familia mea"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meine Familie"
           }
         }
       }

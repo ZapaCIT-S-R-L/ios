@@ -5,6 +5,7 @@ import SwiftUI
 public struct CallScreen: View {
     let controller: CallController
     let onClose: (() -> Void)?
+    @Environment(\.zapaTheme) private var theme
 
     public init(controller: CallController, onClose: (() -> Void)? = nil) {
         self.controller = controller
@@ -14,9 +15,13 @@ public struct CallScreen: View {
     public var body: some View {
         ZStack {
             LinearGradient(
-                colors: [Color(red: 0.16, green: 0.20, blue: 0.45), Color(red: 0.05, green: 0.07, blue: 0.18)],
+                colors: [
+                    theme.cardShadow ? theme.secondary.color.opacity(0.25) : theme.background.color,
+                    theme.background.color,
+                ],
                 startPoint: .top, endPoint: .bottom
             )
+            .background(theme.background.color)
             .ignoresSafeArea()
             VStack(spacing: 24) {
                 ScrollView {
@@ -52,6 +57,7 @@ public struct CallScreen: View {
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 120), spacing: 16)], spacing: 20) {
                 ForEach(controller.participants) { PeerBubble(peer: $0) }
             }
+            .zapaCard(theme)
         } else if let peer = controller.participants.first {
             VStack(spacing: 12) {
                 PeerAvatar(peer: peer, size: 160)
@@ -62,11 +68,15 @@ public struct CallScreen: View {
                     .accessibilityLabel(Text(verbatim: peer.displayName))
                     .accessibilityValue(PeerBubble.state(of: peer))
                     .accessibilityIdentifier("call.peer.\(peer.displayName)")
-                Text(verbatim: peer.displayName)
-                    .font(.largeTitle.bold())
-                    .foregroundStyle(.white)
-                    .multilineTextAlignment(.center)
-                    .accessibilityIdentifier("call.name")
+                HStack(spacing: 8) {
+                    Sparkles()
+                    Text(verbatim: peer.displayName)
+                        .font(.largeTitle.bold())
+                        .foregroundStyle(theme.text.color)
+                        .multilineTextAlignment(.center)
+                        .accessibilityIdentifier("call.name")
+                    Sparkles()
+                }
             }
         }
     }
@@ -83,13 +93,13 @@ public struct CallScreen: View {
                 Text(verbatim: Duration.seconds(max(0, context.date.timeIntervalSince(start)).rounded(.down))
                     .formatted(.time(pattern: .minuteSecond)))
                     .font(.title2.monospacedDigit())
-                    .foregroundStyle(.white.opacity(0.85))
+                    .foregroundStyle(theme.secondaryText.color)
                     .accessibilityIdentifier("call.timer")
             }
         } else {
             Text(statusKey, bundle: .module)
                 .font(.title3.weight(.medium))
-                .foregroundStyle(.white.opacity(0.85))
+                .foregroundStyle(theme.secondaryText.color)
                 .multilineTextAlignment(.center)
                 .accessibilityIdentifier("call.status")
         }
@@ -122,11 +132,11 @@ public struct CallScreen: View {
         switch controller.phase {
         case .ringing:
             HStack(spacing: 56) {
-                CallButton(systemImage: "phone.down.fill", title: "Decline", tint: .red) {
+                CallButton(systemImage: "phone.down.fill", title: "Decline", kind: .end) {
                     Task { await controller.decline() }
                 }
                 .accessibilityIdentifier("call.decline")
-                CallButton(systemImage: "phone.fill", title: "Accept", tint: .green) {
+                CallButton(systemImage: "phone.fill", title: "Accept", kind: .accept) {
                     Task { await controller.accept() }
                 }
                 .accessibilityIdentifier("call.accept")
@@ -139,7 +149,7 @@ public struct CallScreen: View {
                         .frame(maxWidth: .infinity, minHeight: 52)
                 }
                 .buttonStyle(.borderedProminent)
-                .tint(.white.opacity(0.2))
+                .tint(theme.callButton.color)
                 .accessibilityIdentifier("call.close")
             }
         default:
@@ -147,13 +157,13 @@ public struct CallScreen: View {
                 CallButton(
                     systemImage: controller.isMuted ? "mic.slash.fill" : "mic.fill",
                     title: controller.isMuted ? "Unmute" : "Mute",
-                    tint: .white.opacity(0.22), isOn: controller.isMuted
+                    isOn: controller.isMuted
                 ) {
                     Task { await controller.setMuted(!controller.isMuted) }
                 }
                 .accessibilityIdentifier("call.mute")
                 CallButton(
-                    systemImage: "speaker.wave.3.fill", title: "Speaker", tint: .white.opacity(0.22),
+                    systemImage: "speaker.wave.3.fill", title: "Speaker",
                     isOn: controller.isSpeakerOn,
                     accessibilityValue: controller.isSpeakerOn ? Text("On", bundle: .module) : Text(
                         "Off",
@@ -163,7 +173,7 @@ public struct CallScreen: View {
                     controller.setSpeakerOn(!controller.isSpeakerOn)
                 }
                 .accessibilityIdentifier("call.speaker")
-                CallButton(systemImage: "phone.down.fill", title: "End call", tint: .red) {
+                CallButton(systemImage: "phone.down.fill", title: "End call", kind: .end) {
                     Task { await controller.hangUp() }
                 }
                 .accessibilityIdentifier("call.end")

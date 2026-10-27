@@ -11,6 +11,7 @@ struct ChatView: View {
     @State private var text = ""
     @State private var photo: PhotosPickerItem?
     @State private var recorder = VoiceRecorder()
+    @Environment(\.zapaTheme) private var theme
 
     private var messages: [ChatMessage] {
         services.chat.messages[conversation.id] ?? []
@@ -27,6 +28,7 @@ struct ChatView: View {
                 }
                 .padding(12)
             }
+            .background(theme.background.color.ignoresSafeArea())
             .onChange(of: messages.count) {
                 if let last = messages.last {
                     withAnimation { scroll.scrollTo(last.id, anchor: .bottom) }
@@ -41,8 +43,13 @@ struct ChatView: View {
                 Button {
                     Task { await services.call(conversation) }
                 } label: {
-                    Image(systemName: "phone.fill")
-                        .font(.title3)
+                    Label { Text("Call") } icon: { Image(systemName: "phone.fill") }
+                        .labelStyle(.titleAndIcon)
+                        .font(.headline)
+                        .foregroundStyle(theme.onPrimary.color)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 6)
+                        .background(Capsule().fill(theme.primary.color))
                 }
                 .accessibilityLabel(Text("Call"))
                 .accessibilityIdentifier("chat.call")
@@ -72,19 +79,24 @@ struct ChatView: View {
             PhotosPicker(selection: $photo, matching: .images) {
                 Image(systemName: "photo.fill")
                     .font(.title2)
-                    .frame(width: 44, height: 44)
+                    .foregroundStyle(theme.accent.color)
+                    .frame(width: theme.minTapTarget, height: theme.minTapTarget)
             }
             .accessibilityLabel(Text("Send a photo"))
             .accessibilityIdentifier("chat.photo")
             TextField(text: $text, axis: .vertical) { Text("Message") }
                 .lineLimit(1 ... 5)
-                .textFieldStyle(.roundedBorder)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 10)
+                .background(Capsule().fill(theme.surface.color))
+                .overlay(Capsule().strokeBorder(theme.separator.color, lineWidth: theme.cardShadow ? 2 : 1))
+                .foregroundStyle(theme.text.color)
                 .accessibilityIdentifier("chat.input")
             if text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 Image(systemName: recorder.isRecording ? "stop.circle.fill" : "mic.circle.fill")
                     .font(.system(size: 36))
-                    .foregroundStyle(recorder.isRecording ? Color.red : Color.accentColor)
-                    .frame(width: 44, height: 44)
+                    .foregroundStyle(recorder.isRecording ? theme.danger.color : theme.accent.color)
+                    .frame(width: theme.minTapTarget, height: theme.minTapTarget)
                     .gesture(DragGesture(minimumDistance: 0)
                         .onChanged { _ in
                             if !recorder.isRecording {
@@ -113,7 +125,8 @@ struct ChatView: View {
                 } label: {
                     Image(systemName: "arrow.up.circle.fill")
                         .font(.system(size: 36))
-                        .frame(width: 44, height: 44)
+                        .foregroundStyle(theme.accent.color)
+                        .frame(width: theme.minTapTarget, height: theme.minTapTarget)
                 }
                 .accessibilityLabel(Text("Send"))
                 .accessibilityIdentifier("chat.send")
@@ -121,7 +134,8 @@ struct ChatView: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
-        .background(.bar)
+        .background(theme.background.color)
+        .overlay(alignment: .top) { theme.separator.color.frame(height: 0.5) }
         .disabled(conversation.state == .closed)
     }
 }
@@ -130,30 +144,32 @@ struct ChatView: View {
 struct MessageBubble: View {
     let message: ChatMessage
     let services: AppServices
+    @Environment(\.zapaTheme) private var theme
 
     var body: some View {
         HStack(alignment: .bottom, spacing: 8) {
             if message.isMine {
                 Spacer(minLength: 48)
             } else {
-                RobotAvatarView(avatar: services.people[message.senderAccountId]?.avatar ?? "robot-1", size: 28)
+                RobotAvatarView(avatar: services.people[message.senderAccountId]?.avatar ?? "robot-1", size: 34)
             }
             VStack(alignment: message.isMine ? .trailing : .leading, spacing: 2) {
                 content
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
                     .background(
-                        RoundedRectangle(cornerRadius: 18)
-                            .fill(message.isMine ? Color.accentColor : Color(.secondarySystemBackground))
+                        RoundedRectangle(cornerRadius: theme.cardShadow ? 22 : 18, style: .continuous)
+                            .fill((message.isMine ? theme.bubbleMine : theme.bubbleTheirs).color)
+                            .shadow(color: .black.opacity(theme.cardShadow ? 0.06 : 0), radius: 4, y: 2)
                     )
-                    .foregroundStyle(message.isMine ? Color.white : Color.primary)
+                    .foregroundStyle((message.isMine ? theme.onBubbleMine : theme.onBubbleTheirs).color)
                 if message.status == .failed {
                     Button {
                         Task { await services.chat.retry(message) }
                     } label: {
                         Label("Not sent. Tap to try again.", systemImage: "exclamationmark.circle")
                             .font(.caption)
-                            .foregroundStyle(.red)
+                            .foregroundStyle(theme.danger.color)
                     }
                 }
             }

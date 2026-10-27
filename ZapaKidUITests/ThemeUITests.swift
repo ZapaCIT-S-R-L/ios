@@ -48,7 +48,7 @@ final class ThemeUITests: XCTestCase {
         field.typeText(kid ? "Can Maria come over?" : "Yes, after homework!")
         app.buttons["chat.send"].tap()
         XCTAssertTrue(app.staticTexts["Hi! 👋"].waitForExistence(timeout: 10))
-        if app.keyboards.count > 0 {
+        if app.keyboards.firstMatch.exists {
             app.swipeDown()
         }
         shoot(app, "\(role)-chat")

@@ -49,15 +49,18 @@
                 ),
                 google: StubGoogleSignIn(),
                 ageCheck: StubAgeRangeCheck(range: age),
-                families: StubFamiliesAPI(),
+                families: StubFamiliesAPI(demo: environment["ZK_DEMO_FAMILY"] == "1"),
                 fingerprint: { _ in String(repeating: "ab", count: 32) },
                 makeServices: { me, isKid in
-                    stubServices(me: me, kid: isKid, ring: environment["ZK_RING"] == "1")
+                    stubServices(
+                        me: me, kid: isKid, ring: environment["ZK_RING"] == "1",
+                        demo: environment["ZK_DEMO_FAMILY"] == "1"
+                    )
                 }
             )
         }
 
-        static func stubServices(me: String, kid: Bool, ring: Bool) -> AppServices {
+        static func stubServices(me: String, kid: Bool, ring: Bool, demo: Bool = false) -> AppServices {
             let other = kid
                 ? Person(accountId: "p_test", name: "Mama", avatar: "robot-2", role: .parent)
                 : Person(accountId: "k1", name: "Ana", avatar: "robot-4", role: .kid)
@@ -72,7 +75,10 @@
                     sealer: PassthroughSealer(),
                     store: InMemoryChatStore()
                 ),
-                people: [other, myself], log: InMemoryCallLog(), system: InAppCallSystem()
+                people: [other, myself] + (demo ? [
+                    Person(accountId: "p_tata", name: "Tata", avatar: "robot-6", role: .parent),
+                    Person(accountId: "k2", name: "Ion", avatar: "robot-9", role: .kid),
+                ] : []), log: InMemoryCallLog(), system: InAppCallSystem()
             ) { services in
                 DemoCalls.controller(peers: services.placing)
             }
@@ -82,9 +88,20 @@
     /// A family in memory: created empty, kids added, any `zkp_` code pairs as "Ana".
     final class StubFamiliesAPI: FamiliesAPI, @unchecked Sendable {
         private let lock = NSLock()
-        private var family = Family(
-            id: "f_test", name: nil, parents: [FamilyParent(id: "p_test", displayName: "TEST Parent")], kids: []
-        )
+        private var family: Family
+
+        /// `demo`: a filled family for screenshots (ZK_DEMO_FAMILY=1).
+        init(demo: Bool = false) {
+            family = Family(
+                id: "f_test", name: nil,
+                parents: [FamilyParent(id: "p_test", displayName: "TEST Parent")]
+                    + (demo ? [FamilyParent(id: "p_tata", displayName: "Tata")] : []),
+                kids: demo ? [
+                    Kid(id: "k1", nickname: "Ana", avatar: "robot-4", grade: 2),
+                    Kid(id: "k2", nickname: "Ion", avatar: "robot-9", grade: -1),
+                ] : []
+            )
+        }
 
         func createFamily(name _: String?, token _: String) async throws -> Family {
             lock.withLock { family }
