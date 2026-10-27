@@ -50,7 +50,8 @@ struct ContractTests {
     let base = URL(string: "https://api.test.invalid")!
 
     func api(answering fixture: ContractFixture) -> HTTPAuthAPI {
-        HTTPAuthAPI(baseURL: base, session: MockURLProtocol.session { _, _ in fixture.reply })
+        let reply = fixture.reply
+        return HTTPAuthAPI(baseURL: base, session: MockURLProtocol.session { _, _ in reply })
     }
 
     func sentJSON() throws -> NSDictionary {
