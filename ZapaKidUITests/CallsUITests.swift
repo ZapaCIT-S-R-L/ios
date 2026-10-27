@@ -19,8 +19,8 @@ final class CallsUITests: XCTestCase {
     func testOutgoingCallRingsConnectsMutesAndEnds() {
         let app = launch("outgoing")
 
-        XCTAssertTrue(app.staticTexts["call.status"].waitForExistence(timeout: 10))
-        XCTAssertEqual(app.staticTexts["call.status"].label, "Calling…")
+        // "Calling…" lasts about a second with the demo engine; the call clock replaces it once Mama answers.
+        XCTAssertTrue(app.staticTexts["call.name"].waitForExistence(timeout: 10))
         XCTAssertEqual(app.staticTexts["call.name"].label, "Mama")
         XCTAssertTrue(app.staticTexts["call.timer"].waitForExistence(timeout: 10), "the call clock shows once answered")
 

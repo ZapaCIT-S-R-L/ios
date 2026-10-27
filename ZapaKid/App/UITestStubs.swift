@@ -143,7 +143,8 @@
         @State private var controller: CallController?
 
         var body: some View {
-            Group {
+            ZStack {
+                Color.clear
                 if scenario == "log" {
                     NavigationStack {
                         CallLogView(entries: DemoCalls.log) { _ in }
