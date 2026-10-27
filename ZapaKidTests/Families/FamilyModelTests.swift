@@ -93,7 +93,12 @@ final class FakeFamiliesAPI: FamiliesAPI, @unchecked Sendable {
     }
 
     private var family: Family {
-        Family(id: "f1", name: nil, parents: [FamilyParent(id: "p1", displayName: "Mama")], kids: lock.withLock { kids })
+        Family(
+            id: "f1",
+            name: nil,
+            parents: [FamilyParent(id: "p1", displayName: "Mama")],
+            kids: lock.withLock { kids }
+        )
     }
 
     func createFamily(name _: String?, token _: String) async throws -> Family {
@@ -116,7 +121,13 @@ final class FakeFamiliesAPI: FamiliesAPI, @unchecked Sendable {
         return family
     }
 
-    func addKid(familyId _: String, nickname: String, avatar: String, grade: Int?, token _: String) async throws -> Kid {
+    func addKid(
+        familyId _: String,
+        nickname: String,
+        avatar: String,
+        grade: Int?,
+        token _: String
+    ) async throws -> Kid {
         try record("addKid \(nickname) \(avatar) \(grade.map(String.init) ?? "nil")")
         let kid = Kid(id: "k\(calls.count)", nickname: nickname, avatar: avatar, grade: grade)
         lock.withLock { kids.append(kid) }
@@ -132,7 +143,11 @@ final class FakeFamiliesAPI: FamiliesAPI, @unchecked Sendable {
     func redeemPairing(code _: String) async throws -> KidSession {
         try record("redeem")
         return KidSession(
-            token: "zkk_t", expiresAt: Date().addingTimeInterval(86400), kid: Kid(id: "k1", nickname: "Ana", avatar: "robot-4"),
+            token: "zkk_t", expiresAt: Date().addingTimeInterval(86400), kid: Kid(
+                id: "k1",
+                nickname: "Ana",
+                avatar: "robot-4"
+            ),
             familyId: "f1", familyName: nil
         )
     }

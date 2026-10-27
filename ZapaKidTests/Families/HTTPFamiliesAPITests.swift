@@ -15,7 +15,8 @@ struct HTTPFamiliesAPITests {
 
     func api(_ handler: @escaping MockURLProtocol.Handler) -> HTTPFamiliesAPI {
         HTTPFamiliesAPI(
-            baseURL: URL(string: "https://\(host)")!, session: MockURLProtocol.session(host: host, handler)
+            baseURL: URL(string: "https://\(host)") ?? URL(filePath: "/"),
+            session: MockURLProtocol.session(host: host, handler)
         )
     }
 
@@ -48,7 +49,10 @@ struct HTTPFamiliesAPITests {
 
     @Test func addKidSendsOnlyNicknameAvatarAndGrade() async throws {
         let client = api { _, _ in
-            MockReply(201, #"{"id":"k2","nickname":"Ion","avatar":"robot-7","grade":-1,"createdAt":"2026-10-27T18:00:00Z"}"#)
+            MockReply(
+                201,
+                #"{"id":"k2","nickname":"Ion","avatar":"robot-7","grade":-1,"createdAt":"2026-10-27T18:00:00Z"}"#
+            )
         }
 
         let kid = try await client.addKid(familyId: "f1", nickname: "Ion", avatar: "robot-7", grade: -1, token: "t")

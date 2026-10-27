@@ -4,6 +4,7 @@ import ZapaKidKit
 /// The signed-in parent. Chats, family and kids come in the next slices.
 struct HomeView: View {
     let parent: ParentProfile
+    let family: FamilyModel
     let onSignOut: () -> Void
 
     var body: some View {
@@ -19,6 +20,15 @@ struct HomeView: View {
                     Text("Your family chats will appear here.")
                         .font(.footnote.italic())
                         .foregroundStyle(.secondary)
+                    NavigationLink {
+                        FamilyView(model: family)
+                    } label: {
+                        Label("Family", systemImage: "person.3.fill")
+                            .font(.headline)
+                            .frame(maxWidth: .infinity, minHeight: 44)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .accessibilityIdentifier("home.family")
                     Button(role: .destructive, action: onSignOut) {
                         Text("Sign out")
                             .font(.headline)

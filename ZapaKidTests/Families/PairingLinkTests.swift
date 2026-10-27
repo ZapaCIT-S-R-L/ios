@@ -8,7 +8,7 @@ struct PairingLinkTests {
     let code = "zkp_" + String(repeating: "A", count: 43)
     let fingerprint = String(repeating: "ab", count: 32)
 
-    @Test func pairingQRRoundTrips() throws {
+    @Test func pairingQRRoundTrips() {
         let link = PairingLink(code: code, fingerprint: fingerprint)
 
         #expect(link.url.absoluteString == "zapakid://pair?code=\(code)&fp=\(fingerprint)")
@@ -35,7 +35,7 @@ struct PairingLinkTests {
         #expect(link?.fingerprint == nil)
     }
 
-    @Test func invitationLinksKeepTheCodeInTheFragment() throws {
+    @Test func invitationLinksKeepTheCodeInTheFragment() {
         let invite = "zki_" + String(repeating: "Z", count: 43)
 
         let url = InvitationLink.url(code: invite)

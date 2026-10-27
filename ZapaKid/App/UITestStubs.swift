@@ -39,7 +39,61 @@
                     agreement: agreement
                 ),
                 google: StubGoogleSignIn(),
-                ageCheck: StubAgeRangeCheck(range: age)
+                ageCheck: StubAgeRangeCheck(range: age),
+                families: StubFamiliesAPI(),
+                fingerprint: { String(repeating: "ab", count: 32) }
+            )
+        }
+    }
+
+    /// A family in memory: created empty, kids added, any `zkp_` code pairs as "Ana".
+    final class StubFamiliesAPI: FamiliesAPI, @unchecked Sendable {
+        private let lock = NSLock()
+        private var family = Family(
+            id: "f_test", name: nil, parents: [FamilyParent(id: "p_test", displayName: "TEST Parent")], kids: []
+        )
+
+        func createFamily(name _: String?, token _: String) async throws -> Family {
+            lock.withLock { family }
+        }
+
+        func myFamily(token _: String) async throws -> Family? {
+            lock.withLock { family }
+        }
+
+        func inviteParent(familyId _: String, token _: String) async throws -> CodeGrant {
+            CodeGrant(code: "zki_" + String(repeating: "I", count: 43), expiresAt: Date().addingTimeInterval(259_200))
+        }
+
+        func join(code _: String, token _: String) async throws -> Family {
+            lock.withLock { family }
+        }
+
+        func addKid(
+            familyId _: String, nickname: String, avatar: String, grade: Int?, token _: String
+        ) async throws -> Kid {
+            lock.withLock {
+                let kid = Kid(id: "k\(family.kids.count + 1)", nickname: nickname, avatar: avatar, grade: grade)
+                family.kids.append(kid)
+                return kid
+            }
+        }
+
+        func createPairing(familyId _: String, kidId: String, token _: String) async throws -> PairingGrant {
+            let kid = lock.withLock { family.kids.first { $0.id == kidId } } ?? Kid(
+                id: kidId,
+                nickname: "",
+                avatar: "robot-1"
+            )
+            return PairingGrant(
+                code: "zkp_" + String(repeating: "P", count: 43), expiresAt: Date().addingTimeInterval(300), kid: kid
+            )
+        }
+
+        func redeemPairing(code _: String) async throws -> KidSession {
+            KidSession(
+                token: "zkk_stub", expiresAt: .distantFuture, kid: Kid(id: "k1", nickname: "Ana", avatar: "robot-4"),
+                familyId: "f_test", familyName: nil
             )
         }
     }

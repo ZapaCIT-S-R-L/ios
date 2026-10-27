@@ -23,7 +23,9 @@ struct ZapaKidApp: App {
         RootView(
             auth: dependencies.auth,
             google: dependencies.google,
-            ageCheck: dependencies.ageCheck
+            ageCheck: dependencies.ageCheck,
+            families: dependencies.families,
+            fingerprint: dependencies.fingerprint
         )
     }
 }
@@ -34,6 +36,9 @@ struct AppDependencies {
     let auth: AuthModel
     let google: GoogleSignInProviding
     let ageCheck: AgeRangeProviding
+    let families: FamiliesAPI
+    /// This phone's identity key fingerprint (hex) for the kid pairing QR.
+    let fingerprint: () -> String?
 
     static func make() -> AppDependencies {
         #if DEBUG
@@ -45,10 +50,17 @@ struct AppDependencies {
             auth: AuthModel(
                 api: HTTPAuthAPI.staging,
                 store: KeychainSessionStore(),
-                agreement: UserDefaultsAgreementStore()
+                agreement: UserDefaultsAgreementStore(),
+                kidStore: KeychainKidSessionStore()
             ),
             google: GoogleSignIn(),
-            ageCheck: DeclaredAgeRangeCheck()
+            ageCheck: DeclaredAgeRangeCheck(),
+            families: HTTPFamiliesAPI.staging,
+            fingerprint: {
+                (try? LocalIdentityStore().loadOrCreate()).map {
+                    IdentityFingerprint.hex(Data($0.keyPair.publicKey.serialize()))
+                }
+            }
         )
     }
 }

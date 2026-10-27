@@ -11,6 +11,16 @@ public enum AuthState: Equatable, Sendable {
     case blockedMinor
     /// The person declined to share their age range; they can try again and share it.
     case ageDeclined
+    /// A kid's phone, paired with a parent's QR code.
+    case kid(KidSession)
+
+    public var isKid: Bool {
+        if case .kid = self {
+            true
+        } else {
+            false
+        }
+    }
 }
 
 /// Parent sign-in: agreement on first launch, a server nonce, sign-in with Apple or Google, session in the
@@ -32,15 +42,34 @@ public final class AuthModel {
     private let api: AuthAPI
     private let store: SessionStore
     private let agreement: AgreementStore
+    private let kidStore: KidSessionStore
     private let now: @Sendable () -> Date
 
     public init(
-        api: AuthAPI, store: SessionStore, agreement: AgreementStore, now: @escaping @Sendable () -> Date = { Date() }
+        api: AuthAPI, store: SessionStore, agreement: AgreementStore,
+        kidStore: KidSessionStore = InMemoryKidSessionStore(), now: @escaping @Sendable () -> Date = { Date() }
     ) {
         self.api = api
         self.store = store
         self.agreement = agreement
+        self.kidStore = kidStore
         self.now = now
+    }
+
+    /// The parent session's token (for the families API), if signed in as a parent.
+    public var parentToken: String? {
+        guard case .signedIn = state else { return nil }
+        return try? store.load()?.token
+    }
+
+    /// A kid's phone was paired: keep the kid session and open in kid mode.
+    public func kidPaired(_ session: KidSession) {
+        do {
+            try kidStore.save(session)
+            state = .kid(session)
+        } catch {
+            errorMessage = String(localized: "Couldn't keep you signed in on this phone. Try again.", bundle: .module)
+        }
     }
 
     /// At launch: the agreement first, then the stored session (checked with the API when online).
@@ -50,7 +79,11 @@ public final class AuthModel {
             return
         }
         guard let session = try? store.load() else {
-            state = .signedOut
+            if let kid = try? kidStore.load(), kid.expiresAt > now() {
+                state = .kid(kid)
+            } else {
+                state = .signedOut
+            }
             return
         }
         guard session.expiresAt > now() else {
@@ -154,6 +187,7 @@ public final class AuthModel {
     public func logout() async {
         let session = try? store.load()
         try? store.clear()
+        try? kidStore.clear()
         state = .signedOut
         errorMessage = nil
         if let session {
