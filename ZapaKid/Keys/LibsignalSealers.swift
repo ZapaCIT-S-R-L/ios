@@ -33,7 +33,8 @@ actor LibsignalSessions {
         self.bundles = bundles
     }
 
-    func encrypt(_ plaintext: Data, to address: ProtocolAddress) async throws -> CiphertextMessage {
+    /// The serialized libsignal message and whether it is a prekey message (session start).
+    func encrypt(_ plaintext: Data, to address: ProtocolAddress) async throws -> (content: Data, preKey: Bool) {
         if try store.loadSession(for: address, context: context)?.hasCurrentState != true {
             let bundle = try await bundles.bundles(accountId: address.name)
                 .first { $0.deviceId == address.deviceId }
@@ -42,10 +43,11 @@ actor LibsignalSessions {
                 bundle, for: address, ourAddress: local, sessionStore: store, identityStore: store, context: context
             )
         }
-        return try signalEncrypt(
+        let message = try signalEncrypt(
             message: plaintext, for: address, localAddress: local, sessionStore: store, identityStore: store,
             context: context
         )
+        return (message.serialize(), message.messageType == .preKey)
     }
 
     func decrypt(_ ciphertext: Data, preKey: Bool, from address: ProtocolAddress) throws -> Data {
@@ -104,7 +106,7 @@ struct LibsignalMessageSealer: ReleaseMessageSealer {
                 envelopes.append(OutgoingEnvelope(
                     recipientAccountId: member.accountId, recipientDeviceId: device.deviceId,
                     recipientRegistrationId: device.registrationId,
-                    type: message.messageType == .preKey ? .prekeyMessage : .message, content: message.serialize()
+                    type: message.preKey ? .prekeyMessage : .message, content: message.content
                 ))
             }
         }
@@ -146,7 +148,7 @@ struct LibsignalCallKeySealer: ReleaseCallKeySealer {
     func seal(_ keyMaterial: Data, toDevice: String) async throws -> Data {
         guard let sessions = box.sessions else { throw SealerError.notRegistered }
         let message = try await sessions.encrypt(keyMaterial, to: Self.address(toDevice))
-        return Data([message.messageType == .preKey ? 1 : 0]) + message.serialize()
+        return Data([message.preKey ? 1 : 0]) + message.content
     }
 
     func open(_ blob: Data, fromDevice: String) async throws -> Data {
