@@ -16,6 +16,7 @@ cryptographic primitives of its own.
 | Minors | A shared age range that doesn't show 18+, or a declined one, is stopped before anything is sent; the API also refuses them (`403 minor_not_allowed`, `403 age_declined`) | `AuthModel.signIn` |
 | UI tests | The stub backend is compiled into Debug builds only | `UITestStubs.swift` (`#if DEBUG`) |
 | Chat keys | libsignal (CocoaPod, pinned tag + prebuilt checksum) makes every key. Identity key pair and registration ID: one per account, the one deliberately synchronizable Keychain item (iCloud Keychain, when unlocked); a phone without it waits for a re-share, never makes a new identity; private prekeys, Kyber prekeys and sessions in Data-Protection-Complete files excluded from backups; only public keys and their signatures are published | `ZapaKid/Keys/` |
+| Accounts on one phone | Everything kept for an account (synced identity item, key directory, device ID) is keyed by the account ID, and the identity item carries the account ID and is refused in another account's slot; a second account never reuses the first one's identity or device | `AccountKeys` |
 | Key changes | A peer whose identity key changed can't be sent to until the parent acknowledges the change (also after a restart); receiving still works so the warning can show | `ZapaKidProtocolStore` |
 | Supply chain | Exact versions (`Package.resolved` committed), actions pinned by commit SHA, images by digest; OSV-Scanner on every PR and daily; Dependabot security updates; SBOM on every release; CodeQL; gitleaks | `.github/` |
 

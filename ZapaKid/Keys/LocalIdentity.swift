@@ -36,9 +36,24 @@ protocol IdentityReshare {
 /// Keychain item, so the parent's other phones and a reinstall get it through iCloud Keychain (end-to-end encrypted
 /// by Apple, needs the device passcode). Signing in alone never restores it. Prekeys and sessions stay on this phone.
 struct LocalIdentityStore {
-    var keychain = KeychainData.syncedIdentity()
+    /// The stored identity belongs to another account (copied or restored into the wrong slot): never use it.
+    struct WrongAccount: Error {}
 
+    let accountId: String
+    let keychain: KeychainData
+
+    init(accountId: String, keychain: KeychainData) {
+        self.accountId = accountId
+        self.keychain = keychain
+    }
+
+    init(accountId: String) {
+        self.init(accountId: accountId, keychain: .syncedIdentity(accountId: accountId))
+    }
+
+    /// The account ID is stored inside the item too, and checked on every load.
     private struct Stored: Codable {
+        var accountId: String
         var keyPair: Data
         var registrationId: UInt32
     }
@@ -46,6 +61,7 @@ struct LocalIdentityStore {
     func load() throws -> LocalIdentity? {
         guard let data = try keychain.load() else { return nil }
         let stored = try JSONDecoder().decode(Stored.self, from: data)
+        guard stored.accountId == accountId else { throw WrongAccount() }
         return try LocalIdentity(keyPair: IdentityKeyPair(bytes: stored.keyPair), registrationId: stored.registrationId)
     }
 
@@ -65,7 +81,7 @@ struct LocalIdentityStore {
             keyPair: IdentityKeyPair.generate(), registrationId: UInt32.random(in: 1 ... 16380, using: &random)
         )
         try keychain.save(JSONEncoder().encode(Stored(
-            keyPair: identity.keyPair.serialize(), registrationId: identity.registrationId
+            accountId: accountId, keyPair: identity.keyPair.serialize(), registrationId: identity.registrationId
         )))
         return .ready(identity)
     }

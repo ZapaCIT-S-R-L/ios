@@ -80,7 +80,7 @@ struct AccountKeysTests {
         let bobKeys = try keys(bob)
 
         #expect(aliceKeys.files.directory != bobKeys.files.directory)
-        #expect(aliceKeys.files.directory.deletingLastPathComponent() == directory)
+        #expect(aliceKeys.files.directory.deletingLastPathComponent().path == directory.path)
         #expect(aliceKeys.identity.keychain.account != bobKeys.identity.keychain.account)
         #expect(aliceKeys.identity.keychain.synchronizable)
     }
@@ -89,7 +89,7 @@ struct AccountKeysTests {
         defer { cleanUp() }
         let sneaky = try keys("../../etc")
 
-        #expect(sneaky.files.directory.deletingLastPathComponent() == directory)
+        #expect(sneaky.files.directory.deletingLastPathComponent().path == directory.path)
         #expect(!sneaky.files.directory.lastPathComponent.contains("."))
     }
 

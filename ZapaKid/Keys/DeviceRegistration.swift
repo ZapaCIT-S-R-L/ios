@@ -30,8 +30,8 @@ enum DeviceSetupResult: Equatable {
 @MainActor
 final class DeviceRegistration {
     private let api: DeviceAPI
-    private let identity: LocalIdentityStore
-    private let files: ProtectedFileStore
+    /// The keys of one account (by account ID); see `AccountKeys`.
+    private let keyspace: (String) throws -> AccountKeys
     private let reshare: IdentityReshare
     private let oneTimeCount: Int
 
@@ -43,23 +43,27 @@ final class DeviceRegistration {
     }
 
     init(
-        api: DeviceAPI, identity: LocalIdentityStore, files: ProtectedFileStore, reshare: IdentityReshare,
+        api: DeviceAPI,
+        keyspace: @escaping (String) throws -> AccountKeys = { try AccountKeys.app(accountId: $0) },
+        reshare: IdentityReshare,
         oneTimeCount: Int = DeviceKeyGenerator.maxOneTime
     ) {
         self.api = api
-        self.identity = identity
-        self.files = files
+        self.keyspace = keyspace
         self.reshare = reshare
         self.oneTimeCount = oneTimeCount
     }
 
     func run(session: Session) async -> DeviceSetupResult {
         do {
+            // Only this account's keys, never another account's on the same phone.
+            let account = try keyspace(session.parent.id)
+            let files = account.files
             if let data = try files.read(Self.deviceFile) {
                 return try .ready(deviceId: JSONDecoder().decode(Registered.self, from: data).deviceId)
             }
             let directoryKey = try await api.accountIdentity(accountId: session.parent.id, token: session.token)
-            guard case let .ready(local) = try identity.resolve(
+            guard case let .ready(local) = try account.identity.resolve(
                 accountHasIdentity: directoryKey != nil, reshare: reshare
             ) else {
                 return .waitingForReshare
@@ -68,7 +72,7 @@ final class DeviceRegistration {
             if let directoryKey, directoryKey != ourKey {
                 return .failed(.identityMismatch)
             }
-            let keys = try pendingKeys(for: local)
+            let keys = try pendingKeys(for: local, files: files)
             let deviceId = try await api.registerDevice(keys, token: session.token)
             try files.write(JSONEncoder().encode(Registered(deviceId: deviceId)), to: Self.deviceFile)
             try files.delete(Self.pendingFile)
@@ -81,7 +85,7 @@ final class DeviceRegistration {
     }
 
     /// The keys from an earlier failed upload, or new ones (private records stored, public payload kept).
-    private func pendingKeys(for local: LocalIdentity) throws -> DeviceKeys {
+    private func pendingKeys(for local: LocalIdentity, files: ProtectedFileStore) throws -> DeviceKeys {
         if let data = try files.read(Self.pendingFile),
            let keys = try? JSONDecoder().decode(DeviceKeys.self, from: data),
            keys.identityKey == local.keyPair.identityKey.serialize().base64EncodedString()
