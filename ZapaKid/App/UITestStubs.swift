@@ -51,20 +51,27 @@
                 ageCheck: StubAgeRangeCheck(range: age),
                 families: StubFamiliesAPI(),
                 fingerprint: { _ in String(repeating: "ab", count: 32) },
-                makeServices: { me, isKid in stubServices(me: me, kid: isKid) }
+                makeServices: { me, isKid in
+                    stubServices(me: me, kid: isKid, ring: environment["ZK_RING"] == "1")
+                }
             )
         }
 
-        static func stubServices(me: String, kid: Bool) -> AppServices {
+        static func stubServices(me: String, kid: Bool, ring: Bool) -> AppServices {
             let other = kid
                 ? Person(accountId: "p_test", name: "Mama", avatar: "robot-2", role: .parent)
                 : Person(accountId: "k1", name: "Ana", avatar: "robot-4", role: .kid)
             let myself = kid
                 ? Person(accountId: me, name: "Ana", avatar: "robot-4", role: .kid)
                 : Person(accountId: me, name: "TEST Parent", avatar: "robot-2", role: .parent)
-            let api = StubChatAPI(me: me, other: other.accountId)
+            let api = StubChatAPI(me: me, other: other.accountId, ring: ring)
             return AppServices(
-                me: me, chat: ChatModel(me: me, api: api, sealer: PassthroughSealer(), store: InMemoryChatStore()),
+                me: me, canStartChats: !kid, chat: ChatModel(
+                    me: me,
+                    api: api,
+                    sealer: PassthroughSealer(),
+                    store: InMemoryChatStore()
+                ),
                 people: [other, myself], log: InMemoryCallLog(), system: InAppCallSystem()
             ) { services in
                 DemoCalls.controller(peers: services.placing)
@@ -146,12 +153,15 @@
     final class StubChatAPI: ChatAPI, @unchecked Sendable {
         let me: String
         let other: String
+        /// ZK_RING=1: the other person calls (a sealed call message) 3 seconds after the stream opens.
+        let ring: Bool
         private let lock = NSLock()
         private var continuation: AsyncThrowingStream<StreamFrame, Error>.Continuation?
 
-        init(me: String, other: String) {
+        init(me: String, other: String, ring: Bool = false) {
             self.me = me
             self.other = other
+            self.ring = ring
         }
 
         private var conversation: Conversation {
@@ -214,6 +224,17 @@
         func openStream(conversationId _: String) async throws -> ChatStreamConnection {
             let (stream, continuation) = AsyncThrowingStream<StreamFrame, Error>.makeStream()
             lock.withLock { self.continuation = continuation }
+            if ring {
+                let call = ChatContent(id: UUID().uuidString, sentAt: Date(), body: .call(callId: "demo-call"))
+                let envelope = try Envelope(
+                    id: UUID().uuidString, conversationId: "c_ana", messageId: call.id, senderAccountId: other,
+                    senderDeviceId: 1, type: .message, content: call.encoded(), serverTimestamp: 0
+                )
+                Task {
+                    try? await Task.sleep(for: .seconds(3))
+                    continuation.yield(.envelope(envelope))
+                }
+            }
             return StubStream(stream: stream)
         }
     }

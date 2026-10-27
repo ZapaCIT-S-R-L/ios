@@ -8,7 +8,7 @@ import ZapaKidKit
 /// Audio is WebRTC (Cloudflare Realtime) with per-frame AES-GCM.
 @MainActor
 enum LiveServices {
-    static func make(me: String, auth: AuthModel) -> AppServices {
+    static func make(me: String, kid: Bool, auth: AuthModel) -> AppServices {
         let tokens = ChatTokenProvider(
             // swiftlint:disable:next force_unwrapping
             api: HTTPChatTokenAPI(baseURL: URL(string: ZapaKidKit.apiBaseURL)!),
@@ -26,27 +26,40 @@ enum LiveServices {
         let bundles = HTTPPreKeyBundles(baseURL: URL(string: ZapaKidKit.apiBaseURL)!, session: .shared) {
             await MainActor.run { auth.sessionToken }
         }
-        let sessions = SecureSessions.make(accountId: me, bundles: bundles)
+        let box = SessionsBox(SecureSessions.make(accountId: me, bundles: bundles))
         // Only real sealers (Release*Sealer): without a registered device they refuse, never send in the clear.
-        let messageSealer: any ReleaseMessageSealer = LibsignalMessageSealer(sessions: sessions)
-        let callSealer: any ReleaseCallKeySealer = LibsignalCallKeySealer(sessions: sessions)
-        let callDevice = sessions
-            .map { LibsignalCallKeySealer.deviceName(account: me, device: Int($0.local.deviceId)) } ?? me
+        let messageSealer: any ReleaseMessageSealer = LibsignalMessageSealer(box: box)
+        let callSealer: any ReleaseCallKeySealer = LibsignalCallKeySealer(box: box)
         #if targetEnvironment(simulator)
             let system: CallSystem = InAppCallSystem()
         #else
             let system: CallSystem = CallKitSystem()
         #endif
-        return AppServices(
-            me: me,
+        let services = AppServices(
+            me: me, canStartChats: !kid,
             chat: ChatModel(me: me, api: chatAPI, sealer: messageSealer, store: store),
             people: [], log: InMemoryCallLog(), system: system
         ) { services in
             let engine = WebRTCMediaEngine()
             // CallKit owns the audio session; WebRTC starts audio when CallKit activates it.
             services.calls.onAudioSessionChange = { [weak engine] active in engine?.audioSession(active: active) }
-            return CallController(me: callDevice, api: callsAPI, engine: engine, sealer: callSealer)
+            let device = box.sessions.map {
+                LibsignalCallKeySealer.deviceName(account: me, device: Int($0.local.deviceId))
+            } ?? me
+            return CallController(me: device, api: callsAPI, engine: engine, sealer: callSealer)
         }
+        services.prepare = {
+            // Register this phone with the key directory (once), then seal with its sessions.
+            guard box.sessions == nil, let token = auth.sessionToken else { return }
+            let session = Session(
+                token: token, expiresAt: .distantFuture, parent: ParentProfile(id: me, email: nil, displayName: nil)
+            )
+            let registration = DeviceRegistration(api: HTTPAuthAPI.staging, reshare: WaitForReshare())
+            if case .ready = await registration.run(session: session) {
+                box.sessions = SecureSessions.make(accountId: me, bundles: bundles)
+            }
+        }
+        return services
     }
 }
 
@@ -65,4 +78,9 @@ enum ChatStoreKey {
         try keychain.save(key)
         return key
     }
+}
+
+/// Another family phone must re-share the identity (the re-share flow comes later); nothing to do here.
+struct WaitForReshare: IdentityReshare {
+    func requestReshare() {}
 }

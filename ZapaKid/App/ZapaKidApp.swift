@@ -65,7 +65,21 @@ struct AppDependencies {
                     IdentityFingerprint.hex(Data($0.keyPair.publicKey.serialize()))
                 }
             },
-            makeServices: { me, _ in LiveServices.make(me: me, auth: auth) }
+            makeServices: { me, isKid in
+                let services = LiveServices.make(me: me, kid: isKid, auth: auth)
+                // Names and robots for chats and calls: the parent's family (created on first use) or the kid's.
+                services.loadPeople = { services in
+                    guard let token = auth.sessionToken else { return }
+                    let families = HTTPFamiliesAPI.staging
+                    let family = isKid
+                        ? try? await families.myFamily(token: token)
+                        : try? await families.createFamily(name: nil, token: token)
+                    if let family {
+                        services.update(from: family)
+                    }
+                }
+                return services
+            }
         )
     }
 }

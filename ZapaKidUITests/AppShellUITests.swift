@@ -52,6 +52,38 @@ final class AppShellUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Hi! 👋"].waitForExistence(timeout: 10), "the stub replies")
     }
 
+    func testAParentStartsANewChatWithAKid() {
+        let app = launch()
+        XCTAssertTrue(app.buttons["chats.new"].waitForExistence(timeout: 10))
+        app.buttons["chats.new"].tap()
+
+        let ana = app.buttons["newChat.person.Ana"]
+        XCTAssertTrue(ana.waitForExistence(timeout: 5))
+        ana.tap()
+        app.buttons["newChat.start"].tap()
+
+        XCTAssertTrue(app.textFields["chat.input"].waitForExistence(timeout: 5))
+    }
+
+    func testAKidCannotStartNewChats() {
+        let app = launch(session: "none", kid: true)
+        XCTAssertTrue(app.tabBars.buttons["Chats"].waitForExistence(timeout: 10))
+        XCTAssertFalse(app.buttons["chats.new"].exists, "only parents start conversations")
+    }
+
+    func testAnIncomingCallFromAChatRings() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-zk-ui-test"]
+        app.launchEnvironment = [
+            "ZK_AGREEMENT": "accepted", "ZK_SESSION": "signed-in", "ZK_AGE": "adult", "ZK_RING": "1",
+        ]
+        app.launch()
+
+        XCTAssertTrue(app.buttons["call.accept"].waitForExistence(timeout: 15), "Ana calls a few seconds after launch")
+        app.buttons["call.accept"].tap()
+        XCTAssertTrue(app.buttons["call.end"].waitForExistence(timeout: 5))
+    }
+
     func testTheCallButtonInAChatStartsACall() {
         let app = launch()
         XCTAssertTrue(app.buttons["chats.row.Ana"].waitForExistence(timeout: 10))

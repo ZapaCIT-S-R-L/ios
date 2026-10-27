@@ -63,13 +63,36 @@ actor LibsignalSessions {
     }
 }
 
+/// This phone's sessions once it is registered with the key directory (nil until then); set after registration.
+final class SessionsBox: @unchecked Sendable {
+    private let lock = NSLock()
+    private var current: LibsignalSessions?
+
+    init(_ sessions: LibsignalSessions? = nil) {
+        current = sessions
+    }
+
+    var sessions: LibsignalSessions? {
+        get { lock.withLock { current } }
+        set { lock.withLock { current = newValue } }
+    }
+}
+
 /// Chat messages: one libsignal message per recipient device (pairwise; groups fan out up to 31 members, sender
 /// keys can come later). Covers every device of every member except this one, as the chat service requires.
 struct LibsignalMessageSealer: ReleaseMessageSealer {
-    let sessions: LibsignalSessions?
+    let box: SessionsBox
+
+    init(sessions: LibsignalSessions?) {
+        box = SessionsBox(sessions)
+    }
+
+    init(box: SessionsBox) {
+        self.box = box
+    }
 
     func seal(_ plaintext: Data, for conversation: Conversation, me: String) async throws -> [OutgoingEnvelope] {
-        guard let sessions else { throw SealerError.notRegistered }
+        guard let sessions = box.sessions else { throw SealerError.notRegistered }
         let local = sessions.local
         var envelopes: [OutgoingEnvelope] = []
         for member in conversation.members {
@@ -89,7 +112,7 @@ struct LibsignalMessageSealer: ReleaseMessageSealer {
     }
 
     func open(_ envelope: Envelope) async throws -> Data {
-        guard let sessions else { throw SealerError.notRegistered }
+        guard let sessions = box.sessions else { throw SealerError.notRegistered }
         guard envelope.type != .senderKeyMessage else { throw SealerError.unsupportedType }
         let address = try ProtocolAddress(name: envelope.senderAccountId, deviceId: UInt32(envelope.senderDeviceId))
         return try await sessions.decrypt(envelope.content, preKey: envelope.type == .prekeyMessage, from: address)
@@ -99,7 +122,15 @@ struct LibsignalMessageSealer: ReleaseMessageSealer {
 /// Call keys over the same sessions. Devices are named `<accountId>.<deviceId>`; the blob is one type byte
 /// (prekey or not) and the libsignal message.
 struct LibsignalCallKeySealer: ReleaseCallKeySealer {
-    let sessions: LibsignalSessions?
+    let box: SessionsBox
+
+    init(sessions: LibsignalSessions?) {
+        box = SessionsBox(sessions)
+    }
+
+    init(box: SessionsBox) {
+        self.box = box
+    }
 
     static func deviceName(account: String, device: Int) -> String {
         "\(account).\(device)"
@@ -113,13 +144,13 @@ struct LibsignalCallKeySealer: ReleaseCallKeySealer {
     }
 
     func seal(_ keyMaterial: Data, toDevice: String) async throws -> Data {
-        guard let sessions else { throw SealerError.notRegistered }
+        guard let sessions = box.sessions else { throw SealerError.notRegistered }
         let message = try await sessions.encrypt(keyMaterial, to: Self.address(toDevice))
         return Data([message.messageType == .preKey ? 1 : 0]) + message.serialize()
     }
 
     func open(_ blob: Data, fromDevice: String) async throws -> Data {
-        guard let sessions else { throw SealerError.notRegistered }
+        guard let sessions = box.sessions else { throw SealerError.notRegistered }
         guard let kind = blob.first else { throw SealerError.badAddress }
         return try await sessions.decrypt(Data(blob.dropFirst()), preKey: kind == 1, from: Self.address(fromDevice))
     }
