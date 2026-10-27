@@ -1,5 +1,6 @@
 import Foundation
 import Testing
+import ZapaCalls
 @testable import ZapaKidKit
 
 /// The app ships in Romanian, English and German (String Catalogs). scripts/strings.js checks every key is
@@ -40,5 +41,37 @@ struct LocalizationTests {
         let format = try #require(text("Too many sign-in attempts. Try again in %lld seconds.", "ro", in: .module))
         #expect(String(format: format, 30) ==
             "Prea multe încercări de conectare. Încearcă din nou peste 30 de secunde.")
+    }
+}
+
+/// The microphone permission text (InfoPlist.xcstrings) is kid-friendly and in every app language.
+struct MicrophonePermissionTests {
+    @Test(arguments: [
+        ("ro", "ZapaKid folosește microfonul ca să poți vorbi cu familia ta în apeluri și mesaje vocale."),
+        (
+            "de",
+            "ZapaKid nutzt das Mikrofon, damit du in Anrufen und Sprachnachrichten mit deiner Familie sprechen kannst."
+        ),
+    ])
+    func microphoneTextIsTranslated(language: String, expected: String) throws {
+        let path = try #require(Bundle.main.path(forResource: language, ofType: "lproj"))
+        let lproj = try #require(Bundle(path: path))
+        #expect(lproj
+            .localizedString(forKey: "NSMicrophoneUsageDescription", value: nil, table: "InfoPlist") == expected)
+    }
+
+    @Test func englishMicrophoneTextIsInTheInfoPlist() {
+        #expect(Bundle.main.object(forInfoDictionaryKey: "NSMicrophoneUsageDescription") as? String ==
+            "ZapaKid uses the microphone so you can talk with your family in calls and voice messages.")
+    }
+}
+
+/// ZapaCalls ships its own String Catalog (RO, EN, DE).
+struct CallsLocalizationTests {
+    @Test(arguments: [("ro", "Răspunde"), ("de", "Annehmen")])
+    func callScreensAreTranslated(language: String, expected: String) throws {
+        let bundle = ZapaCallsStrings.bundle
+        let path = try #require(bundle.path(forResource: language, ofType: "lproj"))
+        #expect(Bundle(path: path)?.localizedString(forKey: "Accept", value: nil, table: nil) == expected)
     }
 }
