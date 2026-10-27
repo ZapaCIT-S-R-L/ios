@@ -11,6 +11,7 @@ export const LANGUAGES = ["en", "ro", "de"];
 export const CATALOGS = [
   { catalog: "ZapaKid/Localizable.xcstrings", sources: ["ZapaKid"] },
   { catalog: "ZapaKidKit/Sources/ZapaKidKit/Localizable.xcstrings", sources: ["ZapaKidKit/Sources"] },
+  { catalog: "ZapaCalls/Sources/ZapaCalls/Localizable.xcstrings", sources: ["ZapaCalls/Sources"] },
 ];
 
 // SwiftUI views and String(localized:) take a literal as the localization key. `\(x)` becomes `%lld` (all

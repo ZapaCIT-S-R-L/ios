@@ -1,7 +1,7 @@
 import Foundation
 import Testing
-@testable import ZapaKidKit
 import ZapaCalls
+@testable import ZapaKidKit
 
 /// The app ships in Romanian, English and German (String Catalogs). scripts/strings.js checks every key is
 /// translated; these check the built bundles really contain the languages.
@@ -48,12 +48,16 @@ struct LocalizationTests {
 struct MicrophonePermissionTests {
     @Test(arguments: [
         ("ro", "ZapaKid folosește microfonul ca să poți vorbi cu familia ta în apeluri și mesaje vocale."),
-        ("de", "ZapaKid nutzt das Mikrofon, damit du in Anrufen und Sprachnachrichten mit deiner Familie sprechen kannst."),
+        (
+            "de",
+            "ZapaKid nutzt das Mikrofon, damit du in Anrufen und Sprachnachrichten mit deiner Familie sprechen kannst."
+        ),
     ])
     func microphoneTextIsTranslated(language: String, expected: String) throws {
         let path = try #require(Bundle.main.path(forResource: language, ofType: "lproj"))
         let lproj = try #require(Bundle(path: path))
-        #expect(lproj.localizedString(forKey: "NSMicrophoneUsageDescription", value: nil, table: "InfoPlist") == expected)
+        #expect(lproj
+            .localizedString(forKey: "NSMicrophoneUsageDescription", value: nil, table: "InfoPlist") == expected)
     }
 
     @Test func englishMicrophoneTextIsInTheInfoPlist() {
