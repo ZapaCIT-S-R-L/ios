@@ -31,7 +31,8 @@ struct ChatView: View {
             }
             .background(theme.background.color.ignoresSafeArea())
             .scrollDismissesKeyboard(.immediately)
-            // Tapping the conversation hides the keyboard.
+            // Tapping the conversation hides the keyboard (not a button: VoiceOver users dismiss it as usual).
+            // swiftlint:disable:next accessibility_trait_for_button
             .simultaneousGesture(TapGesture().onEnded { typing = false })
             .onChange(of: messages.count) {
                 if let last = messages.last {
