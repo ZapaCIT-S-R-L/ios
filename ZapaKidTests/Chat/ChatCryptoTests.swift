@@ -13,6 +13,7 @@ struct ChatCryptoTests {
             ChatContent(id: "m1", sentAt: Date(timeIntervalSince1970: 1000), body: .text("Salut!")),
             ChatContent(id: "m2", sentAt: Date(timeIntervalSince1970: 1000), body: .image(attachment)),
             ChatContent(id: "m3", sentAt: Date(timeIntervalSince1970: 1000), body: .voice(attachment)),
+            ChatContent(id: "m4", sentAt: Date(timeIntervalSince1970: 1000), body: .call(callId: "call-1")),
         ] {
             #expect(try ChatContent.decode(content.encoded()) == content)
         }
