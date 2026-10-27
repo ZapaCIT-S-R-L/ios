@@ -12,7 +12,8 @@ struct CallSignalTests {
     @Test func rosterListsParticipantsWithTheirTracks() throws {
         let signal = try decode("""
         {"type":"roster","participants":[{"accountId":"acc-a","deviceId":"dev-a","role":"parent",\
-        "displayName":"Mama","avatar":"robot-3","muted":false,"tracks":[{"sessionId":"s_a","trackName":"audio-dev-a"}]},\
+        "displayName":"Mama","avatar":"robot-3","muted":false,\
+        "tracks":[{"sessionId":"s_a","trackName":"audio-dev-a"}]},\
         {"accountId":"acc-k","deviceId":"dev-k","role":"kid","tracks":[]}]}
         """)
 

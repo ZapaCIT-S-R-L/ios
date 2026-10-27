@@ -14,7 +14,11 @@ struct HTTPCallsAPITests {
     """
 
     func api(_ handler: @escaping MockURLProtocol.Handler) -> HTTPCallsAPI {
-        HTTPCallsAPI(baseURL: base, session: MockURLProtocol.session(handler), token: { "chat-token" })
+        HTTPCallsAPI(
+            baseURL: base,
+            session: MockURLProtocol.session(host: "calls.test.invalid", handler),
+            token: { "chat-token" }
+        )
     }
 
     @Test func createCallSendsTheConversationAndReturnsIceServers() async throws {
@@ -25,7 +29,7 @@ struct HTTPCallsAPITests {
         #expect(grant.callId == "c_1")
         #expect(grant.iceServers.count == 2)
         #expect(grant.iceServers[1].username == "u")
-        let sent = try #require(MockURLProtocol.requests.first)
+        let sent = try #require(MockURLProtocol.requests(host: "calls.test.invalid").first)
         #expect(sent.request.httpMethod == "POST")
         #expect(sent.request.url?.absoluteString == "https://calls.test.invalid/v1/calls")
         #expect(sent.request.value(forHTTPHeaderField: "Authorization") == "Bearer chat-token")
@@ -39,7 +43,8 @@ struct HTTPCallsAPITests {
         try await client.leave(callId: "c_1")
         try await client.decline(callId: "c_1")
 
-        let paths = MockURLProtocol.requests.map { "\($0.request.httpMethod ?? "") \($0.request.url?.path ?? "")" }
+        let paths = MockURLProtocol.requests(host: "calls.test.invalid")
+            .map { "\($0.request.httpMethod ?? "") \($0.request.url?.path ?? "")" }
         #expect(paths == ["POST /v1/calls/c_1/join", "POST /v1/calls/c_1/leave", "POST /v1/calls/c_1/decline"])
     }
 
@@ -48,7 +53,7 @@ struct HTTPCallsAPITests {
 
         try await client.leave(callId: "../admin")
 
-        #expect(MockURLProtocol.requests.first?.request.url?.absoluteString ==
+        #expect(MockURLProtocol.requests(host: "calls.test.invalid").first?.request.url?.absoluteString ==
             "https://calls.test.invalid/v1/calls/..%2Fadmin/leave")
     }
 
@@ -76,7 +81,7 @@ struct HTTPCallsAPITests {
         #expect(session == "s_me")
         #expect(reply.sessionDescription?.sdp == "v=0 answer")
         #expect(reply.tracks?.first?.trackName == "audio-dev-a")
-        let sent = MockURLProtocol.requests
+        let sent = MockURLProtocol.requests(host: "calls.test.invalid")
         #expect(sent.map { "\($0.request.httpMethod ?? "") \($0.request.url?.path ?? "")" } == [
             "POST /v1/calls/c_1/rtc/sessions/new",
             "POST /v1/calls/c_1/rtc/sessions/s_me/tracks/new",
@@ -106,7 +111,9 @@ struct HTTPCallsAPITests {
     }
 
     @Test func rateLimitCarriesRetryAfter() async {
-        let client = api { _, _ in MockReply(429, #"{"error":{"code":"rate_limited"}}"#, headers: ["Retry-After": "12"]) }
+        let client = api { _, _ in
+            MockReply(429, #"{"error":{"code":"rate_limited"}}"#, headers: ["Retry-After": "12"])
+        }
 
         await #expect(throws: CallsAPIError.rateLimited(retryAfter: 12)) {
             _ = try await client.join(callId: "c_1")

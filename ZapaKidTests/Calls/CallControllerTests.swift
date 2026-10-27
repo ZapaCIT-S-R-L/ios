@@ -24,7 +24,7 @@ struct CallControllerTests {
         )
     }
 
-    @Test func anOutgoingCallRingsThenConnectsWhenSomeoneJoins() async throws {
+    @Test func anOutgoingCallRingsThenConnectsWhenSomeoneJoins() async {
         let call = controller()
 
         await call.startCall(conversationId: "conv-1", peers: [mama])
@@ -42,7 +42,7 @@ struct CallControllerTests {
         #expect(call.connectedAt != nil)
     }
 
-    @Test func theLeaderSendsTheNewKeyOnEveryJoinAndInstallsIt() async throws {
+    @Test func theLeaderSendsTheNewKeyOnEveryJoinAndInstallsIt() async {
         let call = controller(me: "dev-a")
         await call.startCall(conversationId: "conv-1", peers: [mama])
 
@@ -72,7 +72,7 @@ struct CallControllerTests {
         #expect(engine.keys.sendingEpoch == 5)
     }
 
-    @Test func anIncomingCallIsAcceptedAndJoined() async throws {
+    @Test func anIncomingCallIsAcceptedAndJoined() async {
         let call = controller()
         call.reportIncoming(callId: "c_9", caller: mama)
         #expect(call.phase == .ringing)
@@ -163,7 +163,7 @@ struct CallControllerTests {
         let call = controller()
         await call.startCall(conversationId: "conv-1", peers: [mama])
         api.push(.roster([participant(kid), participant(mama, tracks: ["audio-dev-m"])]))
-        #expect(await eventually { call.participants.first?.deviceId == "dev-m" })
+        #expect(await eventually { engine.calls.contains("subscribe audio-dev-m") })
 
         engine.emit(.levels(["audio-dev-m": 0.6]))
 
