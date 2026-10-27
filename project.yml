@@ -9,6 +9,8 @@ options:
 packages:
   ZapaKidKit:
     path: ZapaKidKit
+  ZapaCalls:
+    path: ZapaCalls
   ZapaChat:
     path: ZapaChat
 settings:
@@ -30,6 +32,7 @@ targets:
     sources: [ZapaKid]
     dependencies:
       - package: ZapaKidKit
+      - package: ZapaCalls
       - package: ZapaChat
     settings:
       base:
@@ -56,6 +59,7 @@ targets:
     dependencies:
       - target: ZapaKid
       - package: ZapaKidKit
+      - package: ZapaCalls
       - package: ZapaChat
     settings:
       base:

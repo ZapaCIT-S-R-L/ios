@@ -2,6 +2,7 @@
 included:
   - ZapaKid
   - ZapaKidKit
+  - ZapaCalls
   - ZapaChat
   - ZapaKidTests
   - ZapaKidUITests
@@ -9,6 +10,7 @@ excluded:
   - build
   - DerivedData
   - ZapaKidKit/.build
+  - ZapaCalls/.build
   - ZapaChat/.build
   - Pods
 disabled_rules:
