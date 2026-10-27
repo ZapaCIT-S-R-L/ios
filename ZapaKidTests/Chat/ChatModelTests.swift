@@ -35,7 +35,7 @@ struct ChatModelTests {
         #expect(try await store.messages(in: "c_1").count == 1)
     }
 
-    @Test func staleDevicesRefreshTheConversationAndRetryOnce() async throws {
+    @Test func staleDevicesRefreshTheConversationAndRetryOnce() async {
         let chat = model()
         await chat.loadConversations()
         api.failNextSend = .staleDevices(missing: [DeviceAddress(accountId: "acc-k", deviceId: 3)], extra: [])
@@ -61,9 +61,9 @@ struct ChatModelTests {
         let chat = model()
         await chat.loadConversations()
         let content = ChatContent(id: "m9", sentAt: Date(timeIntervalSince1970: 9), body: .text("Pa!"))
-        let envelope = Envelope(
+        let envelope = try Envelope(
             id: "e9", conversationId: "c_1", messageId: "m9", senderAccountId: "acc-k", senderDeviceId: 1,
-            type: .message, content: try Data("SEALED".utf8) + content.encoded(), serverTimestamp: 9000
+            type: .message, content: Data("SEALED".utf8) + content.encoded(), serverTimestamp: 9000
         )
 
         await chat.receive(envelope)
@@ -163,10 +163,18 @@ final class FakeChatAPI: ChatAPI, @unchecked Sendable {
 
     func conversation(devices: [Int]) -> Conversation {
         Conversation(id: "c_1", kind: .direct, state: .open, members: [
-            ConversationMember(accountId: "acc-m", role: .parent, guardian: false,
-                               devices: [DeviceRef(deviceId: 1, registrationId: 42)]),
-            ConversationMember(accountId: "acc-k", role: .kid, guardian: false,
-                               devices: devices.map { DeviceRef(deviceId: $0, registrationId: 6 + $0) }),
+            ConversationMember(
+                accountId: "acc-m",
+                role: .parent,
+                guardian: false,
+                devices: [DeviceRef(deviceId: 1, registrationId: 42)]
+            ),
+            ConversationMember(
+                accountId: "acc-k",
+                role: .kid,
+                guardian: false,
+                devices: devices.map { DeviceRef(deviceId: $0, registrationId: 6 + $0) }
+            ),
         ])
     }
 
@@ -190,7 +198,10 @@ final class FakeChatAPI: ChatAPI, @unchecked Sendable {
         if let failure {
             throw failure
         }
-        lock.withLock { sentLog.append(Sent(conversationId: conversationId, messageId: messageId, envelopes: envelopes)) }
+        lock
+            .withLock {
+                sentLog.append(Sent(conversationId: conversationId, messageId: messageId, envelopes: envelopes))
+            }
         return Date(timeIntervalSince1970: 100)
     }
 

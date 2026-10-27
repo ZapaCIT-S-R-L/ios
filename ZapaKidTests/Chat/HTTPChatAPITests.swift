@@ -47,8 +47,13 @@ struct HTTPChatAPITests {
     @Test func sendPostsOneEnvelopePerDevice() async throws {
         let client = api { _, _ in MockReply(202, #"{"messageId":"m1","serverTimestamp":1793120000000}"#) }
         let envelopes = [
-            OutgoingEnvelope(recipientAccountId: "acc-k", recipientDeviceId: 1, recipientRegistrationId: 7,
-                             type: .message, content: Data([1, 2])),
+            OutgoingEnvelope(
+                recipientAccountId: "acc-k",
+                recipientDeviceId: 1,
+                recipientRegistrationId: 7,
+                type: .message,
+                content: Data([1, 2])
+            ),
         ]
 
         let stamp = try await client.send(conversationId: "c_1", messageId: "m1", envelopes: envelopes)
@@ -69,7 +74,10 @@ struct HTTPChatAPITests {
             """)
         }
 
-        await #expect(throws: ChatAPIError.staleDevices(missing: [DeviceAddress(accountId: "acc-k", deviceId: 3)], extra: [])) {
+        await #expect(throws: ChatAPIError.staleDevices(
+            missing: [DeviceAddress(accountId: "acc-k", deviceId: 3)],
+            extra: []
+        )) {
             _ = try await client.send(conversationId: "c_1", messageId: "m1", envelopes: [])
         }
     }
@@ -79,7 +87,8 @@ struct HTTPChatAPITests {
             if request.httpMethod == "GET" {
                 return MockReply(200, """
                 {"envelopes":[{"id":"e1","conversationId":"c_1","messageId":"m1","senderAccountId":"acc-m",\
-                "senderDeviceId":1,"type":"prekey_message","content":"AQI=","serverTimestamp":1793120000000}],"more":false}
+                "senderDeviceId":1,"type":"prekey_message","content":"AQI=","serverTimestamp":1793120000000}],\
+                "more":false}
                 """)
             }
             return MockReply(204)
@@ -137,7 +146,8 @@ struct HTTPChatAPITests {
         {"type":"envelope","envelope":{"id":"e1","conversationId":"c_1","messageId":"m1","senderAccountId":"a",\
         "senderDeviceId":1,"type":"message","content":"AQI=","serverTimestamp":1}}
         """.utf8))
-        let event = try StreamFrame.decode(Data(#"{"type":"event","event":{"kind":"devices_changed","conversationId":"c_1"}}"#.utf8))
+        let event = try StreamFrame
+            .decode(Data(#"{"type":"event","event":{"kind":"devices_changed","conversationId":"c_1"}}"#.utf8))
 
         guard case let .envelope(got) = envelope else { Issue.record("no envelope"); return }
         #expect(got.id == "e1")

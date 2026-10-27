@@ -66,7 +66,7 @@ struct ChatCryptoTests {
             #expect(raw.range(of: Data("c_1".utf8)) == nil, "file names and contents don't show the conversation")
         }
         let wrongKey = try EncryptedChatStore(directory: directory, key: Data(repeating: 4, count: 32))
-        await #expect(throws: (any Error).self) { _ = try await wrongKey.messages(in: "c_1") }
+        #expect(try await wrongKey.messages(in: "c_1").isEmpty, "another key can't find or read the history")
     }
 
     @Test func deletingAConversationRemovesItsFile() async throws {
