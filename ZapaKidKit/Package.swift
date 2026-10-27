@@ -4,11 +4,13 @@ import PackageDescription
 
 let package = Package(
     name: "ZapaKidKit",
+    defaultLocalization: "en",
     platforms: [.iOS(.v17), .macOS(.v14)],
     products: [
         .library(name: "ZapaKidKit", targets: ["ZapaKidKit"]),
     ],
     targets: [
-        .target(name: "ZapaKidKit"),
+        // Localizable.xcstrings: RO, EN, DE (scripts/strings.js checks every string is translated).
+        .target(name: "ZapaKidKit", resources: [.process("Localizable.xcstrings")]),
     ]
 )
