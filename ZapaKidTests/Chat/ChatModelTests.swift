@@ -111,20 +111,19 @@ struct ChatModelTests {
     @Test func aCallMessageRingsAndIsShownInTheChat() async throws {
         let chat = model()
         await chat.loadConversations()
-        var rang: [(String, String, String)] = []
-        chat.onIncomingCall = { callId, conversationId, caller in rang.append((callId, conversationId, caller)) }
+        var rang: [String] = []
+        chat.onIncomingCall = { callId, conversationId, caller in rang.append("\(callId) \(conversationId) \(caller)") }
         let fresh = ChatContent(id: "m5", sentAt: Date(), body: .call(callId: "call-7"))
         let stale = ChatContent(id: "m6", sentAt: Date().addingTimeInterval(-600), body: .call(callId: "call-8"))
         for content in [fresh, stale] {
-            await chat.receive(Envelope(
+            try await chat.receive(Envelope(
                 id: content.id, conversationId: "c_1", messageId: content.id, senderAccountId: "acc-k",
-                senderDeviceId: 1, type: .message, content: try Data("SEALED".utf8) + content.encoded(),
+                senderDeviceId: 1, type: .message, content: Data("SEALED".utf8) + content.encoded(),
                 serverTimestamp: 0
             ))
         }
 
-        #expect(rang.map(\.0) == ["call-7"], "only a call from the last minute rings")
-        #expect(rang.first?.2 == "acc-k")
+        #expect(rang == ["call-7 c_1 acc-k"], "only a call from the last minute rings")
         #expect(chat.messages["c_1"]?.count == 2, "both show in the chat as calls")
     }
 
