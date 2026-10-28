@@ -35,14 +35,13 @@ struct RootView: View {
                         token: { auth.parentToken },
                         fingerprint: { fingerprint(parent.id) }
                     ),
-                    greeting: nil,
                     onSignOut: { Task { await auth.logout() } }
                 )
             case let .kid(session):
                 MainTabView(
                     role: auth.state.themeRole,
                     services: services(for: session.kid.id, kid: true), family: nil,
-                    greeting: session.kid.nickname, onSignOut: nil
+                    onSignOut: nil
                 )
             case .blockedMinor:
                 BlockedMinorView()

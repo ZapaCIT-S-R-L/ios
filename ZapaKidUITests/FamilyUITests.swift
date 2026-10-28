@@ -80,8 +80,10 @@ final class FamilyUITests: XCTestCase {
         field.typeText("zkp_" + String(repeating: "P", count: 43))
         app.buttons["pair.submit"].tap()
 
-        XCTAssertTrue(app.staticTexts["kid.hello"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["kid.hello"].label.contains("Ana"))
+        // The kid lands on Chats, with no greeting above them (Stefan, 2026-10-28: the app doesn't need to be
+        // friendly).
+        XCTAssertTrue(app.tabBars.buttons["Chats"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.staticTexts["kid.hello"].exists)
     }
 }
 
