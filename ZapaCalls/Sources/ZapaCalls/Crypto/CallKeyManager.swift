@@ -39,7 +39,7 @@ public actor CallKeyManager {
         let waiting = early
         early = []
         for envelope in waiting {
-            try? await receive(envelope)
+            _ = try? await receive(envelope)
         }
         guard Self.leader(of: roster) == me else { return [] }
         let key = CallKey.random(epoch: highestEpoch.map { $0 &+ 1 } ?? 0)
