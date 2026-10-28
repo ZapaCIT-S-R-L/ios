@@ -50,7 +50,7 @@
                 google: StubGoogleSignIn(),
                 ageCheck: StubAgeRangeCheck(range: age),
                 families: StubFamiliesAPI(),
-                fingerprint: { String(repeating: "ab", count: 32) },
+                fingerprint: { _ in String(repeating: "ab", count: 32) },
                 makeServices: { me, isKid in
                     stubServices(me: me, kid: isKid, ring: environment["ZK_RING"] == "1")
                 }

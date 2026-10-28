@@ -10,8 +10,13 @@ import ZapaKidKit
 struct PairingFingerprintTests {
     let keychainService = "ro.zapakid.app.tests.fp.\(UUID().uuidString)"
 
+    let accountId = "6f1c0e2a-0000-4000-8000-0000000000fp"
+
     func store() -> LocalIdentityStore {
-        LocalIdentityStore(keychain: .syncedIdentity(service: keychainService))
+        LocalIdentityStore(
+            accountId: accountId,
+            keychain: .syncedIdentity(service: keychainService, accountId: accountId)
+        )
     }
 
     @Test func noIdentityMeansNoFingerprintAndNoNewIdentity() throws {

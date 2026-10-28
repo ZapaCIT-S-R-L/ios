@@ -1,6 +1,6 @@
 // swift-tools-version: 6.0
 // ZapaCalls: 1:1 and group voice calls (Cloudflare Realtime SFU), end-to-end encrypted per audio frame.
-// Logic, WebRTC media and, later, the call screens; the app wires in the libsignal key sealer and CallKit.
+// Logic, WebRTC media and the call screens; the app wires in the libsignal key sealer and CallKit.
 import PackageDescription
 
 let package = Package(

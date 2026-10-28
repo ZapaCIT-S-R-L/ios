@@ -7,7 +7,7 @@ struct RootView: View {
     let google: GoogleSignInProviding
     let ageCheck: AgeRangeProviding
     let families: FamiliesAPI
-    let fingerprint: () -> String?
+    let fingerprint: (String) -> String?
     let makeServices: @MainActor (_ me: String, _ kid: Bool) -> AppServices
     @State private var services: AppServices?
 
@@ -27,7 +27,11 @@ struct RootView: View {
             case let .signedIn(parent):
                 MainTabView(
                     services: services(for: parent.id, kid: false),
-                    family: FamilyModel(api: families, token: { auth.parentToken }, fingerprint: fingerprint),
+                    family: FamilyModel(
+                        api: families,
+                        token: { auth.parentToken },
+                        fingerprint: { fingerprint(parent.id) }
+                    ),
                     greeting: nil,
                     onSignOut: { Task { await auth.logout() } }
                 )

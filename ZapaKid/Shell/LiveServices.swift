@@ -3,8 +3,9 @@ import ZapaCalls
 import ZapaChat
 import ZapaKidKit
 
-/// The real chat and call services (staging). Two pieces arrive in their own PRs and refuse until then:
-/// the libsignal message/call-key sealers (stacked on the key-setup PRs) and the WebRTC media engine.
+/// The real chat and call services (staging). Messages and call keys are sealed with libsignal once this phone is
+/// registered with the key directory; until then they refuse (nothing is ever sent unencrypted).
+/// Audio is WebRTC (Cloudflare Realtime) with per-frame AES-GCM.
 @MainActor
 enum LiveServices {
     static func make(me: String, kid: Bool, auth: AuthModel) -> AppServices {
@@ -21,26 +22,47 @@ enum LiveServices {
         let store: ChatStore = (try? EncryptedChatStore(
             directory: URL.applicationSupportDirectory.appending(path: "chats"), key: ChatStoreKey.loadOrCreate()
         )) ?? InMemoryChatStore()
-        #if DEBUG
-            // Debug builds without libsignal yet: the sealers refuse, so nothing is ever sent unencrypted.
-            let messageSealer: any MessageSealer = PendingMessageSealer()
-            let callSealer: any CallKeySealer = PendingCallKeySealer()
-        #else
-            // Release builds take only real sealers (ReleaseMessageSealer / ReleaseCallKeySealer, libsignal).
-            #error("No real MessageSealer/CallKeySealer is wired in: release builds need the libsignal sealers.")
-        #endif
+        // swiftlint:disable:next force_unwrapping
+        let bundles = HTTPPreKeyBundles(baseURL: URL(string: ZapaKidKit.apiBaseURL)!, session: .shared) {
+            await MainActor.run { auth.sessionToken }
+        }
+        let box = SessionsBox(SecureSessions.make(accountId: me, bundles: bundles))
+        // Only real sealers (Release*Sealer): without a registered device they refuse, never send in the clear.
+        let messageSealer: any ReleaseMessageSealer = LibsignalMessageSealer(box: box)
+        let callSealer: any ReleaseCallKeySealer = LibsignalCallKeySealer(box: box)
         #if targetEnvironment(simulator)
             let system: CallSystem = InAppCallSystem()
         #else
             let system: CallSystem = CallKitSystem()
         #endif
-        return AppServices(
+        let services = AppServices(
             me: me, canStartChats: !kid,
             chat: ChatModel(me: me, api: chatAPI, sealer: messageSealer, store: store),
             people: [], log: InMemoryCallLog(), system: system
-        ) { _ in
-            CallController(me: me, api: callsAPI, engine: PendingMediaEngine(), sealer: callSealer)
+        ) { services in
+            let engine = WebRTCMediaEngine()
+            // CallKit owns the audio session; WebRTC starts audio when CallKit activates it.
+            services.calls.onAudioSessionChange = { [weak engine] active in engine?.audioSession(active: active) }
+            let device = box.sessions.map {
+                LibsignalCallKeySealer.deviceName(account: me, device: Int($0.local.deviceId))
+            } ?? me
+            return CallController(
+                me: device, api: callsAPI, engine: engine, sealer: callSealer,
+                directory: { [weak services] account in services?.peer(account) }
+            )
         }
+        services.prepare = {
+            // Register this phone with the key directory (once), then seal with its sessions.
+            guard box.sessions == nil, let token = auth.sessionToken else { return }
+            let session = Session(
+                token: token, expiresAt: .distantFuture, parent: ParentProfile(id: me, email: nil, displayName: nil)
+            )
+            let registration = DeviceRegistration(api: HTTPAuthAPI.staging, reshare: WaitForReshare())
+            if case .ready = await registration.run(session: session) {
+                box.sessions = SecureSessions.make(accountId: me, bundles: bundles)
+            }
+        }
+        return services
     }
 }
 
@@ -61,55 +83,7 @@ enum ChatStoreKey {
     }
 }
 
-enum PendingCrypto: Error {
-    /// libsignal isn't wired into chat and calls yet (its own PR, stacked on the key-setup PRs).
-    case notReady
-}
-
-#if DEBUG
-    /// Refuses until the libsignal sealer replaces it: nothing is ever sent unencrypted. Debug builds only.
-    struct PendingMessageSealer: MessageSealer {
-        func seal(_: Data, for _: Conversation, me _: String) async throws -> [OutgoingEnvelope] {
-            throw PendingCrypto.notReady
-        }
-
-        func open(_: Envelope) async throws -> Data {
-            throw PendingCrypto.notReady
-        }
-    }
-
-    struct PendingCallKeySealer: CallKeySealer {
-        func seal(_: Data, toDevice _: String) async throws -> Data {
-            throw PendingCrypto.notReady
-        }
-
-        func open(_: Data, fromDevice _: String) async throws -> Data {
-            throw PendingCrypto.notReady
-        }
-    }
-#endif
-
-/// Until the WebRTC engine PR: a call can ring and signal, but carries no audio.
-final class PendingMediaEngine: CallMediaEngine, @unchecked Sendable {
-    let events: AsyncStream<MediaEvent>
-    let frameKeys: FrameKeyInstaller = NoFrameKeys()
-
-    init() {
-        events = AsyncStream { $0.finish() }
-    }
-
-    func start(callId _: String, iceServers _: [IceServer], api _: CallsAPI, trackName _: String) async throws {
-        throw PendingCrypto.notReady
-    }
-
-    func subscribe(_: [TrackRef]) async throws {}
-    func unsubscribe(_: [TrackRef]) async {}
-    func setMuted(_: Bool) {}
-    func setSpeakerOn(_: Bool) {}
-    func stop() async {}
-
-    private struct NoFrameKeys: FrameKeyInstaller {
-        func install(_: CallKey) {}
-        func useForSending(epoch _: UInt32) {}
-    }
+/// Another family phone must re-share the identity (the re-share flow comes later); nothing to do here.
+struct WaitForReshare: IdentityReshare {
+    func requestReshare() {}
 }
