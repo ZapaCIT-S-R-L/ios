@@ -16,7 +16,7 @@ struct DeviceSetupTests {
         }
     }
 
-    func setup(_ script: Script, signedOut: @escaping () -> Void = {}) -> DeviceSetup {
+    func setup(_ script: Script, signedOut: @escaping @MainActor () -> Void = {}) -> DeviceSetup {
         DeviceSetup(
             register: {
                 script.runs += 1
