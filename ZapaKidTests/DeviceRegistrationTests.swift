@@ -32,6 +32,18 @@ actor FakeDeviceAPI: DeviceAPI {
     func preKeyCount(token _: String) async throws -> PreKeyCount {
         PreKeyCount(preKeys: 0, pqPreKeys: 0)
     }
+
+    var changeResult: Result<Int, AuthAPIError> = .success(1)
+    private(set) var identityChanges: [DeviceKeys] = []
+
+    func set(changeResult: Result<Int, AuthAPIError>) {
+        self.changeResult = changeResult
+    }
+
+    func changeIdentity(_ keys: DeviceKeys, token _: String) async throws -> Int {
+        identityChanges.append(keys)
+        return try changeResult.get()
+    }
 }
 
 /// Registering this phone with the key directory (POST /v1/devices), as the Android app does.
