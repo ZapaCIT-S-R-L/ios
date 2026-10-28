@@ -1,11 +1,17 @@
 import Foundation
 import Observation
 
+public enum CallDirection: Sendable, Equatable {
+    case incoming, outgoing
+}
+
 /// The phone's calls: one at a time, ringing through the system call UI (CallKit), logged when they end.
 @MainActor
 @Observable
 public final class CallCoordinator: CallSystemActions {
     public private(set) var current: CallController?
+    /// Which call CallKit last refused (no `voip` background mode, Do Not Disturb, …), so the UI can say so.
+    public private(set) var refused: CallDirection?
     /// The media engine follows CallKit's audio session.
     public var onAudioSessionChange: ((Bool) -> Void)?
 
@@ -31,6 +37,11 @@ public final class CallCoordinator: CallSystemActions {
         system.actions = self
     }
 
+    /// The UI showed the refusal.
+    public func clearRefusal() {
+        refused = nil
+    }
+
     public func uuid(for callId: String) -> UUID? {
         uuids[callId]
     }
@@ -48,7 +59,8 @@ public final class CallCoordinator: CallSystemActions {
         do {
             try await system.reportIncoming(uuid: uuid, callerName: caller.displayName)
         } catch {
-            return // Do Not Disturb or blocked: CallKit refused; nothing rings.
+            refused = .incoming // Do Not Disturb or blocked: CallKit refused; nothing rings.
+            return
         }
         let controller = makeController()
         controller.reportIncoming(callId: push.callId, caller: caller)
@@ -75,8 +87,10 @@ public final class CallCoordinator: CallSystemActions {
         do {
             try await system.startOutgoing(uuid: uuid, name: peers.map(\.displayName).joined(separator: ", "))
         } catch {
+            refused = .outgoing
             return
         }
+        refused = nil
         let controller = makeController()
         begin(controller, uuid: uuid, direction: .outgoing, conversationId: conversationId)
         await controller.startCall(conversationId: conversationId, peers: peers)

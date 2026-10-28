@@ -48,6 +48,9 @@ targets:
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
         INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: UIInterfaceOrientationPortrait
         INFOPLIST_KEY_ITSAppUsesNonExemptEncryption: NO
+        # Merged into the generated Info.plist: UIBackgroundModes (no INFOPLIST_KEY_ setting exists for it). CallKit
+        # refuses calls from an app without `voip`; `audio` keeps a call's audio when the phone locks.
+        INFOPLIST_FILE: ZapaKid/Info.plist
         # Kid-friendly; RO and DE in ZapaKid/InfoPlist.xcstrings.
         INFOPLIST_KEY_NSCameraUsageDescription: "ZapaKid uses the camera only to scan your parent's QR code."
         INFOPLIST_KEY_NSMicrophoneUsageDescription: "ZapaKid uses the microphone so you can talk with your family in calls and voice messages."
