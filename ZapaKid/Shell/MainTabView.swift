@@ -8,8 +8,6 @@ struct MainTabView: View {
     let role: ZapaTheme.Role
     let services: AppServices
     let family: FamilyModel?
-    /// A kid's nickname, greeted above the chats.
-    let greeting: String?
     let onSignOut: (() -> Void)?
 
     var body: some View {
@@ -20,18 +18,6 @@ struct MainTabView: View {
         TabView {
             NavigationStack {
                 ChatListView(services: services)
-                    .safeAreaInset(edge: .top) {
-                        if let greeting {
-                            HStack {
-                                (Text("Hello,") + Text(verbatim: " \(greeting)!"))
-                                    .font(.title2.bold())
-                                    .accessibilityIdentifier("kid.hello")
-                                Sparkles()
-                                Spacer()
-                            }
-                            .padding(.horizontal, 16)
-                        }
-                    }
             }
             .tabItem { Label("Chats", systemImage: "bubble.left.and.bubble.right.fill") }
 

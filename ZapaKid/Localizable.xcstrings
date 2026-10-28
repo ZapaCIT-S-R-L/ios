@@ -305,22 +305,6 @@
         }
       }
     },
-    "Hello,": {
-      "localizations": {
-        "ro": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Salut,"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Hallo,"
-          }
-        }
-      }
-    },
     "Hold to record a voice message": {
       "localizations": {
         "ro": {
