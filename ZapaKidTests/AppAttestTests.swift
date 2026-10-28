@@ -61,7 +61,13 @@ final class FakeAppAttest: AppAttestService, @unchecked Sendable {
 actor FakeAppAttestAPI: AppAttestAPI {
     static let challenge = "Ch4llenge-Ch4llenge-Ch4llenge-Ch4llenge-Abc"
     private(set) var challenges = 0
-    private(set) var registered: [(keyId: String, object: Data, challenge: String)] = []
+    struct Registration {
+        let keyId: String
+        let object: Data
+        let challenge: String
+    }
+
+    private(set) var registered: [Registration] = []
     var registerError: AuthAPIError?
 
     func set(registerError: AuthAPIError?) {
@@ -79,14 +85,15 @@ actor FakeAppAttestAPI: AppAttestAPI {
         if let registerError {
             throw registerError
         }
-        registered.append((keyId, attestationObject, challenge))
+        registered.append(Registration(keyId: keyId, object: attestationObject, challenge: challenge))
     }
 }
 
 /// The App Attest header for device registration (issue #54), per `src/app-attest.ts` in zapakid-api.
 struct AppAttestTests {
     /// The API's header pattern (`HEADER` in src/app-attest.ts).
-    static var headerPattern: Regex<(Substring, Substring, Substring)> {
+    /// The output type is fixed by the regex literal (whole match + two captures), hence the 3-tuple.
+    static var headerPattern: Regex<(Substring, Substring, Substring)> { // swiftlint:disable:this large_tuple
         /^v1 keyId=([A-Za-z0-9+\/]{43}=) assertion=([A-Za-z0-9+\/]+={0,2})$/
     }
 
@@ -218,7 +225,7 @@ final class Answers: @unchecked Sendable {
 @Suite(.serialized)
 struct HTTPAppAttestTests {
     static let host = "attest.test.invalid"
-    let base = URL(string: "https://\(host)")!
+    let base = URL(string: "https://\(host)") ?? URL(filePath: "/")
     let service = FakeAppAttest()
     let keys = InMemoryAppAttestKeyStore()
 
@@ -266,9 +273,9 @@ struct HTTPAppAttestTests {
             "/v1/attestation/challenge", "/v1/attestation/apple", "/v1/devices",
         ])
         let register = try #require(sent.last)
-        let header = try #require(header(of: register.request))
-        #expect(header.wholeMatch(of: AppAttestTests.headerPattern) != nil)
-        #expect(try header == registerFixture.requestHeaders["ZapaKid-Attestation"])
+        let attestation = try #require(header(of: register.request))
+        #expect(attestation.wholeMatch(of: AppAttestTests.headerPattern) != nil)
+        #expect(try attestation == registerFixture.requestHeaders["ZapaKid-Attestation"])
         #expect(try service.asserted.first?.hash == Data(SHA256.hash(data: #require(register.body))))
     }
 
