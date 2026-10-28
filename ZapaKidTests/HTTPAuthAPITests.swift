@@ -2,7 +2,7 @@ import Foundation
 import Testing
 @testable import ZapaKidKit
 
-/// The sign-in client against a mocked API, per `openapi.yaml` in ZapaCIT-S-R-L/api (tags Sign-in and Account):
+/// The sign-in client against a mocked API, per `openapi.yaml` in ZapaCIT-S-R-L/zapakid-api (tags Sign-in and Account):
 /// POST /v1/auth/nonce, POST /v1/auth/apple, POST /v1/auth/google, GET /v1/me, POST /v1/auth/logout.
 @Suite(.serialized)
 struct HTTPAuthAPITests {

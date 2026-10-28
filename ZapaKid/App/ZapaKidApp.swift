@@ -7,12 +7,24 @@ struct ZapaKidApp: App {
 
     var body: some Scene {
         WindowGroup {
-            RootView(
-                auth: dependencies.auth,
-                google: dependencies.google,
-                ageCheck: dependencies.ageCheck
-            )
+            #if DEBUG
+                if let call = UITestStubs.callScenario {
+                    CallsDemoRoot(scenario: call)
+                } else {
+                    root
+                }
+            #else
+                root
+            #endif
         }
+    }
+
+    private var root: some View {
+        RootView(
+            auth: dependencies.auth,
+            google: dependencies.google,
+            ageCheck: dependencies.ageCheck
+        )
     }
 }
 

@@ -14,27 +14,33 @@ struct MockReply {
 }
 
 /// Answers URLSession requests in tests, so the real HTTP client runs against a fake API (no network).
-/// Suites that use it are `.serialized`: there is one handler at a time.
+/// One handler per host, so suites for different APIs (api.test.invalid, calls.test.invalid) can run in parallel;
+/// suites that use it are `.serialized`: there is one handler per host at a time.
 final class MockURLProtocol: URLProtocol, @unchecked Sendable {
     typealias Handler = @Sendable (URLRequest, Data?) throws -> MockReply
 
     private static let lock = NSLock()
-    private nonisolated(unsafe) static var handler: Handler?
+    private nonisolated(unsafe) static var handlers: [String: Handler] = [:]
     private nonisolated(unsafe) static var recorded: [(URLRequest, Data?)] = []
 
-    /// A session whose requests go to `handler` instead of the network.
-    static func session(_ handler: @escaping Handler) -> URLSession {
+    /// A session whose requests to `host` go to `handler` instead of the network.
+    static func session(host: String = "api.test.invalid", _ handler: @escaping Handler) -> URLSession {
         lock.withLock {
-            self.handler = handler
-            recorded = []
+            handlers[host] = handler
+            recorded.removeAll { $0.0.url?.host == host }
         }
         let config = URLSessionConfiguration.ephemeral
         config.protocolClasses = [MockURLProtocol.self]
         return URLSession(configuration: config)
     }
 
+    /// The requests to the API host (api.test.invalid).
     static var requests: [(request: URLRequest, body: Data?)] {
-        lock.withLock { recorded.map { (request: $0.0, body: $0.1) } }
+        requests(host: "api.test.invalid")
+    }
+
+    static func requests(host: String) -> [(request: URLRequest, body: Data?)] {
+        lock.withLock { recorded.filter { $0.0.url?.host == host }.map { (request: $0.0, body: $0.1) } }
     }
 
     override static func canInit(with _: URLRequest) -> Bool {
@@ -49,7 +55,7 @@ final class MockURLProtocol: URLProtocol, @unchecked Sendable {
         let body = request.httpBody ?? request.httpBodyStream.map(Self.read)
         let handler = Self.lock.withLock {
             Self.recorded.append((request, body))
-            return Self.handler
+            return request.url?.host.flatMap { Self.handlers[$0] }
         }
         do {
             guard let handler, let url = request.url else { throw URLError(.badServerResponse) }
