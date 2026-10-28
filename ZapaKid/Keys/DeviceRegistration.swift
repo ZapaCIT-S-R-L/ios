@@ -9,6 +9,9 @@ enum DeviceSetupResult: Equatable {
     case waitingForReshare
     /// The session is gone: sign in again.
     case signedOut
+    /// A kid phone whose account has another identity, and the pairing is over 10 minutes old: a parent must pair
+    /// it again.
+    case needsPairing
     case failed(Reason)
 
     enum Reason: Equatable {
@@ -83,6 +86,48 @@ final class DeviceRegistration {
             return .failed(.server)
         }
     }
+
+    /// A kid's phone (kid session `zkk_…`, account = the kid's id): its own identity on this phone only. When the
+    /// account already has another identity (a replaced phone), it takes over with `PUT /v1/keys/identity`, which
+    /// the API allows within 10 minutes of pairing; later, a parent must pair the phone again.
+    func runKid(accountId: String, token: String, pairedAt: Date?, now: Date = Date()) async -> DeviceSetupResult {
+        let fresh = pairedAt.map { now.timeIntervalSince($0) < Self.identityChangeWindow } ?? false
+        do {
+            let account = try keyspace(accountId)
+            let files = account.files
+            if let data = try files.read(Self.deviceFile) {
+                return try .ready(deviceId: JSONDecoder().decode(Registered.self, from: data).deviceId)
+            }
+            let local = try account.identity.load() ?? account.identity.createNew()
+            let ourKey = local.keyPair.identityKey.serialize().base64EncodedString()
+            let directoryKey = try await api.accountIdentity(accountId: accountId, token: token)
+            let keys = try pendingKeys(for: local, account: account)
+            let deviceId: Int
+            if let directoryKey, directoryKey != ourKey {
+                guard fresh else { return .needsPairing }
+                deviceId = try await api.changeIdentity(keys, token: token)
+            } else {
+                do {
+                    deviceId = try await api.registerDevice(keys, token: token)
+                } catch AuthAPIError.identityMismatch {
+                    guard fresh else { return .needsPairing }
+                    deviceId = try await api.changeIdentity(keys, token: token)
+                }
+            }
+            try files.write(JSONEncoder().encode(Registered(deviceId: deviceId)), to: Self.deviceFile)
+            try files.delete(Self.pendingFile)
+            return .ready(deviceId: deviceId)
+        } catch AuthAPIError.reauthenticationRequired {
+            return .needsPairing
+        } catch let error as AuthAPIError {
+            return Self.result(for: error)
+        } catch {
+            return .failed(.server)
+        }
+    }
+
+    /// `PUT /v1/keys/identity` needs a session under 10 minutes old (a kid: a fresh pairing).
+    static let identityChangeWindow: TimeInterval = 10 * 60
 
     /// The keys from an earlier failed upload, or new ones (private records stored, public payload kept).
     private func pendingKeys(for local: LocalIdentity, account: AccountKeys) throws -> DeviceKeys {

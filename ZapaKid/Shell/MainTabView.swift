@@ -1,3 +1,4 @@
+import Network
 import SwiftUI
 import ZapaCalls
 import ZapaKidKit
@@ -20,6 +21,11 @@ struct MainTabView: View {
         TabView {
             NavigationStack {
                 ChatListView(services: services)
+                    .safeAreaInset(edge: .bottom) {
+                        if let setup = services.setup {
+                            SetupBanner(setup: setup)
+                        }
+                    }
                     .safeAreaInset(edge: .top) {
                         if let greeting {
                             HStack {
@@ -87,13 +93,21 @@ struct MainTabView: View {
                 .zapaTheme(role)
             }
         }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active {
+                services.setup?.retryNow()
+            }
+        }
         .onChange(of: services.calls.current == nil) { _, ended in
             if !ended {
                 shownCall = services.calls.current
             }
         }
         .task {
-            await services.prepare?()
+            if let setup = services.setup {
+                networkWatch = setup.watchNetwork()
+                Task { await setup.run() }
+            }
             await services.loadPeople?(services)
             await services.chat.loadConversations()
             services.chat.connectAll()
@@ -102,6 +116,8 @@ struct MainTabView: View {
 
     /// Keeps the ended call on screen until the person taps Close.
     @State private var shownCall: CallController?
+    @State private var networkWatch: NWPathMonitor?
+    @Environment(\.scenePhase) private var scenePhase
 }
 
 /// Tab and navigation bars in the theme's colors.
@@ -160,5 +176,54 @@ struct KidFamilyView: View {
         .background(theme.background.color.ignoresSafeArea())
         .navigationTitle(Text("Family"))
         .accessibilityIdentifier("family.screen")
+    }
+}
+
+/// A calm note while this phone can't finish its secure setup, with "Try again"; or, for a kid phone, that a
+/// parent must pair it again.
+struct SetupBanner: View {
+    let setup: DeviceSetup
+    @Environment(\.zapaTheme) private var theme
+
+    var body: some View {
+        switch setup.state {
+        case .retrying:
+            banner(Text("Can't finish setting up secure chat on this phone yet. We'll keep trying."), retry: true)
+        case .needsPairing:
+            banner(Text("Ask a parent to pair this phone again."), retry: false)
+        case .waitingForReshare:
+            banner(Text("Open ZapaKid on your other phone to share your keys with this one."), retry: false)
+        default:
+            EmptyView()
+        }
+    }
+
+    private func banner(_ message: Text, retry: Bool) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: "lock.shield")
+                .font(.title2)
+                .foregroundStyle(theme.accent.color)
+                .accessibilityHidden(true)
+            message
+                .font(.subheadline)
+                .foregroundStyle(theme.text.color)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .accessibilityIdentifier("setup.message")
+            if retry {
+                Button { setup.retryNow() } label: {
+                    Text("Try again")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(theme.onPrimary.color)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 8)
+                        .background(Capsule().fill(theme.primary.color))
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("setup.retry")
+            }
+        }
+        .zapaCard(theme)
+        .padding(.horizontal, 12)
+        .padding(.bottom, 8)
     }
 }

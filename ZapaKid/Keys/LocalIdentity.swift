@@ -75,6 +75,11 @@ struct LocalIdentityStore {
             reshare.requestReshare()
             return .waitingForReshare
         }
+        return try .ready(createNew())
+    }
+
+    /// A new identity for this account, stored (replacing any earlier one on this phone).
+    func createNew() throws -> LocalIdentity {
         // libsignal registration IDs are 14 bits and never 0; SystemRandomNumberGenerator is the system CSPRNG.
         var random = SystemRandomNumberGenerator()
         let identity = LocalIdentity(
@@ -83,6 +88,6 @@ struct LocalIdentityStore {
         try keychain.save(JSONEncoder().encode(Stored(
             accountId: accountId, keyPair: identity.keyPair.serialize(), registrationId: identity.registrationId
         )))
-        return .ready(identity)
+        return identity
     }
 }

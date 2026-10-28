@@ -65,6 +65,22 @@
         }
       }
     },
+    "Ask a parent to pair this phone again.": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Roagă un părinte să asocieze din nou acest telefon."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bitte deine Eltern, dieses Handy noch einmal zu koppeln."
+          }
+        }
+      }
+    },
     "Ask your parent to show the QR code in ZapaKid (Family, Pair phone).": {
       "localizations": {
         "ro": {
@@ -109,6 +125,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Anrufe"
+          }
+        }
+      }
+    },
+    "Can't finish setting up secure chat on this phone yet. We'll keep trying.": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nu putem termina încă configurarea chatului securizat pe acest telefon. Mai încercăm."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die sichere Einrichtung des Chats auf diesem Handy ist noch nicht fertig. Wir versuchen es weiter."
           }
         }
       }
@@ -653,6 +685,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Öffne ZapaKid auf dem Handy deines Kindes, tippe auf „Das ist das Handy meines Kindes“ und scanne diesen Code."
+          }
+        }
+      }
+    },
+    "Open ZapaKid on your other phone to share your keys with this one.": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deschide ZapaKid pe celălalt telefon ca să-ți partajezi cheile cu acesta."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Öffne ZapaKid auf deinem anderen Handy, um deine Schlüssel mit diesem zu teilen."
           }
         }
       }

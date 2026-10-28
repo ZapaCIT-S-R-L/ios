@@ -31,7 +31,10 @@ struct KidSessionEndTests {
         )
         let before = Date()
 
-        await KidPairingModel(api: FakeFamiliesAPI(), auth: auth).redeem(scanned: "zkp_" + String(repeating: "P", count: 43))
+        await KidPairingModel(api: FakeFamiliesAPI(), auth: auth).redeem(scanned: "zkp_" + String(
+            repeating: "P",
+            count: 43
+        ))
 
         let pairedAt = try #require(try store.load()?.pairedAt)
         #expect(pairedAt >= before)

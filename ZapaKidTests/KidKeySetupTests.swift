@@ -68,7 +68,7 @@ struct KidKeySetupTests {
         #expect(await api.uploads.isEmpty, "PUT /v1/keys/identity registers this phone")
     }
 
-    @Test func afterTenMinutesTheKidMustBePairedAgain() async throws {
+    @Test func afterTenMinutesTheKidMustBePairedAgain() async {
         defer { cleanUp() }
         let old = IdentityKeyPair.generate().identityKey.serialize().base64EncodedString()
         let api = FakeDeviceAPI(identity: old)
@@ -80,7 +80,7 @@ struct KidKeySetupTests {
         #expect(await api.uploads.isEmpty)
     }
 
-    @Test func aMismatchFromTheServerAlsoLeadsToTheIdentityChange() async throws {
+    @Test func aMismatchFromTheServerAlsoLeadsToTheIdentityChange() async {
         defer { cleanUp() }
         let api = FakeDeviceAPI(identity: nil) // the directory looked empty, then another phone registered first
         await api.set(registerResult: .failure(.identityMismatch))
@@ -92,7 +92,7 @@ struct KidKeySetupTests {
         #expect(await api.identityChanges.count == 1)
     }
 
-    @Test func theServerSayingThePairingIsTooOldMeansPairAgain() async throws {
+    @Test func theServerSayingThePairingIsTooOldMeansPairAgain() async {
         defer { cleanUp() }
         let api = FakeDeviceAPI(identity: IdentityKeyPair.generate().identityKey.serialize().base64EncodedString())
         await api.set(changeResult: .failure(.reauthenticationRequired))
@@ -100,7 +100,7 @@ struct KidKeySetupTests {
         #expect(await run(api) == .needsPairing)
     }
 
-    @Test func anExpiredKidSessionSignsOut() async throws {
+    @Test func anExpiredKidSessionSignsOut() async {
         defer { cleanUp() }
         let api = FakeDeviceAPI(identity: nil)
         await api.set(registerResult: .failure(.unauthorized))
