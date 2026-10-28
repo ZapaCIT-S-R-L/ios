@@ -1,0 +1,176 @@
+import Foundation
+import Observation
+
+/// The phone's calls: one at a time, ringing through the system call UI (CallKit), logged when they end.
+@MainActor
+@Observable
+public final class CallCoordinator: CallSystemActions {
+    public private(set) var current: CallController?
+    /// The media engine follows CallKit's audio session.
+    public var onAudioSessionChange: ((Bool) -> Void)?
+
+    private let system: CallSystem
+    private let log: CallLogStore
+    private let lookup: (String) -> CallPeer?
+    private let makeController: () -> CallController
+    private var uuids: [String: UUID] = [:]
+    private var currentUUID: UUID?
+    private var endedBySystem: Set<UUID> = []
+    private var direction: CallLogEntry.Direction = .incoming
+    private var startedAt = Date()
+    private var conversationId: String?
+
+    public init(
+        system: CallSystem, log: CallLogStore = InMemoryCallLog(), lookup: @escaping (String) -> CallPeer?,
+        makeController: @escaping () -> CallController
+    ) {
+        self.system = system
+        self.log = log
+        self.lookup = lookup
+        self.makeController = makeController
+        system.actions = self
+    }
+
+    public func uuid(for callId: String) -> UUID? {
+        uuids[callId]
+    }
+
+    // MARK: Incoming
+
+    /// A VoIP push. PushKit requires every push to show a call in CallKit, even one we decline at once.
+    public func handle(_ push: IncomingCallPush) async {
+        let uuid = UUID()
+        uuids[push.callId] = uuid
+        let caller = push.callerAccountId.flatMap(lookup) ?? CallPeer(
+            accountId: push.callerAccountId ?? "", deviceId: "", displayName: "ZapaKid", avatar: "robot-1",
+            role: .parent
+        )
+        do {
+            try await system.reportIncoming(uuid: uuid, callerName: caller.displayName)
+        } catch {
+            return // Do Not Disturb or blocked: CallKit refused; nothing rings.
+        }
+        let controller = makeController()
+        controller.reportIncoming(callId: push.callId, caller: caller)
+        guard current == nil else {
+            system.reportEnded(uuid: uuid, reason: .declinedElsewhere)
+            await controller.decline()
+            return
+        }
+        begin(controller, uuid: uuid, direction: .incoming, conversationId: nil)
+    }
+
+    /// A push without a valid call: report and end it at once (PushKit's rule).
+    public func handleInvalidPush() async {
+        let uuid = UUID()
+        try? await system.reportIncoming(uuid: uuid, callerName: "ZapaKid")
+        system.reportEnded(uuid: uuid, reason: .failed)
+    }
+
+    // MARK: Outgoing
+
+    public func startCall(conversationId: String, peers: [CallPeer]) async {
+        guard current == nil else { return }
+        let uuid = UUID()
+        do {
+            try await system.startOutgoing(uuid: uuid, name: peers.map(\.displayName).joined(separator: ", "))
+        } catch {
+            return
+        }
+        let controller = makeController()
+        begin(controller, uuid: uuid, direction: .outgoing, conversationId: conversationId)
+        await controller.startCall(conversationId: conversationId, peers: peers)
+        if let callId = controller.callId {
+            uuids[callId] = uuid
+        }
+    }
+
+    // MARK: CallKit actions
+
+    public func answer(_ uuid: UUID) async {
+        guard uuid == currentUUID else { return }
+        await current?.accept()
+    }
+
+    public func end(_ uuid: UUID) async {
+        guard uuid == currentUUID, let current else { return }
+        endedBySystem.insert(uuid)
+        if current.phase == .ringing {
+            await current.decline()
+        } else {
+            await current.hangUp()
+        }
+    }
+
+    public func setMuted(_ uuid: UUID, _ muted: Bool) async {
+        guard uuid == currentUUID else { return }
+        await current?.setMuted(muted)
+    }
+
+    public func audioSession(active: Bool) {
+        onAudioSessionChange?(active)
+    }
+
+    // MARK: Following the call
+
+    private func begin(
+        _ controller: CallController, uuid: UUID, direction: CallLogEntry.Direction, conversationId: String?
+    ) {
+        current = controller
+        currentUUID = uuid
+        self.direction = direction
+        self.conversationId = conversationId
+        startedAt = Date()
+        watch(controller, uuid: uuid)
+        phaseChanged(controller, uuid: uuid)
+    }
+
+    private func watch(_ controller: CallController, uuid: UUID) {
+        withObservationTracking {
+            _ = controller.phase
+        } onChange: { [weak self] in
+            Task { @MainActor [weak self] in
+                guard let self, current === controller else { return }
+                phaseChanged(controller, uuid: uuid)
+                if current === controller {
+                    watch(controller, uuid: uuid)
+                }
+            }
+        }
+    }
+
+    private func phaseChanged(_ controller: CallController, uuid: UUID) {
+        switch controller.phase {
+        case .active:
+            system.reportConnected(uuid: uuid)
+        case let .ended(reason):
+            if !endedBySystem.contains(uuid) {
+                system.reportEnded(uuid: uuid, reason: Self.systemReason(reason))
+            }
+            finish(controller, reason: reason)
+        default:
+            break
+        }
+    }
+
+    private func finish(_ controller: CallController, reason: CallEndReason) {
+        let entry = CallLogEntry(
+            id: controller.callId ?? UUID().uuidString, peers: controller.participants, direction: direction,
+            startedAt: startedAt, duration: controller.connectedAt.map { Date().timeIntervalSince($0) } ?? 0,
+            outcome: .init(endReason: reason, wasConnected: controller.connectedAt != nil),
+            conversationId: conversationId
+        )
+        current = nil
+        currentUUID = nil
+        Task { await log.record(entry) }
+    }
+
+    static func systemReason(_ reason: CallEndReason) -> CallSystemEndReason {
+        switch reason {
+        case .noAnswer, .missed: .unanswered
+        case .failed: .failed
+        case .declined: .declinedElsewhere
+        case .hungUp, .remoteEnded: .remoteEnded
+        }
+    }
+}
