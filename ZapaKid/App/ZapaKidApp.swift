@@ -56,11 +56,7 @@ struct AppDependencies {
             google: GoogleSignIn(),
             ageCheck: DeclaredAgeRangeCheck(),
             families: HTTPFamiliesAPI.staging,
-            fingerprint: {
-                (try? LocalIdentityStore().loadOrCreate()).map {
-                    IdentityFingerprint.hex(Data($0.keyPair.publicKey.serialize()))
-                }
-            }
+            fingerprint: { PairingFingerprint.current(LocalIdentityStore()) }
         )
     }
 }
