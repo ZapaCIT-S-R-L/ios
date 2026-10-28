@@ -1,0 +1,393 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "Accepts the parental agreement and continues to sign-in": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Acceptă acordul parental și continuă la conectare"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Akzeptiert die Elternvereinbarung und geht weiter zur Anmeldung"
+          }
+        }
+      }
+    },
+    "Apple didn't return a sign-in token.": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple nu a trimis un token de conectare."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple hat kein Anmelde-Token zurückgegeben."
+          }
+        }
+      }
+    },
+    "Goes back to sign-in, where you can share your age range": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Revine la conectare, unde poți partaja intervalul de vârstă"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zurück zur Anmeldung, wo du deine Altersspanne teilen kannst"
+          }
+        }
+      }
+    },
+    "Google didn't return a sign-in token.": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Google nu a trimis un token de conectare."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Google hat kein Anmelde-Token zurückgegeben."
+          }
+        }
+      }
+    },
+    "Google sign-in isn't set up yet.": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conectarea cu Google nu este configurată încă."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Anmeldung mit Google ist noch nicht eingerichtet."
+          }
+        }
+      }
+    },
+    "I agree": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sunt de acord"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ich stimme zu"
+          }
+        }
+      }
+    },
+    "Kids: ask a parent to add your phone.": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copii: rugați un părinte să vă adauge telefonul."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kinder: Bitte ein Elternteil, dein Handy hinzuzufügen."
+          }
+        }
+      }
+    },
+    "Loading": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se încarcă"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wird geladen"
+          }
+        }
+      }
+    },
+    "Only adults can sign in as parents. Your phone shares only whether you are 18 or older.": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Doar adulții se pot conecta ca părinți. Telefonul tău spune doar dacă ai 18 ani sau mai mult."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nur Erwachsene können sich als Eltern anmelden. Dein Handy teilt nur mit, ob du 18 oder älter bist."
+          }
+        }
+      }
+    },
+    "Only parents can sign in": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Doar părinții se pot conecta"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nur Eltern können sich anmelden"
+          }
+        }
+      }
+    },
+    "Parent": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Părinte"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elternteil"
+          }
+        }
+      }
+    },
+    "Parental agreement": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Acord parental"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elternvereinbarung"
+          }
+        }
+      }
+    },
+    "Placeholder: the final text is being reviewed.": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Text provizoriu: varianta finală este în curs de verificare."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Platzhalter: Der endgültige Text wird geprüft."
+          }
+        }
+      }
+    },
+    "Private chat for your family. Parents sign in with Apple or Google.": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chat privat pentru familia ta. Părinții se conectează cu Apple sau Google."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Privater Chat für deine Familie. Eltern melden sich mit Apple oder Google an."
+          }
+        }
+      }
+    },
+    "Share your age range to continue": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Partajează intervalul de vârstă ca să continui"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Teile deine Altersspanne, um fortzufahren"
+          }
+        }
+      }
+    },
+    "Sign in with Google": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conectează-te cu Google"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mit Google anmelden"
+          }
+        }
+      }
+    },
+    "Sign out": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deconectează-te"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abmelden"
+          }
+        }
+      }
+    },
+    "Signed in as": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conectat ca"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Angemeldet als"
+          }
+        }
+      }
+    },
+    "Signing in": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se conectează"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anmeldung läuft"
+          }
+        }
+      }
+    },
+    "Signs out on this phone": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Te deconectează pe acest telefon"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meldet dich auf diesem Handy ab"
+          }
+        }
+      }
+    },
+    "The parental agreement will appear here.": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Acordul parental va apărea aici."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Elternvereinbarung erscheint hier."
+          }
+        }
+      }
+    },
+    "Try again": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Încearcă din nou"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Erneut versuchen"
+          }
+        }
+      }
+    },
+    "You need to be 18 or older to sign in. Ask your parent to add your phone to the family.": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trebuie să ai cel puțin 18 ani ca să te conectezi. Roagă-ți părintele să-ți adauge telefonul în familie."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Du musst mindestens 18 sein, um dich anzumelden. Bitte deine Eltern, dein Handy zur Familie hinzuzufügen."
+          }
+        }
+      }
+    },
+    "Your family chats will appear here.": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conversațiile familiei tale vor apărea aici."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hier erscheinen deine Familienchats."
+          }
+        }
+      }
+    },
+    "ZapaKid": {
+      "shouldTranslate": false
+    }
+  },
+  "version": "1.0"
+}
