@@ -9,8 +9,12 @@ import Testing
 struct HTTPCallsAPITests {
     let base = URL(string: "https://calls.test.invalid")!
     let grantJSON = """
-    {"callId":"c_1","iceServers":[{"urls":["stun:stun.cloudflare.com:3478"]},\
-    {"urls":["turn:turn.cloudflare.com:3478?transport=udp"],"username":"u","credential":"p"}]}
+    {"call":{"callId":"c_1","conversationId":"conv-1","state":"ringing","createdAt":"2026-10-28T08:00:00Z",\
+    "ringDeadline":"2026-10-28T08:00:45Z","epoch":1,"keyLeader":{"accountId":"acc-a","deviceId":1},\
+    "participants":[],"declined":[],"endReason":null},\
+    "iceServers":[{"urls":["stun:stun.cloudflare.com:3478"]},\
+    {"urls":["turn:turn.cloudflare.com:3478?transport=udp"],"username":"u","credential":"p"}],\
+    "limits":{"maxParticipants":8,"ringTimeoutSeconds":45,"maxDurationSeconds":7200}}
     """
 
     func api(_ handler: @escaping MockURLProtocol.Handler) -> HTTPCallsAPI {
@@ -27,6 +31,7 @@ struct HTTPCallsAPITests {
         let grant = try await client.createCall(conversationId: "conv-1")
 
         #expect(grant.callId == "c_1")
+        #expect(grant.call?.epoch == 1)
         #expect(grant.iceServers.count == 2)
         #expect(grant.iceServers[1].username == "u")
         let sent = try #require(MockURLProtocol.requests(host: "calls.test.invalid").first)
@@ -60,10 +65,10 @@ struct HTTPCallsAPITests {
     @Test func realtimeProxyPublishesAndSubscribesWithCloudflareShapes() async throws {
         let client = api { request, _ in
             switch request.url?.path {
-            case "/v1/calls/c_1/rtc/sessions/new": MockReply(201, #"{"sessionId":"s_me"}"#)
+            case "/v1/calls/c_1/sessions": MockReply(201, #"{"sessionId":"s_me"}"#)
             default: MockReply(200, """
                 {"requiresImmediateRenegotiation":false,"sessionDescription":{"type":"answer","sdp":"v=0 answer"},\
-                "tracks":[{"mid":"0","trackName":"audio-dev-a","sessionId":"s_me"}]}
+                "tracks":[{"mid":"0","trackName":"audio-acc-a_1","sessionId":"s_me"}]}
                 """)
             }
         }
@@ -71,7 +76,7 @@ struct HTTPCallsAPITests {
         let session = try await client.newSession(callId: "c_1")
         let reply = try await client.addTracks(callId: "c_1", sessionId: session, request: TracksRequest(
             sessionDescription: SessionDescription(type: .offer, sdp: "v=0 offer"),
-            tracks: [TrackObject(location: .local, mid: "0", trackName: "audio-dev-a")]
+            tracks: [TrackObject(location: .local, mid: "0", trackName: "audio-acc-a_1")]
         ))
         try await client.renegotiate(
             callId: "c_1", sessionId: session, answer: SessionDescription(type: .answer, sdp: "v=0 answer2")
@@ -80,13 +85,13 @@ struct HTTPCallsAPITests {
 
         #expect(session == "s_me")
         #expect(reply.sessionDescription?.sdp == "v=0 answer")
-        #expect(reply.tracks?.first?.trackName == "audio-dev-a")
+        #expect(reply.tracks?.first?.trackName == "audio-acc-a_1")
         let sent = MockURLProtocol.requests(host: "calls.test.invalid")
         #expect(sent.map { "\($0.request.httpMethod ?? "") \($0.request.url?.path ?? "")" } == [
-            "POST /v1/calls/c_1/rtc/sessions/new",
-            "POST /v1/calls/c_1/rtc/sessions/s_me/tracks/new",
-            "PUT /v1/calls/c_1/rtc/sessions/s_me/renegotiate",
-            "PUT /v1/calls/c_1/rtc/sessions/s_me/tracks/close",
+            "POST /v1/calls/c_1/sessions",
+            "POST /v1/calls/c_1/sessions/s_me/tracks/new",
+            "PUT /v1/calls/c_1/sessions/s_me/renegotiate",
+            "PUT /v1/calls/c_1/sessions/s_me/tracks/close",
         ])
         let tracks = try #require(sent[1].body?.json)
         #expect((tracks["sessionDescription"] as? [String: Any])?["type"] as? String == "offer")

@@ -149,3 +149,7 @@ public protocol MessageSealer: Sendable {
     func seal(_ plaintext: Data, for conversation: Conversation, me: String) async throws -> [OutgoingEnvelope]
     func open(_ envelope: Envelope) async throws -> Data
 }
+
+/// A sealer allowed in release builds: real end-to-end encryption (libsignal). Fakes for tests and demos must not
+/// conform and must stay inside `#if DEBUG` (`scripts/release-sealers.js`, `npm test`).
+public protocol ReleaseMessageSealer: MessageSealer {}

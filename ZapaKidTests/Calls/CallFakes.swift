@@ -30,12 +30,12 @@ final class FakeCallsAPI: CallsAPI, @unchecked Sendable {
         if let failCreate {
             throw failCreate
         }
-        return CallGrant(callId: "c_1", iceServers: [IceServer(urls: ["stun:stun.test.invalid"])])
+        return CallGrant(callId: "c_1", iceServers: [IceServer(urls: ["stun:stun.test.invalid"])], call: nil)
     }
 
     func join(callId: String) async throws -> CallGrant {
         record("join \(callId)")
-        return CallGrant(callId: callId, iceServers: [])
+        return CallGrant(callId: callId, iceServers: [], call: nil)
     }
 
     func leave(callId: String) async throws {
