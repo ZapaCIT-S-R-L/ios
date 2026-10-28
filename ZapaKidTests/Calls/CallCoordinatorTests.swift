@@ -24,7 +24,7 @@ struct CallCoordinatorTests {
         )
     }
 
-    // Calls did nothing at all on device (Stefan, 2026-10-29): CallKit refused, and the refusal was dropped.
+    /// Calls did nothing at all on device (Stefan, 2026-10-29): CallKit refused, and the refusal was dropped.
     @Test func aRefusedOutgoingCallIsReportedNotDropped() async {
         let calls = coordinator()
         system.refusal = NSError(domain: "com.apple.CallKit.error.requesttransaction", code: 1)
@@ -186,12 +186,16 @@ final class FakeCallSystem: CallSystem {
     var refusal: Error?
 
     func reportIncoming(uuid: UUID, callerName: String) async throws {
-        if let refusal { throw refusal }
+        if let refusal {
+            throw refusal
+        }
         reported.append(Reported(uuid: uuid, name: callerName))
     }
 
     func startOutgoing(uuid: UUID, name _: String) async throws {
-        if let refusal { throw refusal }
+        if let refusal {
+            throw refusal
+        }
         started.append(uuid)
     }
 

@@ -65,7 +65,11 @@ struct ChatView: View {
         }
         .alert(Text("The call couldn't start"), isPresented: Binding(
             get: { services.calls.refused != nil },
-            set: { if !$0 { services.calls.clearRefusal() } }
+            set: {
+                if !$0 {
+                    services.calls.clearRefusal()
+                }
+            }
         )) {
             Button { services.calls.clearRefusal() } label: { Text("OK") }
         } message: {
