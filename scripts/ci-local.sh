@@ -31,6 +31,7 @@ step() {
 step SwiftFormat swiftformat --lint .
 step SwiftLint swiftlint lint --strict --quiet
 step actionlint actionlint
+step "Node packages" npm ci --silent
 step "Node tests" npm test
 step OSV-Scanner scripts/osv-scan.sh
 step gitleaks gitleaks git . --no-banner --redact

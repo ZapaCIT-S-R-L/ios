@@ -27,6 +27,14 @@ common=(
 )
 if [ -n "${XCODE_JOBS:-}" ]; then common+=(-jobs "$XCODE_JOBS" -parallel-testing-enabled NO); fi
 
+# Shared Mac: don't build while an Android emulator runs (the Android repo waits for xcodebuild the same way).
+if [ -z "${CI:-}" ]; then
+  # By process name (-x), not command line: a shell that merely mentions these words must not match.
+  while pgrep -qx 'qemu-system-.*|emulator'; do
+    echo "An Android emulator is running; waiting 30 s before building..."
+    sleep 30
+  done
+fi
 xcodebuild build-for-testing "${common[@]}" -quiet
 xcodebuild test-without-building "${common[@]}" -only-testing:ZapaKidTests \
   -resultBundlePath "$results/unit.xcresult"

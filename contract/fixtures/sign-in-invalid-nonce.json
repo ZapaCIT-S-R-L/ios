@@ -1,0 +1,13 @@
+{
+  "operation": "POST /v1/auth/apple",
+  "request": null,
+  "response": {
+    "status": 401,
+    "body": {
+      "error": {
+        "code": "invalid_nonce",
+        "message": "TEST"
+      }
+    }
+  }
+}

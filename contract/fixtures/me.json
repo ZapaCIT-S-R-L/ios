@@ -1,0 +1,21 @@
+{
+  "operation": "GET /v1/me",
+  "request": null,
+  "response": {
+    "status": 200,
+    "body": {
+      "id": "6f1c0e2a-0000-4000-8000-000000000001",
+      "email": "test@example.invalid",
+      "displayName": "TEST Parent",
+      "ageRange": {
+        "category": "adult",
+        "source": "apple_declared_age_range",
+        "lowerBound": 18,
+        "upperBound": null,
+        "platformStatus": "sharing",
+        "checkedAt": "2026-10-26T18:00:00Z"
+      },
+      "createdAt": "2026-10-26T18:00:00.123Z"
+    }
+  }
+}
