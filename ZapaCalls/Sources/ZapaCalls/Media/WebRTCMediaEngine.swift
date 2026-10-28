@@ -28,6 +28,7 @@ public final class WebRTCMediaEngine: NSObject, CallMediaEngine, @unchecked Send
     private var levelTask: Task<Void, Never>?
 
     override public init() {
+        CallAudio.leaveSessionToCallKit()
         LKRTCInitializeSSL()
         factory = LKRTCPeerConnectionFactory()
         (events, continuation) = AsyncStream<MediaEvent>.makeStream()
@@ -140,7 +141,6 @@ public final class WebRTCMediaEngine: NSObject, CallMediaEngine, @unchecked Send
     public func audioSession(active: Bool) {
         #if os(iOS)
             let session = LKRTCAudioSession.sharedInstance()
-            session.useManualAudio = true
             if active {
                 session.audioSessionDidActivate(AVAudioSession.sharedInstance())
             } else {

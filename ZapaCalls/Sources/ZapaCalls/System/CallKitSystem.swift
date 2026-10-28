@@ -63,6 +63,7 @@
         public func providerDidReset(_: CXProvider) {}
 
         public func provider(_: CXProvider, perform action: CXAnswerCallAction) {
+            CallAudio.prepareForCall()
             Task {
                 await actions?.answer(action.callUUID)
                 action.fulfill()
@@ -84,6 +85,7 @@
         }
 
         public func provider(_: CXProvider, perform action: CXStartCallAction) {
+            CallAudio.prepareForCall()
             action.fulfill()
         }
 

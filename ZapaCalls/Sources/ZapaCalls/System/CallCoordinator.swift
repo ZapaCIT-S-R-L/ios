@@ -12,8 +12,17 @@ public final class CallCoordinator: CallSystemActions {
     public private(set) var current: CallController?
     /// Which call CallKit last refused (no `voip` background mode, Do Not Disturb, …), so the UI can say so.
     public private(set) var refused: CallDirection?
-    /// The media engine follows CallKit's audio session.
-    public var onAudioSessionChange: ((Bool) -> Void)?
+    /// The media engine follows CallKit's audio session. CallKit may activate it before an outgoing call's engine
+    /// is wired up, so a newly set handler gets the current state at once.
+    public var onAudioSessionChange: ((Bool) -> Void)? {
+        didSet {
+            if audioActive {
+                onAudioSessionChange?(true)
+            }
+        }
+    }
+
+    private var audioActive = false
 
     private let system: CallSystem
     private let log: CallLogStore
@@ -122,6 +131,7 @@ public final class CallCoordinator: CallSystemActions {
     }
 
     public func audioSession(active: Bool) {
+        audioActive = active
         onAudioSessionChange?(active)
     }
 
