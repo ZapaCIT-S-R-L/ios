@@ -9,24 +9,21 @@ import ZapaKidKit
 @MainActor
 enum LiveServices {
     static func make(me: String, kid: Bool, auth: AuthModel) -> AppServices {
-        let tokens = ChatTokenProvider(
-            // swiftlint:disable:next force_unwrapping
-            api: HTTPChatTokenAPI(baseURL: URL(string: ZapaKidKit.apiBaseURL)!),
-            session: { await MainActor.run { auth.sessionToken } }
-        )
-        let token: @Sendable () async throws -> String = { try await tokens.token() }
+        let endKidSession = kidSessionEnd(me: me, auth: auth)
+        let token = chatToken(kid: kid, auth: auth, endKidSession: endKidSession)
         // swiftlint:disable:next force_unwrapping
         let chatAPI = HTTPChatAPI(baseURL: HTTPChatAPI.stagingURL!, token: token)
         // swiftlint:disable:next force_unwrapping
         let callsAPI = HTTPCallsAPI(baseURL: HTTPCallsAPI.stagingURL!, token: token)
         let store: ChatStore = (try? EncryptedChatStore(
-            directory: URL.applicationSupportDirectory.appending(path: "chats"), key: ChatStoreKey.loadOrCreate()
+            directory: ChatStoreLocation.directory(accountId: me, kid: kid),
+            key: ChatStoreKey.loadOrCreate(account: ChatStoreLocation.keychainAccount(accountId: me, kid: kid))
         )) ?? InMemoryChatStore()
         // swiftlint:disable:next force_unwrapping
         let bundles = HTTPPreKeyBundles(baseURL: URL(string: ZapaKidKit.apiBaseURL)!, session: .shared) {
             await MainActor.run { auth.sessionToken }
         }
-        let box = SessionsBox(SecureSessions.make(accountId: me, bundles: bundles))
+        let box = SessionsBox(SecureSessions.make(accountId: me, kid: kid, bundles: bundles))
         // Only real sealers (Release*Sealer): without a registered device they refuse, never send in the clear.
         let messageSealer: any ReleaseMessageSealer = LibsignalMessageSealer(box: box)
         let callSealer: any ReleaseCallKeySealer = LibsignalCallKeySealer(box: box)
@@ -51,25 +48,123 @@ enum LiveServices {
                 directory: { [weak services] account in services?.peer(account) }
             )
         }
-        services.prepare = {
-            // Register this phone with the key directory (once), then seal with its sessions.
-            guard box.sessions == nil, let token = auth.sessionToken else { return }
-            let session = Session(
-                token: token, expiresAt: .distantFuture, parent: ParentProfile(id: me, email: nil, displayName: nil)
-            )
-            let registration = DeviceRegistration(api: HTTPAuthAPI.staging, reshare: WaitForReshare())
-            if case .ready = await registration.run(session: session) {
-                box.sessions = SecureSessions.make(accountId: me, bundles: bundles)
+        services.setup = deviceSetup(me: me, kid: kid, auth: auth, endKidSession: endKidSession) { [weak services] in
+            box.sessions = SecureSessions.make(accountId: me, kid: kid, bundles: bundles)
+            guard let services else { return }
+            Task {
+                await services.chat.loadConversations()
+                services.chat.connectAll()
             }
         }
         return services
     }
+
+    /// A kid session the API refuses (401): wipe this kid's keys and chat history (only the kid's, never a
+    /// parent's on the same phone), and go back to pairing.
+    private static func kidSessionEnd(me: String, auth: AuthModel) -> @MainActor () -> Void {
+        {
+            try? AccountKeys.app(accountId: me, kid: true).wipe()
+            ChatStoreLocation.wipeKid(accountId: me) { account in
+                try? KeychainData(service: ChatStoreKey.service, account: account).clear()
+            }
+            auth.kidSessionEnded()
+        }
+    }
+
+    /// Whether `me` is still the signed-in account (a parent, or a kid phone), so work started for it may go on.
+    static func isCurrent(_ state: AuthState, me: String, kid: Bool) -> Bool {
+        switch state {
+        case let .signedIn(parent): !kid && parent.id == me
+        case let .kid(session): kid && session.kid.id == me
+        default: false
+        }
+    }
+
+    /// The chat token for chat and calls; a 401 on a kid session ends it.
+    private static func chatToken(
+        kid: Bool, auth: AuthModel, endKidSession: @escaping @MainActor () -> Void
+    ) -> @Sendable () async throws -> String {
+        let tokens = ChatTokenProvider(
+            // swiftlint:disable:next force_unwrapping
+            api: HTTPChatTokenAPI(baseURL: URL(string: ZapaKidKit.apiBaseURL)!),
+            session: { await MainActor.run { auth.sessionToken } }
+        )
+        return {
+            do {
+                return try await tokens.token()
+            } catch AuthAPIError.unauthorized where kid {
+                await MainActor.run { endKidSession() }
+                throw AuthAPIError.unauthorized
+            }
+        }
+    }
+
+    /// Registers this phone (parent or kid) with the key directory, retrying calmly; `ready` when it's done.
+    private static func deviceSetup(
+        me: String, kid: Bool, auth: AuthModel, endKidSession: @escaping @MainActor () -> Void,
+        ready: @escaping @MainActor () -> Void
+    ) -> DeviceSetup {
+        let pairedAt: Date? = if case let .kid(session) = auth.state {
+            session.pairedAt
+        } else {
+            nil
+        }
+        let registration = DeviceRegistration(
+            api: HTTPAuthAPI.staging, keyspace: { try AccountKeys.app(accountId: $0, kid: kid) },
+            reshare: WaitForReshare()
+        )
+        let setup = DeviceSetup(
+            register: {
+                // A loop from an earlier session never registers with the next account's token.
+                guard isCurrent(auth.state, me: me, kid: kid) else { return .superseded }
+                guard let token = auth.sessionToken else { return .signedOut }
+                if kid {
+                    return await registration.runKid(accountId: me, token: token, pairedAt: pairedAt)
+                }
+                let session = Session(
+                    token: token, expiresAt: .distantFuture, parent: ParentProfile(id: me, email: nil, displayName: nil)
+                )
+                return await registration.run(session: session)
+            },
+            onSignedOut: {
+                if kid {
+                    endKidSession()
+                } else {
+                    Task { await auth.logout() }
+                }
+            }
+        )
+        setup.onReady = { _ in ready() }
+        return setup
+    }
 }
 
-/// The key for the encrypted chat store: 32 random bytes in the Keychain, this device only.
+/// Where an account's encrypted chat store lives. A parent keeps the original location; a kid session gets its own,
+/// so ending it wipes only the kid's history.
+enum ChatStoreLocation {
+    static func directory(accountId: String, kid: Bool, root: URL = .applicationSupportDirectory) -> URL {
+        root.appending(path: kid ? "chats-kid-\(accountId)" : "chats")
+    }
+
+    static func keychainAccount(accountId: String, kid: Bool) -> String {
+        kid ? "key-kid-\(accountId)" : "key"
+    }
+
+    /// Removes a kid's chat store and passes its Keychain account to `clearKey`.
+    static func wipeKid(
+        accountId: String, root: URL = .applicationSupportDirectory, clearKey: (String) -> Void
+    ) {
+        try? FileManager.default.removeItem(at: directory(accountId: accountId, kid: true, root: root))
+        clearKey(keychainAccount(accountId: accountId, kid: true))
+    }
+}
+
+/// The key for an encrypted chat store: 32 random bytes in the Keychain, this device only.
 enum ChatStoreKey {
-    static func loadOrCreate() throws -> Data {
-        let keychain = KeychainData(service: "ro.zapakid.app.chat-store", account: "key")
+    static let service = "ro.zapakid.app.chat-store"
+
+    static func loadOrCreate(account: String) throws -> Data {
+        let keychain = KeychainData(service: service, account: account)
         if let key = try keychain.load(), key.count == 32 {
             return key
         }

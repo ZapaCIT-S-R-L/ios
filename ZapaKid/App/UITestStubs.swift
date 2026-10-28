@@ -52,12 +52,25 @@
                 families: StubFamiliesAPI(demo: environment["ZK_DEMO_FAMILY"] == "1"),
                 fingerprint: { _ in String(repeating: "ab", count: 32) },
                 makeServices: { me, isKid in
-                    stubServices(
+                    let services = stubServices(
                         me: me, kid: isKid, ring: environment["ZK_RING"] == "1",
                         demo: environment["ZK_DEMO_FAMILY"] == "1"
                     )
+                    services.setup = stubSetup(environment["ZK_SETUP"])
+                    return services
                 }
             )
+        }
+
+        /// `ZK_SETUP`: fail (network errors forever) or pair-again (a kid phone a parent must pair again).
+        static func stubSetup(_ mode: String?) -> DeviceSetup? {
+            let result: DeviceSetupResult
+            switch mode {
+            case "fail": result = .failed(.network)
+            case "pair-again": result = .needsPairing
+            default: return nil
+            }
+            return DeviceSetup(register: { result }, onSignedOut: {})
         }
 
         static func stubServices(me: String, kid: Bool, ring: Bool, demo: Bool = false) -> AppServices {
