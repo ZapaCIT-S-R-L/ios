@@ -146,6 +146,7 @@ public final class KidPairingModel {
         do {
             var session = try await api.redeemPairing(code: link.code)
             session.parentFingerprint = link.fingerprint
+            session.pairedAt = Date()
             auth.kidPaired(session)
         } catch {
             errorMessage = FamilyModel.message(for: error)

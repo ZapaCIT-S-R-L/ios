@@ -73,6 +73,16 @@ public struct HTTPAuthAPI: AuthAPI, DeviceAPI {
         return reply.deviceId
     }
 
+    /// `PUT /v1/keys/identity`: this phone's keys with a new identity; it becomes the account's only device.
+    public func changeIdentity(_ keys: DeviceKeys, token: String) async throws -> Int {
+        struct Reply: Decodable {
+            var deviceId: Int
+        }
+        let reply: Reply = try await send("PUT", "v1/keys/identity", token: token, body: Self.encoder.encode(keys))
+        guard (1 ... 127).contains(reply.deviceId) else { throw AuthAPIError.invalidResponse }
+        return reply.deviceId
+    }
+
     public func accountIdentity(accountId: String, token: String) async throws -> String? {
         struct Reply: Decodable {
             var identityKey: String
@@ -192,14 +202,22 @@ public struct HTTPAuthAPI: AuthAPI, DeviceAPI {
         throw Self.error(status: http.statusCode, code: code, retryAfter: http.value(forHTTPHeaderField: "Retry-After"))
     }
 
+    private static func forbidden(_ code: String?) -> AuthAPIError {
+        switch code {
+        case "minor_not_allowed": .minorNotAllowed
+        case "age_declined": .ageDeclined
+        case "attestation_failed": .attestationFailed
+        case "reauthentication_required": .reauthenticationRequired
+        default: .server(status: 403, code: code)
+        }
+    }
+
     private static func error(status: Int, code: String?, retryAfter: String?) -> AuthAPIError {
         switch (status, code) {
         case (401, "invalid_token"): .invalidToken
         case (401, "invalid_nonce"): .invalidNonce
         case (401, _): .unauthorized
-        case (403, "minor_not_allowed"): .minorNotAllowed
-        case (403, "age_declined"): .ageDeclined
-        case (403, "attestation_failed"): .attestationFailed
+        case (403, _): forbidden(code)
         case (409, "identity_mismatch"): .identityMismatch
         case (429, _): .rateLimited(retryAfter: retryAfter.flatMap { Int($0) })
         case (503, "provider_unavailable"): .providerUnavailable

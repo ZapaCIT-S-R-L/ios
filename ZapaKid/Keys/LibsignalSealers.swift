@@ -224,8 +224,8 @@ struct HTTPPreKeyBundles: PreKeyBundleSource {
 /// This phone's sessions for an account, once the device is registered with the key directory (else nil and the
 /// app keeps refusing to send).
 enum SecureSessions {
-    static func make(accountId: String, bundles: PreKeyBundleSource) -> LibsignalSessions? {
-        guard let account = try? AccountKeys.app(accountId: accountId),
+    static func make(accountId: String, kid: Bool = false, bundles: PreKeyBundleSource) -> LibsignalSessions? {
+        guard let account = try? AccountKeys.app(accountId: accountId, kid: kid),
               let data = try? account.files.read("device.json"),
               let device = (try? JSONSerialization.jsonObject(with: data) as? [String: Any])?["deviceId"] as? Int,
               let identity = try? account.identity.load(),

@@ -32,6 +32,18 @@ actor FakeDeviceAPI: DeviceAPI {
     func preKeyCount(token _: String) async throws -> PreKeyCount {
         PreKeyCount(preKeys: 0, pqPreKeys: 0)
     }
+
+    var changeResult: Result<Int, AuthAPIError> = .success(1)
+    private(set) var identityChanges: [DeviceKeys] = []
+
+    func set(changeResult: Result<Int, AuthAPIError>) {
+        self.changeResult = changeResult
+    }
+
+    func changeIdentity(_ keys: DeviceKeys, token _: String) async throws -> Int {
+        identityChanges.append(keys)
+        return try changeResult.get()
+    }
 }
 
 /// Registering this phone with the key directory (POST /v1/devices), as the Android app does.
@@ -144,10 +156,14 @@ struct DeviceRegistrationTests {
 
     @Test(arguments: [
         (AuthAPIError.unauthorized, DeviceSetupResult.signedOut),
-        (.identityMismatch, .failed(.identityMismatch)),
+        // Review (gemini-zpc, ios #53): another phone must re-share; retrying can't fix it.
+        (.identityMismatch, .waitingForReshare),
         (.rateLimited(retryAfter: 60), .failed(.rateLimited)),
         (.attestationFailed, .failed(.attestationFailed)),
-        (.server(status: 409, code: "too_many_devices"), .failed(.server)),
+        // A 4xx won't pass by retrying; a 5xx may.
+        (.server(status: 409, code: "too_many_devices"), .failed(.rejected)),
+        (.server(status: 503, code: nil), .failed(.server)),
+        (.invalidResponse, .failed(.rejected)),
     ])
     func uploadErrorsBecomeResults(error: AuthAPIError, expected: DeviceSetupResult) async {
         defer { cleanUp() }
@@ -167,7 +183,7 @@ struct DeviceRegistrationTests {
 
         let result = await registration(api).run(session: session)
 
-        #expect(result == .failed(.identityMismatch))
+        #expect(result == .waitingForReshare)
         #expect(await api.uploads.isEmpty, "never upload keys for an identity the directory doesn't know")
     }
 }

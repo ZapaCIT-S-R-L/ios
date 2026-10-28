@@ -71,6 +71,12 @@ public final class AuthModel {
         }
     }
 
+    /// The API refused the kid session (401): forget it and go back to pairing. (The app wipes the kid's keys.)
+    public func kidSessionEnded() {
+        try? kidStore.clear()
+        state = .signedOut
+    }
+
     /// A kid's phone was paired: keep the kid session and open in kid mode.
     public func kidPaired(_ session: KidSession) {
         do {
