@@ -1,8 +1,9 @@
 import Foundation
 import Security
 
-/// One generic-password item in the Keychain: readable only while the phone is unlocked, only on this device,
-/// never synced to iCloud and never in backups (`kSecAttrAccessibleWhenUnlockedThisDeviceOnly`).
+/// One generic-password item in the Keychain, readable only while the phone is unlocked.
+/// By default this device only (`kSecAttrAccessibleWhenUnlockedThisDeviceOnly`, never synced, never in backups).
+/// `synchronizable` is only for the account identity, the one item that goes to iCloud Keychain.
 struct KeychainData {
     struct Failure: Error, Equatable {
         let status: OSStatus
@@ -10,13 +11,19 @@ struct KeychainData {
 
     let service: String
     let account: String
+    var synchronizable = false
+
+    /// The account's libsignal identity key pair: the one deliberately synchronizable item.
+    static func syncedIdentity(service: String = "ro.zapakid.app.identity") -> KeychainData {
+        KeychainData(service: service, account: "identity", synchronizable: true)
+    }
 
     private var query: [String: Any] {
         [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
             kSecAttrAccount as String: account,
-            kSecAttrSynchronizable as String: false,
+            kSecAttrSynchronizable as String: synchronizable,
             kSecUseDataProtectionKeychain as String: true,
         ]
     }
@@ -38,7 +45,9 @@ struct KeychainData {
         try clear()
         var item = query
         item[kSecValueData as String] = data
-        item[kSecAttrAccessible as String] = kSecAttrAccessibleWhenUnlockedThisDeviceOnly
+        // A synced item can't be "this device only"; it is still readable only while unlocked.
+        item[kSecAttrAccessible as String] = synchronizable
+            ? kSecAttrAccessibleWhenUnlocked : kSecAttrAccessibleWhenUnlockedThisDeviceOnly
         let status = SecItemAdd(item as CFDictionary, nil)
         guard status == errSecSuccess else { throw Failure(status: status) }
     }
