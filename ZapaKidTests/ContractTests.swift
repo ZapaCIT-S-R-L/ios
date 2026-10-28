@@ -10,6 +10,8 @@ struct ContractFixture {
     let status: Int
     let body: Data
     let headers: [String: String]
+    /// Headers the app sends with `request` (e.g. `ZapaKid-Attestation`).
+    let requestHeaders: [String: String]
 
     final class Anchor {}
 
@@ -26,7 +28,8 @@ struct ContractFixture {
             request: json["request"].flatMap { $0 is NSNull ? nil : $0 },
             status: #require(response["status"] as? Int),
             body: body.map { try JSONSerialization.data(withJSONObject: $0) } ?? Data(),
-            headers: response["headers"] as? [String: String] ?? [:]
+            headers: response["headers"] as? [String: String] ?? [:],
+            requestHeaders: json["requestHeaders"] as? [String: String] ?? [:]
         )
     }
 

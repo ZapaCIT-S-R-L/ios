@@ -1,0 +1,12 @@
+{
+  "operation": "POST /v1/attestation/apple",
+  "request": {
+    "keyId": "ERERERERERERERERERERERERERERERERERERERERERE=",
+    "attestationObject": "VEVTVCBhdHRlc3RhdGlvbiBvYmplY3Q=",
+    "challenge": "Ch4llenge-Ch4llenge-Ch4llenge-Ch4llenge-Abc"
+  },
+  "response": {
+    "status": 204,
+    "body": null
+  }
+}
