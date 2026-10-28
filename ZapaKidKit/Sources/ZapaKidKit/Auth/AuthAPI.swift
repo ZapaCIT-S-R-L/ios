@@ -126,6 +126,8 @@ public enum AuthAPIError: Error, Equatable, Sendable {
     case attestationFailed
     /// `409 identity_mismatch`: the uploaded identity key isn't the account's identity key.
     case identityMismatch
+    /// `403 reauthentication_required`: changing the identity needs a fresh sign-in (a kid: a pairing under 10 min).
+    case reauthenticationRequired
     /// `429 rate_limited`, with `Retry-After` in seconds when the API sent it.
     case rateLimited(retryAfter: Int?)
     /// `503 provider_unavailable`: Apple's or Google's keys couldn't be fetched.

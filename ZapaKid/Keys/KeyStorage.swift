@@ -19,6 +19,15 @@ struct KeychainData {
         KeychainData(service: service, account: "identity.\(accountId)", synchronizable: true)
     }
 
+    /// A kid's identity: this phone only, no iCloud copy (a replaced kid phone gets a new identity after pairing).
+    static func localIdentity(service: String = "ro.zapakid.app.identity", accountId: String) -> KeychainData {
+        KeychainData(service: service, account: "identity.\(accountId)", synchronizable: false)
+    }
+
+    static func localPeers(service: String = "ro.zapakid.app.peers", accountId: String) -> KeychainData {
+        KeychainData(service: service, account: "peers.\(accountId)", synchronizable: false)
+    }
+
     /// The peers one account trusts (public keys), synced with the identity: see `PeerTrustStore`.
     static func syncedPeers(service: String = "ro.zapakid.app.peers", accountId: String) -> KeychainData {
         KeychainData(service: service, account: "peers.\(accountId)", synchronizable: true)
@@ -105,6 +114,13 @@ struct ProtectedFileStore {
         }
     }
 
+    /// Every file in this store (the directory stays).
+    func removeAll() throws {
+        for url in try FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil) {
+            try FileManager.default.removeItem(at: url)
+        }
+    }
+
     private func file(_ name: String) -> URL {
         precondition(name.allSatisfy { $0.isLetter || $0.isNumber || "-_.".contains($0) }, "plain file names only")
         return directory.appendingPathComponent(name, isDirectory: false)
@@ -120,24 +136,45 @@ struct AccountKeys {
     let peers: PeerTrustStore
     let files: ProtectedFileStore
 
-    init(accountId: String, root: URL, keychainService: String = "ro.zapakid.app.identity") throws {
+    /// `synced`: parents keep the identity in iCloud Keychain; kids (`false`) keep it on this phone only.
+    init(
+        accountId: String,
+        root: URL,
+        keychainService: String = "ro.zapakid.app.identity",
+        synced: Bool = true
+    ) throws {
         self.accountId = accountId
         identity = LocalIdentityStore(
-            accountId: accountId, keychain: .syncedIdentity(service: keychainService, accountId: accountId)
+            accountId: accountId,
+            keychain: synced
+                ? .syncedIdentity(service: keychainService, accountId: accountId)
+                : .localIdentity(service: keychainService, accountId: accountId)
         )
         peers = PeerTrustStore(
-            accountId: accountId, keychain: .syncedPeers(service: keychainService + ".peers", accountId: accountId)
+            accountId: accountId,
+            keychain: synced
+                ? .syncedPeers(service: keychainService + ".peers", accountId: accountId)
+                : .localPeers(service: keychainService + ".peers", accountId: accountId)
         )
         // Hex of the ID: always one plain path component, whatever the server sends.
         let folder = Data(accountId.utf8).map { String(format: "%02x", $0) }.joined()
         files = try ProtectedFileStore(directory: root.appendingPathComponent(folder, isDirectory: true))
     }
 
-    /// The app's keys for an account: Application Support/Keys/<account>.
-    static func app(accountId: String) throws -> AccountKeys {
+    /// The app's keys for an account: Application Support/Keys/<account>. Kids: not synced.
+    static func app(accountId: String, kid: Bool = false) throws -> AccountKeys {
         let base = try FileManager.default.url(
             for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true
         )
-        return try AccountKeys(accountId: accountId, root: base.appendingPathComponent("Keys", isDirectory: true))
+        return try AccountKeys(
+            accountId: accountId, root: base.appendingPathComponent("Keys", isDirectory: true), synced: !kid
+        )
+    }
+
+    /// Removes this account's keys from this phone: identity, trusted peers, prekeys, sessions, device id.
+    func wipe() throws {
+        try identity.keychain.clear()
+        try peers.keychain.clear()
+        try files.removeAll()
     }
 }

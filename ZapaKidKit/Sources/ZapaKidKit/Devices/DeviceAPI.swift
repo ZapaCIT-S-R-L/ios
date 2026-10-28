@@ -64,4 +64,6 @@ public protocol DeviceAPI: Sendable {
     func accountIdentity(accountId: String, token: String) async throws -> String?
     /// `GET /v1/keys/prekeys`.
     func preKeyCount(token: String) async throws -> PreKeyCount
+    /// `PUT /v1/keys/identity` → this phone's device id (it becomes the account's only device).
+    func changeIdentity(_ keys: DeviceKeys, token: String) async throws -> Int
 }

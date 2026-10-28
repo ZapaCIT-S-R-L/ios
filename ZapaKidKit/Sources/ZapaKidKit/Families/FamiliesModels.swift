@@ -80,11 +80,14 @@ public struct KidSession: Codable, Equatable, Sendable {
     public var familyId: String
     public var familyName: String?
     public var parentFingerprint: String?
+    /// When this phone was paired: changing the kid's identity is allowed only within 10 minutes of it.
+    public var pairedAt: Date?
 
     public init(
         token: String, expiresAt: Date, kid: Kid, familyId: String, familyName: String?,
-        parentFingerprint: String? = nil
+        parentFingerprint: String? = nil, pairedAt: Date? = nil
     ) {
+        self.pairedAt = pairedAt
         self.token = token
         self.expiresAt = expiresAt
         self.kid = kid

@@ -27,8 +27,8 @@ final class AppServices {
 
     /// Parents start conversations; kids answer in the ones their parents made.
     let canStartChats: Bool
-    /// Gets this phone ready to seal (registers it with the key directory once).
-    var prepare: (@MainActor () async -> Void)?
+    /// Gets this phone ready to seal (registers it with the key directory, retrying calmly).
+    var setup: DeviceSetup?
     /// Fills in names and robots from the family (account API).
     var loadPeople: (@MainActor (AppServices) async -> Void)?
 
