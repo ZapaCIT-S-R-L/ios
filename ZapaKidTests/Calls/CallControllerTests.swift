@@ -113,6 +113,17 @@ struct CallControllerTests {
         #expect(engine.calls.last == "stop")
     }
 
+    /// The server ends an outgoing call as `declined` when everyone declined; the caller must learn it was declined,
+    /// not "no answer" (Stefan, 2026-10-29).
+    @Test func aDeclinedOutgoingCallEndsAsDeclined() async {
+        let call = controller()
+        await call.startCall(conversationId: "conv-1", peers: [mama])
+
+        api.push(.ended(reason: "declined"))
+
+        #expect(await eventually { call.phase == .ended(.declined) })
+    }
+
     @Test func nobodyAnsweringEndsTheCall() async {
         let call = controller()
         await call.startCall(conversationId: "conv-1", peers: [mama])

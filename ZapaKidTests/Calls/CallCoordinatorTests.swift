@@ -49,6 +49,30 @@ struct CallCoordinatorTests {
         #expect(calls.current == nil)
     }
 
+    /// After a call closes the screen, the caller sees why in a short banner: declined, no answer or interrupted.
+    /// A normal hang-up shows nothing.
+    @Test func aDeclinedOutgoingCallLeavesANoticeWithTheName() async {
+        let calls = coordinator()
+        await calls.startCall(conversationId: "conv-1", peers: [mama])
+
+        api.push(.ended(reason: "declined"))
+
+        #expect(await eventually { calls.current == nil })
+        #expect(calls.notice == CallNotice(reason: .declined, names: ["Mama"]))
+        calls.clearNotice()
+        #expect(calls.notice == nil)
+    }
+
+    @Test func hangingUpLeavesNoNotice() async {
+        let calls = coordinator()
+        await calls.startCall(conversationId: "conv-1", peers: [mama])
+
+        await calls.current?.hangUp()
+
+        #expect(await eventually { calls.current == nil })
+        #expect(calls.notice == nil)
+    }
+
     @Test func pushPayloadsCarryOnlyTheCallId() throws {
         let push = try #require(IncomingCallPush(payload: ["callId": "c_9", "callerAccountId": "acc-m"]))
         #expect(push.callId == "c_9")
