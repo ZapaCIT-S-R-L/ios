@@ -1,0 +1,13 @@
+{
+  "operation": "GET /v1/me",
+  "request": null,
+  "response": {
+    "status": 401,
+    "body": {
+      "error": {
+        "code": "unauthorized",
+        "message": "TEST"
+      }
+    }
+  }
+}

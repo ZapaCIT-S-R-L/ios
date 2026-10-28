@@ -33,7 +33,8 @@ Simulator builds are signed ad hoc, so no Apple account is needed. Never run tes
 2. A maintainer reviews and merges it.
 3. The merge to `main` tags the commit `vMAJOR.MINOR.PATCH` and publishes a GitHub release with an SBOM
    (`.github/workflows/release.yml`): no label = patch, label `minor` = a large feature, label `major` = a breaking
-   change. App Store / TestFlight uploads are not set up yet.
+   change. The same merge uploads a signed build to TestFlight (`.github/workflows/testflight.yml`, environment
+   `testflight`; setup in [docs/testflight.md](docs/testflight.md)).
 
 ## License
 

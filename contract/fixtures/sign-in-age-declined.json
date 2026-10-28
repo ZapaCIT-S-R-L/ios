@@ -1,0 +1,13 @@
+{
+  "operation": "POST /v1/auth/apple",
+  "request": null,
+  "response": {
+    "status": 403,
+    "body": {
+      "error": {
+        "code": "age_declined",
+        "message": "TEST"
+      }
+    }
+  }
+}
