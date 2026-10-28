@@ -1,6 +1,38 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "%@ declined the call": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ a refuzat apelul"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ hat den Anruf abgelehnt"
+          }
+        }
+      }
+    },
+    "%@ didn't answer": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ nu a răspuns"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ hat nicht geantwortet"
+          }
+        }
+      }
+    },
     "Accepts the parental agreement and continues to sign-in": {
       "localizations": {
         "ro": {
@@ -1165,6 +1197,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Starten"
+          }
+        }
+      }
+    },
+    "The call was interrupted": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apelul s-a întrerupt"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Anruf wurde unterbrochen"
           }
         }
       }

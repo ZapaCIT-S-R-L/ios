@@ -13,6 +13,17 @@ struct MainTabView: View {
 
     var body: some View {
         tabs.zapaTheme(role)
+            .overlay(alignment: .top) {
+                if let notice = services.calls.notice {
+                    CallNoticeBanner(notice: notice)
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                        .task {
+                            try? await Task.sleep(for: .seconds(3))
+                            withAnimation { services.calls.clearNotice() }
+                        }
+                }
+            }
+            .animation(.default, value: services.calls.notice)
     }
 
     private var tabs: some View {
@@ -209,5 +220,31 @@ struct SetupBanner: View {
         .zapaCard(theme)
         .padding(.horizontal, 12)
         .padding(.bottom, 8)
+    }
+}
+
+/// After the call screen closed: why a call this phone placed didn't go through (Stefan, 2026-10-29).
+private struct CallNoticeBanner: View {
+    let notice: CallNotice
+    @Environment(\.zapaTheme) private var theme
+
+    var body: some View {
+        Text(text)
+            .font(.subheadline.weight(.semibold))
+            .foregroundStyle(theme.onPrimary.color)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+            .background(Capsule().fill(theme.primary.color))
+            .padding(.top, 8)
+            .accessibilityIdentifier("call.notice")
+    }
+
+    private var text: Text {
+        let names = notice.names.formatted(.list(type: .and))
+        return switch notice.reason {
+        case .declined: Text("\(names) declined the call")
+        case .noAnswer: Text("\(names) didn't answer")
+        case .interrupted: Text("The call was interrupted")
+        }
     }
 }

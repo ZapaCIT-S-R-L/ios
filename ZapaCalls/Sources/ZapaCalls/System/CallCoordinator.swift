@@ -1,11 +1,23 @@
 import Foundation
 import Observation
 
+/// Why a call the user placed ended without a conversation, shown briefly after the call screen closes.
+public struct CallNotice: Equatable, Sendable {
+    public enum Reason: Equatable, Sendable {
+        case declined, noAnswer, interrupted
+    }
+
+    public let reason: Reason
+    public let names: [String]
+}
+
 /// The phone's calls: one at a time, ringing through the system call UI (CallKit), logged when they end.
 @MainActor
 @Observable
 public final class CallCoordinator: CallSystemActions {
     public private(set) var current: CallController?
+    /// Why the last call this phone placed ended (declined, no answer, interrupted); nil after a normal hang-up.
+    public private(set) var notice: CallNotice?
     /// The media engine follows CallKit's audio session.
     public var onAudioSessionChange: ((Bool) -> Void)?
 
@@ -188,9 +200,26 @@ public final class CallCoordinator: CallSystemActions {
             outcome: .init(endReason: reason, wasConnected: controller.connectedAt != nil),
             conversationId: conversationId
         )
+        notice = Self.notice(for: reason, direction: direction, peers: controller.participants)
         current = nil
         currentUUID = nil
         Task { await log.record(entry) }
+    }
+
+    /// The banner showed the notice.
+    public func clearNotice() {
+        notice = nil
+    }
+
+    static func notice(for reason: CallEndReason, direction: CallLogEntry.Direction, peers: [CallPeer]) -> CallNotice? {
+        guard direction == .outgoing else { return nil }
+        let names = peers.map(\.displayName).filter { !$0.isEmpty }
+        return switch reason {
+        case .declined: CallNotice(reason: .declined, names: names)
+        case .noAnswer: CallNotice(reason: .noAnswer, names: names)
+        case .failed: CallNotice(reason: .interrupted, names: names)
+        case .hungUp, .remoteEnded, .missed: nil
+        }
     }
 
     static func systemReason(_ reason: CallEndReason) -> CallSystemEndReason {

@@ -161,7 +161,12 @@ public final class CallController {
         case var .key(envelope):
             envelope.toDevice = me
             _ = try? await keys?.receive(envelope)
-        case let .ended(reason): await end(reason == "no_answer" ? .ringTimeout : .remoteEnded)
+        case let .ended(reason):
+            switch reason {
+            case "no_answer": await end(.ringTimeout)
+            case "declined": await end(.everyoneDeclined)
+            default: await end(.remoteEnded)
+            }
         case .joined, .left, .declined, .error, .unknown: break // a roster follows every change
         }
     }
