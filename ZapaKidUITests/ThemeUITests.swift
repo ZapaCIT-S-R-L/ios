@@ -48,7 +48,10 @@ final class ThemeUITests: XCTestCase {
         field.typeText(kid ? "Can Maria come over?" : "Yes, after homework!")
         app.buttons["chat.send"].tap()
         XCTAssertTrue(app.staticTexts["Hi! 👋"].waitForExistence(timeout: 10))
-        app.buttons["chat.hideKeyboard"].tap()
+        // No "Done" bar above the keyboard: it covered the send button (Stefan, 2026-10-29). Scrolling hides it.
+        XCTAssertFalse(app.buttons["chat.hideKeyboard"].exists)
+        XCTAssertFalse(app.keyboards.firstMatch.buttons["Done"].exists)
+        app.scrollViews.firstMatch.swipeDown()
         XCTAssertTrue(app.keyboards.firstMatch.waitForNonExistence(timeout: 5))
         shoot(app, "\(role)-chat")
 
