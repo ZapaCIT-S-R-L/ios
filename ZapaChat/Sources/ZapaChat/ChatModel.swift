@@ -48,9 +48,30 @@ public final class ChatModel {
         }
     }
 
-    /// Starts (or finds) a conversation with these accounts.
+    /// Why the last `start(with:)` failed (nil after a success), for the New chat screen.
+    public enum StartFailure: Equatable, Sendable {
+        /// The family rules don't allow these members together (403).
+        case notAllowed
+        case network
+        case other
+    }
+
+    public private(set) var startFailure: StartFailure?
+
+    /// Starts (or finds) a conversation with these accounts. On failure returns nil and sets `startFailure`.
     public func start(with members: [String]) async -> Conversation? {
-        guard let conversation = try? await api.createConversation(members: members) else { return nil }
+        let conversation: Conversation
+        do {
+            conversation = try await api.createConversation(members: members)
+        } catch {
+            startFailure = switch error as? ChatAPIError {
+            case .forbidden: .notAllowed
+            case .network: .network
+            default: .other
+            }
+            return nil
+        }
+        startFailure = nil
         if !conversations.contains(where: { $0.id == conversation.id }) {
             conversations.insert(conversation, at: 0)
             messages[conversation.id] = []

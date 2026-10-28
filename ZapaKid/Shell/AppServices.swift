@@ -25,7 +25,7 @@ final class AppServices {
     /// The peers of the call being placed (the controller factory reads them).
     var placing: [CallPeer] = []
 
-    /// Parents start conversations; kids answer in the ones their parents made.
+    /// Who may start conversations: parents and kids (Stefan, 2026-10-28); the chat service enforces the family rules.
     let canStartChats: Bool
     /// Gets this phone ready to seal (registers it with the key directory once).
     var prepare: (@MainActor () async -> Void)?

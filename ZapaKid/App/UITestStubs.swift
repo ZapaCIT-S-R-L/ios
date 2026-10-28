@@ -69,7 +69,7 @@
                 : Person(accountId: me, name: "TEST Parent", avatar: "robot-2", role: .parent)
             let api = StubChatAPI(me: me, other: other.accountId, ring: ring)
             return AppServices(
-                me: me, canStartChats: !kid, chat: ChatModel(
+                me: me, chat: ChatModel(
                     me: me,
                     api: api,
                     sealer: PassthroughSealer(),
