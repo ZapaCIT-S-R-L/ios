@@ -9,6 +9,7 @@ struct FamilyView: View {
     @State private var addingKid = false
     @State private var pairing: FamilyModel.Pairing?
     @State private var invitation: FamilyModel.Invitation?
+    @State private var renaming = false
     @Environment(\.zapaTheme) private var theme
 
     var body: some View {
@@ -16,18 +17,18 @@ struct FamilyView: View {
             if let family = model.family {
                 Section {
                     ForEach(family.parents) { parent in
-                        HStack(spacing: 12) {
-                            RobotAvatarView(avatar: "robot-2", size: 44)
-                            VStack(alignment: .leading) {
-                                Text(verbatim: parent.displayName ?? "—")
-                                    .font(.headline)
-                                    .foregroundStyle(theme.text.color)
-                                Text("Parent")
-                                    .font(.subheadline)
-                                    .foregroundStyle(theme.secondaryText.color)
+                        if model.canRename(parent) {
+                            Button {
+                                renaming = true
+                            } label: {
+                                parentRow(parent, editable: true)
                             }
+                            .buttonStyle(.plain)
+                            .accessibilityHint(Text("Change your name"))
+                            .accessibilityIdentifier("family.me")
+                        } else {
+                            parentRow(parent, editable: false)
                         }
-                        .accessibilityElement(children: .combine)
                     }
                     Button {
                         Task { invitation = await model.inviteParent() }
@@ -76,7 +77,32 @@ struct FamilyView: View {
         .sheet(item: $invitation) { invitation in
             InviteParentView(invitation: invitation).zapaTheme(theme.role)
         }
+        .sheet(isPresented: $renaming) {
+            RenameView(model: model).zapaTheme(theme.role)
+        }
         .accessibilityIdentifier("family.screen")
+    }
+
+    private func parentRow(_ parent: FamilyParent, editable: Bool) -> some View {
+        HStack(spacing: 12) {
+            RobotAvatarView(avatar: "robot-2", size: 44)
+            VStack(alignment: .leading) {
+                Text(verbatim: parent.displayName ?? "—")
+                    .font(.headline)
+                    .foregroundStyle(theme.text.color)
+                Text("Parent")
+                    .font(.subheadline)
+                    .foregroundStyle(theme.secondaryText.color)
+            }
+            Spacer()
+            if editable {
+                Image(systemName: "pencil")
+                    .foregroundStyle(theme.secondaryText.color)
+                    .accessibilityHidden(true)
+            }
+        }
+        .contentShape(Rectangle())
+        .accessibilityElement(children: .combine)
     }
 
     private func kidRow(_ kid: Kid) -> some View {
@@ -184,6 +210,54 @@ struct InviteParentView: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button { dismiss() } label: { Text("Done") }
                 }
+            }
+        }
+    }
+}
+
+/// The signed-in parent changes the name the family sees.
+struct RenameView: View {
+    let model: FamilyModel
+    @Environment(\.dismiss) private var dismiss
+    @State private var name = ""
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    TextField(text: $name) { Text("Your name") }
+                        .textContentType(.name)
+                        .autocorrectionDisabled()
+                        .accessibilityIdentifier("rename.name")
+                } footer: {
+                    Text("Family members see this name.")
+                }
+                if let message = model.errorMessage {
+                    Text(message).foregroundStyle(.red)
+                        .accessibilityIdentifier("rename.error")
+                }
+            }
+            .navigationTitle(Text("Change your name"))
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button { dismiss() } label: { Text("Cancel") }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button {
+                        Task {
+                            if await model.rename(to: name) {
+                                dismiss()
+                            }
+                        }
+                    } label: {
+                        Text("Save")
+                    }
+                    .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty || model.isBusy)
+                    .accessibilityIdentifier("rename.save")
+                }
+            }
+            .onAppear {
+                name = model.family?.parents.first { model.canRename($0) }?.displayName ?? ""
             }
         }
     }

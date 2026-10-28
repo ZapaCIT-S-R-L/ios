@@ -161,6 +161,22 @@
         }
       }
     },
+    "Change your name": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Schimbă-ți numele"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Namen ändern"
+          }
+        }
+      }
+    },
     "Chats": {
       "localizations": {
         "ro": {
@@ -253,6 +269,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Familie"
+          }
+        }
+      }
+    },
+    "Family members see this name.": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Membrii familiei văd acest nume."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Familienmitglieder sehen diesen Namen."
           }
         }
       }
@@ -1261,6 +1293,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Hier erscheinen deine Familienchats."
+          }
+        }
+      }
+    },
+    "Your name": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Numele tău"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dein Name"
           }
         }
       }

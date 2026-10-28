@@ -38,6 +38,23 @@ struct HTTPFamiliesAPITests {
         #expect(sent.first?.body?.json?["name"] as? String == "Popescu")
     }
 
+    @Test func setDisplayNamePatchesMe() async throws {
+        let client = api { _, _ in
+            MockReply(
+                200,
+                #"{"id":"p1","email":null,"displayName":"Tata","ageRange":null,"createdAt":"2026-10-27T18:00:00Z"}"#
+            )
+        }
+
+        let parent = try await client.setDisplayName("Tata", token: "zks_t")
+
+        #expect(parent == FamilyParent(id: "p1", displayName: "Tata"))
+        #expect(sent.first?.request.url?.path == "/v1/me")
+        #expect(sent.first?.request.httpMethod == "PATCH")
+        #expect(sent.first?.request.value(forHTTPHeaderField: "Authorization") == "Bearer zks_t")
+        #expect(sent.first?.body?.json?["displayName"] as? String == "Tata")
+    }
+
     @Test func listFamiliesReturnsTheOneFamily() async throws {
         let client = api { [familyJSON] _, _ in MockReply(200, #"{"families":[\#(familyJSON)]}"#) }
 
