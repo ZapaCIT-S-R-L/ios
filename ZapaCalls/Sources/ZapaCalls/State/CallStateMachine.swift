@@ -31,7 +31,7 @@ public enum CallEvent: Hashable, Sendable {
     case answered
     /// Everyone we called declined.
     case everyoneDeclined
-    /// The ring timeout (45 s, from the calls service) ran out.
+    /// The ring timeout (30 s, from the calls service) ran out.
     case ringTimeout
     case mediaConnected
     case mediaInterrupted

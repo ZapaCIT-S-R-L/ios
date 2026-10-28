@@ -43,7 +43,7 @@ struct CallControllerTests {
         #expect(call.phase == .calling)
         #expect(call.participants.map(\.displayName) == ["Mama"])
         #expect(api.calls == ["create conv-1", "events c_1"])
-        #expect(engine.calls == ["start c_1 audio-acc-k_1"])
+        #expect(engine.calls == ["start c_1 audio-acc-k_1", "started"])
 
         api.push(roster(["acc-k.1", "acc-m.1"]))
         #expect(await eventually { call.phase == .connecting })
@@ -117,7 +117,7 @@ struct CallControllerTests {
 
         #expect(call.phase == .connecting)
         #expect(api.calls == ["join c_9", "events c_9"])
-        #expect(engine.calls == ["start c_9 audio-acc-k_1"])
+        #expect(engine.calls == ["start c_9 audio-acc-k_1", "started"])
     }
 
     @Test func declineTellsTheServiceAndEnds() async {
