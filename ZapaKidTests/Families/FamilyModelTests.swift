@@ -8,7 +8,7 @@ struct FamilyModelTests {
     let api = FakeFamiliesAPI()
 
     func model() -> FamilyModel {
-        FamilyModel(api: api, token: { "zks_t" }, fingerprint: { String(repeating: "ab", count: 32) })
+        FamilyModel(api: api, me: "p1", token: { "zks_t" }, fingerprint: { String(repeating: "ab", count: 32) })
     }
 
     @Test func openingTheFamilyCreatesItOnce() async {
@@ -62,6 +62,51 @@ struct FamilyModelTests {
         let invite = try #require(await family.inviteParent())
 
         #expect(invite.url.absoluteString == "https://zapakid.ro/join#\(api.inviteCode)")
+    }
+
+    // Stefan (2026-10-28): "father can't change name".
+    @Test func aParentRenamesThemselvesAndTheRowShowsIt() async {
+        let family = model()
+        await family.load()
+
+        let renamed = await family.rename(to: "  Tata Stefan  ")
+
+        #expect(renamed)
+        #expect(family.family?.parents.first { $0.id == "p1" }?.displayName == "Tata Stefan")
+        #expect(api.calls.last == "rename Tata Stefan")
+        #expect(family.errorMessage == nil)
+    }
+
+    @Test(arguments: ["   ", String(repeating: "x", count: 41), "Ta\nta", "Ta\u{0}ta"])
+    func badNamesAreRefusedBeforeTheAPI(name: String) async {
+        let family = model()
+        await family.load()
+
+        let renamed = await family.rename(to: name)
+
+        #expect(!renamed)
+        #expect(api.calls == ["create"])
+        #expect(family.errorMessage != nil)
+    }
+
+    @Test func onlyTheSignedInParentsOwnRowIsEditable() async {
+        let family = model()
+        await family.load()
+
+        #expect(family.canRename(FamilyParent(id: "p1", displayName: "Mama")))
+        #expect(!family.canRename(FamilyParent(id: "p2", displayName: "Tata")))
+    }
+
+    @Test func aRefusedRenameShowsAMessageAndKeepsTheOldName() async {
+        let family = model()
+        await family.load()
+        api.failure = .server(status: 500, code: nil)
+
+        let renamed = await family.rename(to: "Tata")
+
+        #expect(!renamed)
+        #expect(family.family?.parents.first?.displayName == "Mama")
+        #expect(family.errorMessage != nil)
     }
 
     @Test func errorsBecomeFriendlyMessages() async {
@@ -132,6 +177,11 @@ final class FakeFamiliesAPI: FamiliesAPI, @unchecked Sendable {
         let kid = Kid(id: "k\(calls.count)", nickname: nickname, avatar: avatar, grade: grade)
         lock.withLock { kids.append(kid) }
         return kid
+    }
+
+    func setDisplayName(_ name: String, token _: String) async throws -> FamilyParent {
+        try record("rename \(name)")
+        return FamilyParent(id: "p1", displayName: name)
     }
 
     func createPairing(familyId _: String, kidId: String, token _: String) async throws -> PairingGrant {
