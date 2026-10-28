@@ -1,0 +1,30 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "NSMicrophoneUsageDescription": {
+      "comment": "Microphone permission (calls, voice messages); kid-friendly.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ZapaKid uses the microphone so you can talk with your family in calls and voice messages."
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ZapaKid folosește microfonul ca să poți vorbi cu familia ta în apeluri și mesaje vocale."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ZapaKid nutzt das Mikrofon, damit du in Anrufen und Sprachnachrichten mit deiner Familie sprechen kannst."
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

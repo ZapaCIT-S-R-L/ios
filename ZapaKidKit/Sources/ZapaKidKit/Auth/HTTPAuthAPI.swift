@@ -1,7 +1,7 @@
 import Foundation
 
 /// The Sign-in and Account client for the ZapaKid API (Cloudflare Workers), per `openapi.yaml` in
-/// ZapaCIT-S-R-L/api (stable tags `Sign-in` and `Account`):
+/// ZapaCIT-S-R-L/zapakid-api (stable tags `Sign-in` and `Account`):
 /// - `POST /v1/auth/nonce` → `{nonce, expiresAt}`, one use, 10 minutes
 /// - `POST /v1/auth/apple` `{nonce, identityToken, ageRange, displayName?}`,
 ///   `POST /v1/auth/google` `{nonce, idToken, ageRange}` → `{session: {token, expiresAt}, parent, newAccount}`
