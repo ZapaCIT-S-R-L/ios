@@ -61,9 +61,8 @@ final class ThemeUITests: XCTestCase {
         }
         shoot(app, "\(role)-call")
         app.buttons["call.end"].tap()
-        XCTAssertTrue(app.buttons["call.close"].waitForExistence(timeout: 5))
-        app.buttons["call.close"].tap()
         XCTAssertTrue(app.textFields["chat.input"].waitForExistence(timeout: 5), "back in the chat")
+        XCTAssertFalse(app.buttons["call.close"].exists)
 
         // Family: parents manage it, kids see who is in it.
         app.navigationBars.buttons.element(boundBy: 0).tap()
