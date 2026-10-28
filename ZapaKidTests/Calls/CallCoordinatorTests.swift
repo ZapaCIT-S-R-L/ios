@@ -24,6 +24,28 @@ struct CallCoordinatorTests {
         )
     }
 
+    // Calls did nothing at all on device (Stefan, 2026-10-29): CallKit refused, and the refusal was dropped.
+    @Test func aRefusedOutgoingCallIsReportedNotDropped() async {
+        let calls = coordinator()
+        system.refusal = NSError(domain: "com.apple.CallKit.error.requesttransaction", code: 1)
+
+        await calls.startCall(conversationId: "conv-1", peers: [mama])
+
+        #expect(calls.current == nil)
+        #expect(api.calls.isEmpty)
+        #expect(calls.refused == .outgoing)
+    }
+
+    @Test func aRefusedIncomingCallIsReportedNotDropped() async {
+        let calls = coordinator()
+        system.refusal = NSError(domain: "com.apple.CallKit.error.incomingcall", code: 1)
+
+        await calls.handle(IncomingCallPush(callId: "c_9", callerAccountId: "acc-m"))
+
+        #expect(calls.current == nil)
+        #expect(calls.refused == .incoming)
+    }
+
     @Test func pushPayloadsCarryOnlyTheCallId() throws {
         let push = try #require(IncomingCallPush(payload: ["callId": "c_9", "callerAccountId": "acc-m"]))
         #expect(push.callId == "c_9")
@@ -160,11 +182,16 @@ final class FakeCallSystem: CallSystem {
     private(set) var connected: [UUID] = []
     private(set) var ended: [(uuid: UUID, reason: CallSystemEndReason)] = []
 
+    /// CallKit's answer to the next request, e.g. CXErrorCodeRequestTransactionError.unentitled.
+    var refusal: Error?
+
     func reportIncoming(uuid: UUID, callerName: String) async throws {
+        if let refusal { throw refusal }
         reported.append(Reported(uuid: uuid, name: callerName))
     }
 
     func startOutgoing(uuid: UUID, name _: String) async throws {
+        if let refusal { throw refusal }
         started.append(uuid)
     }
 
