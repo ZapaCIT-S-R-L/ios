@@ -12,15 +12,30 @@ enum DeviceSetupResult: Equatable {
     /// A kid phone whose account has another identity, and the pairing is over 10 minutes old: a parent must pair
     /// it again.
     case needsPairing
+    /// The session that started this is no longer the signed-in one (signed out, another account signed in): stop,
+    /// and leave the current session alone.
+    case superseded
     case failed(Reason)
 
     enum Reason: Equatable {
+        /// Retried: no connection.
         case network
-        /// The key directory knows another identity for this account; nothing was uploaded.
-        case identityMismatch
+        /// Retried: too many requests.
         case rateLimited
-        case attestationFailed
+        /// Retried: a 5xx, the sign-in provider being down, or a local error (e.g. the Keychain while locked).
         case server
+        /// Not retried: not a genuine app on a genuine device (reinstall from the App Store).
+        case attestationFailed
+        /// Not retried: a 4xx or an answer outside the contract; trying again sends the same request.
+        case rejected
+
+        /// Whether trying again later can succeed without anyone doing anything.
+        var isRetryable: Bool {
+            switch self {
+            case .network, .rateLimited, .server: true
+            case .attestationFailed, .rejected: false
+            }
+        }
     }
 }
 
@@ -73,7 +88,7 @@ final class DeviceRegistration {
             }
             let ourKey = local.keyPair.identityKey.serialize().base64EncodedString()
             if let directoryKey, directoryKey != ourKey {
-                return .failed(.identityMismatch)
+                return .waitingForReshare
             }
             let keys = try pendingKeys(for: local, account: account)
             let deviceId = try await api.registerDevice(keys, token: session.token)
@@ -119,6 +134,9 @@ final class DeviceRegistration {
             return .ready(deviceId: deviceId)
         } catch AuthAPIError.reauthenticationRequired {
             return .needsPairing
+        } catch AuthAPIError.identityMismatch {
+            // A kid's identity lives on this phone only; nobody can re-share it.
+            return .needsPairing
         } catch let error as AuthAPIError {
             return Self.result(for: error)
         } catch {
@@ -147,11 +165,13 @@ final class DeviceRegistration {
     private static func result(for error: AuthAPIError) -> DeviceSetupResult {
         switch error {
         case .unauthorized: .signedOut
-        case .identityMismatch: .failed(.identityMismatch)
+        case .identityMismatch: .waitingForReshare
         case .rateLimited: .failed(.rateLimited)
         case .attestationFailed: .failed(.attestationFailed)
         case .network: .failed(.network)
-        default: .failed(.server)
+        case .providerUnavailable: .failed(.server)
+        case let .server(status, _) where status >= 500: .failed(.server)
+        default: .failed(.rejected)
         }
     }
 }

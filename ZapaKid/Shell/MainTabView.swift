@@ -104,10 +104,14 @@ struct MainTabView: View {
             }
         }
         .task {
-            if let setup = services.setup {
-                networkWatch = setup.watchNetwork()
-                Task { await setup.run() }
-            }
+            // Structured: leaving this view cancels the run and its network watch, so a run from one session never
+            // outlives it.
+            guard let setup = services.setup else { return }
+            let networkWatch = setup.watchNetwork()
+            defer { networkWatch.cancel() }
+            await setup.run()
+        }
+        .task {
             await services.loadPeople?(services)
             await services.chat.loadConversations()
             services.chat.connectAll()
@@ -116,7 +120,6 @@ struct MainTabView: View {
 
     /// Keeps the ended call on screen until the person taps Close.
     @State private var shownCall: CallController?
-    @State private var networkWatch: NWPathMonitor?
     @Environment(\.scenePhase) private var scenePhase
 }
 
@@ -193,6 +196,11 @@ struct SetupBanner: View {
             banner(Text("Ask a parent to pair this phone again."), retry: false)
         case .waitingForReshare:
             banner(Text("Open ZapaKid on your other phone to share your keys with this one."), retry: false)
+        case .stopped:
+            banner(
+                Text("Secure chat can't be set up on this phone. Install ZapaKid again from the App Store."),
+                retry: false
+            )
         default:
             EmptyView()
         }

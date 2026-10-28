@@ -1,7 +1,7 @@
 import Foundation
 import Testing
-import ZapaKidKit
 @testable import ZapaKid
+import ZapaKidKit
 
 /// Registering a phone retries calmly: 2 s, doubling, at most 5 min; at once when the network comes back, the app
 /// comes to the foreground or the person taps "Try again". Parents and kids alike (android `setup-retry`).
@@ -85,7 +85,7 @@ struct DeviceSetupTests {
         #expect(setup.state == .ready(deviceId: 1))
     }
 
-    // Review (gemini-zpc, ios #53): only failures that can pass by themselves are retried.
+    /// Review (gemini-zpc, ios #53): only failures that can pass by themselves are retried.
     @Test func rateLimitsAreRetriedToo() async {
         let script = Script([.failed(.rateLimited), .ready(deviceId: 3)])
         let setup = setup(script)
@@ -108,7 +108,7 @@ struct DeviceSetupTests {
         #expect(script.waits.isEmpty)
     }
 
-    // Review (gemini-zpc, ios #53, high): a loop from an earlier session must never act for the next one.
+    /// Review (gemini-zpc, ios #53, high): a loop from an earlier session must never act for the next one.
     @Test func aSupersededSessionStopsWithoutSigningOut() async {
         let script = Script([.superseded])
         var signOuts = 0

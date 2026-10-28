@@ -16,7 +16,8 @@ enum LiveServices {
         // swiftlint:disable:next force_unwrapping
         let callsAPI = HTTPCallsAPI(baseURL: HTTPCallsAPI.stagingURL!, token: token)
         let store: ChatStore = (try? EncryptedChatStore(
-            directory: URL.applicationSupportDirectory.appending(path: "chats"), key: ChatStoreKey.loadOrCreate()
+            directory: ChatStoreLocation.directory(accountId: me, kid: kid),
+            key: ChatStoreKey.loadOrCreate(account: ChatStoreLocation.keychainAccount(accountId: me, kid: kid))
         )) ?? InMemoryChatStore()
         // swiftlint:disable:next force_unwrapping
         let bundles = HTTPPreKeyBundles(baseURL: URL(string: ZapaKidKit.apiBaseURL)!, session: .shared) {
@@ -58,13 +59,24 @@ enum LiveServices {
         return services
     }
 
-    /// A kid session the API refuses (401): wipe this kid's keys and chat history, and go back to pairing.
+    /// A kid session the API refuses (401): wipe this kid's keys and chat history (only the kid's, never a
+    /// parent's on the same phone), and go back to pairing.
     private static func kidSessionEnd(me: String, auth: AuthModel) -> @MainActor () -> Void {
         {
             try? AccountKeys.app(accountId: me, kid: true).wipe()
-            try? FileManager.default.removeItem(at: URL.applicationSupportDirectory.appending(path: "chats"))
-            try? KeychainData(service: "ro.zapakid.app.chat-store", account: "key").clear()
+            ChatStoreLocation.wipeKid(accountId: me) { account in
+                try? KeychainData(service: ChatStoreKey.service, account: account).clear()
+            }
             auth.kidSessionEnded()
+        }
+    }
+
+    /// Whether `me` is still the signed-in account (a parent, or a kid phone), so work started for it may go on.
+    static func isCurrent(_ state: AuthState, me: String, kid: Bool) -> Bool {
+        switch state {
+        case let .signedIn(parent): !kid && parent.id == me
+        case let .kid(session): kid && session.kid.id == me
+        default: false
         }
     }
 
@@ -103,6 +115,8 @@ enum LiveServices {
         )
         let setup = DeviceSetup(
             register: {
+                // A loop from an earlier session never registers with the next account's token.
+                guard isCurrent(auth.state, me: me, kid: kid) else { return .superseded }
                 guard let token = auth.sessionToken else { return .signedOut }
                 if kid {
                     return await registration.runKid(accountId: me, token: token, pairedAt: pairedAt)
@@ -125,10 +139,32 @@ enum LiveServices {
     }
 }
 
-/// The key for the encrypted chat store: 32 random bytes in the Keychain, this device only.
+/// Where an account's encrypted chat store lives. A parent keeps the original location; a kid session gets its own,
+/// so ending it wipes only the kid's history.
+enum ChatStoreLocation {
+    static func directory(accountId: String, kid: Bool, root: URL = .applicationSupportDirectory) -> URL {
+        root.appending(path: kid ? "chats-kid-\(accountId)" : "chats")
+    }
+
+    static func keychainAccount(accountId: String, kid: Bool) -> String {
+        kid ? "key-kid-\(accountId)" : "key"
+    }
+
+    /// Removes a kid's chat store and passes its Keychain account to `clearKey`.
+    static func wipeKid(
+        accountId: String, root: URL = .applicationSupportDirectory, clearKey: (String) -> Void
+    ) {
+        try? FileManager.default.removeItem(at: directory(accountId: accountId, kid: true, root: root))
+        clearKey(keychainAccount(accountId: accountId, kid: true))
+    }
+}
+
+/// The key for an encrypted chat store: 32 random bytes in the Keychain, this device only.
 enum ChatStoreKey {
-    static func loadOrCreate() throws -> Data {
-        let keychain = KeychainData(service: "ro.zapakid.app.chat-store", account: "key")
+    static let service = "ro.zapakid.app.chat-store"
+
+    static func loadOrCreate(account: String) throws -> Data {
+        let keychain = KeychainData(service: service, account: account)
         if let key = try keychain.load(), key.count == 32 {
             return key
         }

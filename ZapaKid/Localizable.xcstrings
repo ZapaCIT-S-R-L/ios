@@ -961,6 +961,22 @@
         }
       }
     },
+    "Secure chat can't be set up on this phone. Install ZapaKid again from the App Store.": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chatul securizat nu poate fi configurat pe acest telefon. Instalează din nou ZapaKid din App Store."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der sichere Chat lässt sich auf diesem Handy nicht einrichten. Installiere ZapaKid erneut aus dem App Store."
+          }
+        }
+      }
+    },
     "Send": {
       "localizations": {
         "ro": {
