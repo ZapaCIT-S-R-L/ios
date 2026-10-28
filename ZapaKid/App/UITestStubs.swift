@@ -142,6 +142,14 @@
             }
         }
 
+        func setDisplayName(_ name: String, token _: String) async throws -> FamilyParent {
+            lock.withLock {
+                let parent = FamilyParent(id: "p_test", displayName: name)
+                family.parents = family.parents.map { $0.id == parent.id ? parent : $0 }
+                return parent
+            }
+        }
+
         func createPairing(familyId _: String, kidId: String, token _: String) async throws -> PairingGrant {
             let kid = lock.withLock { family.kids.first { $0.id == kidId } } ?? Kid(
                 id: kidId,

@@ -31,6 +31,7 @@ struct RootView: View {
                     services: services(for: parent.id, kid: false),
                     family: FamilyModel(
                         api: families,
+                        me: parent.id,
                         token: { auth.parentToken },
                         fingerprint: { fingerprint(parent.id) }
                     ),
