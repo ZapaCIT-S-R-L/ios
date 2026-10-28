@@ -64,9 +64,10 @@
 
         /// `ZK_SETUP`: fail (network errors forever) or pair-again (a kid phone a parent must pair again).
         static func stubSetup(_ mode: String?) -> DeviceSetup? {
-            let result: DeviceSetupResult = switch mode {
-            case "fail": .failed(.network)
-            case "pair-again": .needsPairing
+            let result: DeviceSetupResult
+            switch mode {
+            case "fail": result = .failed(.network)
+            case "pair-again": result = .needsPairing
             default: return nil
             }
             return DeviceSetup(register: { result }, onSignedOut: {})
