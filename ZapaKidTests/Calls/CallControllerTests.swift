@@ -53,6 +53,34 @@ struct CallControllerTests {
         #expect(await eventually { call.phase == .active })
     }
 
+    /// Joining a call: the roster with the caller's track arrived before this phone's SFU session existed, the pull
+    /// went out with an empty session id (404), and the track was never pulled again. No voice (Stefan, 2026-10-29).
+    @Test func aRosterDuringStartIsSubscribedOnceTheSessionExists() async {
+        engine.startDelay = .milliseconds(300)
+        let call = controller()
+
+        let joining = Task { await call.startCall(conversationId: "conv-1", peers: [mama]) }
+        #expect(await eventually { api.calls.contains("events c_1") })
+        api.push(roster(["acc-k.1", "acc-m.1"]))
+        await joining.value
+
+        #expect(await eventually { engine.calls.contains("subscribe audio-acc-m_1") })
+        #expect(!engine.calls.contains { $0.hasPrefix("subscribe before start") })
+        let order = engine.calls.filter { $0 == "started" || $0.hasPrefix("subscribe") }
+        #expect(order.first == "started")
+    }
+
+    @Test func aFailedSubscribeIsRetried() async {
+        engine.failingSubscribes = 1
+        let call = controller()
+        await call.startCall(conversationId: "conv-1", peers: [mama])
+
+        api.push(roster(["acc-k.1", "acc-m.1"]))
+
+        #expect(await eventually { engine.calls.contains("subscribe audio-acc-m_1 (failed)") })
+        #expect(await eventually(timeout: .seconds(5)) { engine.calls.contains("subscribe audio-acc-m_1") })
+    }
+
     @Test func theServersLeaderSendsOneKeysBatchForTheServersEpoch() async {
         let call = controller(me: "acc-k.1")
         await call.startCall(conversationId: "conv-1", peers: [mama])
