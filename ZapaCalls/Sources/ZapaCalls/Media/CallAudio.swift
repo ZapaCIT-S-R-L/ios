@@ -21,7 +21,7 @@ public enum CallAudio {
             let session = LKRTCAudioSession.sharedInstance()
             session.lockForConfiguration()
             defer { session.unlockForConfiguration() }
-            try? session.setConfiguration(LKRTCAudioSessionConfiguration.webRTC())
+            try? session.setCategory(.playAndRecord, mode: .voiceChat, options: [.allowBluetooth, .allowBluetoothA2DP])
         #endif
     }
 
