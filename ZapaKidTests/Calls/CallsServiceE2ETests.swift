@@ -8,7 +8,7 @@ import Testing
 ///   TEST_RUNNER_ZK_CALLS_E2E_CONVERSATION=<conversation id>
 ///   TEST_RUNNER_ZK_CALLS_E2E_TOKEN_A=<chat token, device A>   TEST_RUNNER_ZK_CALLS_E2E_TOKEN_B=<chat token, device B>
 ///   TEST_RUNNER_ZK_CALLS_E2E_DEVICE_A=<accountId>.<deviceId>
-/// TEST_RUNNER_ZK_CALLS_E2E_DEVICE_B=<accountId>.<deviceId>
+///   TEST_RUNNER_ZK_CALLS_E2E_DEVICE_B=<accountId>.<deviceId>
 /// (xcodebuild passes TEST_RUNNER_-prefixed variables to the tests without the prefix.)
 @Suite(.enabled(if: CallsE2E.configured, "set ZK_CALLS_E2E_* to run against a local calls service"))
 struct CallsServiceE2ETests {
