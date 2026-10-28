@@ -52,8 +52,9 @@ final class SignInUITests: XCTestCase {
 
         app.buttons["signin.google"].tap()
 
-        XCTAssertTrue(app.screen("home.screen").waitForExistence(timeout: 5))
-        XCTAssertEqual(app.staticTexts["home.parentName"].label, "TEST Parent")
+        XCTAssertTrue(app.tabBars.buttons["Family"].waitForExistence(timeout: 5))
+        app.tabBars.buttons["Family"].tap()
+        XCTAssertTrue(app.staticTexts["TEST Parent"].waitForExistence(timeout: 5))
         app.buttons["home.signOut"].tap()
         XCTAssertTrue(app.screen("signin.screen").waitForExistence(timeout: 5))
     }
@@ -61,8 +62,7 @@ final class SignInUITests: XCTestCase {
     func testStoredSessionOpensSignedIn() {
         let app = launch(session: "signed-in")
 
-        XCTAssertTrue(app.screen("home.screen").waitForExistence(timeout: 10))
-        XCTAssertEqual(app.staticTexts["home.parentName"].label, "TEST Parent")
+        XCTAssertTrue(app.tabBars.buttons["Chats"].waitForExistence(timeout: 10))
     }
 
     func testMinorIsBlocked() {
@@ -72,7 +72,7 @@ final class SignInUITests: XCTestCase {
         app.buttons["signin.google"].tap()
 
         XCTAssertTrue(app.screen("blocked.screen").waitForExistence(timeout: 5))
-        XCTAssertFalse(app.screen("home.screen").exists)
+        XCTAssertFalse(app.tabBars.buttons["Chats"].exists)
     }
 
     func testDeclinedAgeShowsTheDeclinedScreenAndTryAgainReturnsToSignIn() {
