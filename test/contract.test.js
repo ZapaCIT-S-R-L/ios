@@ -18,6 +18,9 @@ export const APP_OPERATIONS = [
   "POST /v1/auth/google",
   "POST /v1/auth/logout",
   "GET /v1/me",
+  "POST /v1/devices",
+  "GET /v1/accounts/{accountId}/identity",
+  "GET /v1/keys/prekeys",
 ];
 
 async function contract() {

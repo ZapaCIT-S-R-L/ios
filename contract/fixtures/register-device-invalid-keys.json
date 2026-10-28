@@ -1,0 +1,13 @@
+{
+  "operation": "POST /v1/devices",
+  "request": null,
+  "response": {
+    "status": 400,
+    "body": {
+      "error": {
+        "code": "invalid_keys",
+        "message": "TEST"
+      }
+    }
+  }
+}

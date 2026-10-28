@@ -7,7 +7,7 @@ import Foundation
 ///   `POST /v1/auth/google` `{nonce, idToken, ageRange}` → `{session: {token, expiresAt}, parent, newAccount}`
 /// - `GET /v1/me` → `Parent`;  `POST /v1/auth/logout` → 204 (both with `Authorization: Bearer <token>`)
 /// - errors `{"error": {"code", "message"}}`; the app branches on `code` only and never logs bodies or tokens.
-public struct HTTPAuthAPI: AuthAPI {
+public struct HTTPAuthAPI: AuthAPI, DeviceAPI {
     public let baseURL: URL
     private let session: URLSession
 
@@ -60,6 +60,39 @@ public struct HTTPAuthAPI: AuthAPI {
 
     public func logout(token: String) async throws {
         _ = try await data("POST", "v1/auth/logout", token: token, body: nil)
+    }
+
+    // MARK: - Devices and keys
+
+    public func registerDevice(_ keys: DeviceKeys, token: String) async throws -> Int {
+        struct Reply: Decodable {
+            var deviceId: Int
+        }
+        let reply: Reply = try await send("POST", "v1/devices", token: token, body: Self.encoder.encode(keys))
+        guard (1 ... 127).contains(reply.deviceId) else { throw AuthAPIError.invalidResponse }
+        return reply.deviceId
+    }
+
+    public func accountIdentity(accountId: String, token: String) async throws -> String? {
+        struct Reply: Decodable {
+            var identityKey: String
+        }
+        // Escape the ID (account IDs are UUIDs, but a value from the network must never change the path).
+        var allowed = CharacterSet.urlPathAllowed
+        allowed.remove("/")
+        guard let escaped = accountId.addingPercentEncoding(withAllowedCharacters: allowed) else {
+            throw AuthAPIError.invalidResponse
+        }
+        do {
+            let reply: Reply = try await send("GET", "v1/accounts/\(escaped)/identity", token: token)
+            return reply.identityKey
+        } catch AuthAPIError.server(status: 404, _) {
+            return nil
+        }
+    }
+
+    public func preKeyCount(token: String) async throws -> PreKeyCount {
+        try await send("GET", "v1/keys/prekeys", token: token)
     }
 
     // MARK: - Bodies
@@ -129,7 +162,11 @@ public struct HTTPAuthAPI: AuthAPI {
     }
 
     private func data(_ method: String, _ path: String, token: String?, body: Data?) async throws -> Data {
-        var request = URLRequest(url: baseURL.appendingPathComponent(path))
+        // `path` is already escaped (see accountIdentity), so join strings instead of appendingPathComponent,
+        // which would escape the escapes.
+        let base = baseURL.absoluteString.hasSuffix("/") ? baseURL.absoluteString : baseURL.absoluteString + "/"
+        guard let url = URL(string: base + path) else { throw AuthAPIError.invalidResponse }
+        var request = URLRequest(url: url)
         request.httpMethod = method
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         if let body {
@@ -163,6 +200,7 @@ public struct HTTPAuthAPI: AuthAPI {
         case (403, "minor_not_allowed"): .minorNotAllowed
         case (403, "age_declined"): .ageDeclined
         case (403, "attestation_failed"): .attestationFailed
+        case (409, "identity_mismatch"): .identityMismatch
         case (429, _): .rateLimited(retryAfter: retryAfter.flatMap { Int($0) })
         case (503, "provider_unavailable"): .providerUnavailable
         default: .server(status: status, code: code)
