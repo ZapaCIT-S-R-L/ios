@@ -34,7 +34,7 @@ cryptographic primitives of its own.
 ## Planned: App Attest (later PR, required on sign-in before launch)
 
 Goal: the API serves only genuine copies of the app on real Apple devices (DeviceCheck App Attest). Decided
-2026-10-26: **required on sign-in from launch**. Endpoints from `openapi.yaml` in ZapaCIT-S-R-L/api (tag
+2026-10-26: **required on sign-in from launch**. Endpoints from `openapi.yaml` in ZapaCIT-S-R-L/zapakid-api (tag
 `Draft: App attestation`, still a draft there):
 
 1. First launch: `DCAppAttestService.shared.isSupported` (false on the simulator: UI tests keep the stub backend;
