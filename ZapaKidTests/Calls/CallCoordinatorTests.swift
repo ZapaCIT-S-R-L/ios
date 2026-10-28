@@ -46,6 +46,20 @@ struct CallCoordinatorTests {
         #expect(calls.refused == .incoming)
     }
 
+    /// CallKit may activate the audio session before the outgoing call's engine is wired up; the engine must still
+    /// get it, or the call has no voice.
+    @Test func anAudioSessionActivatedBeforeTheEngineIsWiredStillReachesIt() {
+        let calls = coordinator()
+        var seen: [Bool] = []
+
+        calls.audioSession(active: true)
+        calls.onAudioSessionChange = { seen.append($0) }
+
+        #expect(seen == [true])
+        calls.audioSession(active: false)
+        #expect(seen == [true, false])
+    }
+
     @Test func pushPayloadsCarryOnlyTheCallId() throws {
         let push = try #require(IncomingCallPush(payload: ["callId": "c_9", "callerAccountId": "acc-m"]))
         #expect(push.callId == "c_9")
