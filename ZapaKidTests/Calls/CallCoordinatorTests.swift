@@ -24,6 +24,31 @@ struct CallCoordinatorTests {
         )
     }
 
+    /// Answering with the app's own button left CallKit's banner ringing until it was answered again
+    /// (Stefan, 2026-10-29): the app's buttons must go through CallKit.
+    @Test func answeringInTheAppAnswersThroughCallKit() async throws {
+        let calls = coordinator()
+        await calls.handle(IncomingCallPush(callId: "c_9", callerAccountId: "acc-m"))
+        let uuid = try #require(system.reported.first?.uuid)
+
+        await calls.accept()
+
+        #expect(system.answerRequests == [uuid])
+        #expect(await eventually { api.calls.contains("join c_9") })
+    }
+
+    @Test func decliningOrHangingUpInTheAppEndsThroughCallKit() async throws {
+        let calls = coordinator()
+        await calls.handle(IncomingCallPush(callId: "c_9", callerAccountId: "acc-m"))
+        let uuid = try #require(system.reported.first?.uuid)
+
+        await calls.hangUp()
+
+        #expect(system.endRequests == [uuid])
+        #expect(await eventually { api.calls.contains("decline c_9") })
+        #expect(calls.current == nil)
+    }
+
     @Test func pushPayloadsCarryOnlyTheCallId() throws {
         let push = try #require(IncomingCallPush(payload: ["callId": "c_9", "callerAccountId": "acc-m"]))
         #expect(push.callId == "c_9")
@@ -170,6 +195,20 @@ final class FakeCallSystem: CallSystem {
 
     func reportConnected(uuid: UUID) {
         connected.append(uuid)
+    }
+
+    private(set) var answerRequests: [UUID] = []
+    private(set) var endRequests: [UUID] = []
+
+    /// Like CallKit: the request comes back as the system's answer or end action.
+    func requestAnswer(uuid: UUID) async throws {
+        answerRequests.append(uuid)
+        await actions?.answer(uuid)
+    }
+
+    func requestEnd(uuid: UUID) async throws {
+        endRequests.append(uuid)
+        await actions?.end(uuid)
     }
 
     func reportEnded(uuid: UUID, reason: CallSystemEndReason) {
