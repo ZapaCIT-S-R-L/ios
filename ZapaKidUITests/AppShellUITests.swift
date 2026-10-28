@@ -1,6 +1,6 @@
 import XCTest
 
-/// The signed-in app: tabs Chats / Calls / Family (parents) or Chats / Calls (kids), a chat with a call button.
+/// The signed-in app: tabs Chats / Calls / Family, new chats (parents and kids), a chat with a call button.
 /// Stubbed chat and call services (`-zk-ui-test`): no network, no microphone.
 @MainActor
 final class AppShellUITests: XCTestCase {
@@ -8,11 +8,12 @@ final class AppShellUITests: XCTestCase {
         continueAfterFailure = false
     }
 
-    private func launch(session: String = "signed-in", kid: Bool = false) -> XCUIApplication {
+    private func launch(session: String = "signed-in", kid: Bool = false, demo: Bool = false) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["-zk-ui-test"]
         app.launchEnvironment = [
             "ZK_AGREEMENT": "accepted", "ZK_SESSION": session, "ZK_AGE": "adult", "ZK_KID": kid ? "paired" : "none",
+            "ZK_DEMO_FAMILY": demo ? "1" : "0",
         ]
         app.launch()
         return app
@@ -68,10 +69,21 @@ final class AppShellUITests: XCTestCase {
         XCTAssertTrue(app.textFields["chat.input"].waitForExistence(timeout: 5))
     }
 
-    func testAKidCannotStartNewChats() {
-        let app = launch(session: "none", kid: true)
-        XCTAssertTrue(app.tabBars.buttons["Chats"].waitForExistence(timeout: 10))
-        XCTAssertFalse(app.buttons["chats.new"].exists, "only parents start conversations")
+    /// Stefan, 2026-10-28: kids start chats too, with the people in their family (parents and brothers/sisters).
+    func testAKidStartsANewChatWithAParent() {
+        let app = launch(session: "none", kid: true, demo: true)
+        XCTAssertTrue(app.buttons["chats.new"].waitForExistence(timeout: 10))
+        app.buttons["chats.new"].tap()
+
+        let mama = app.buttons["newChat.person.Mama"]
+        XCTAssertTrue(mama.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["newChat.person.Tata"].exists, "the other parent")
+        XCTAssertTrue(app.buttons["newChat.person.Ion"].exists, "a brother")
+        XCTAssertFalse(app.buttons["newChat.person.Ana"].exists, "not the kid themself")
+        mama.tap()
+        app.buttons["newChat.start"].tap()
+
+        XCTAssertTrue(app.textFields["chat.input"].waitForExistence(timeout: 5))
     }
 
     func testAnIncomingCallFromAChatRings() {

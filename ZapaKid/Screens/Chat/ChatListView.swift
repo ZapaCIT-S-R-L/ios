@@ -142,6 +142,15 @@ struct ChatPreview: View {
 /// Pick one person (a 1:1 chat) or several (a group) from the family.
 struct NewChatView: View {
     let services: AppServices
+
+    static func message(for failure: ChatModel.StartFailure) -> LocalizedStringKey {
+        switch failure {
+        case .notAllowed: "You can't start a chat with these people."
+        case .network: "Can't reach ZapaKid. Check your connection and try again."
+        case .other: "The chat didn't start. Try again."
+        }
+    }
+
     let onStart: (Conversation) -> Void
     @State private var chosen: Set<String> = []
     @State private var busy = false
@@ -169,6 +178,16 @@ struct NewChatView: View {
                 }
                 .accessibilityAddTraits(chosen.contains(person.accountId) ? [.isSelected, .isButton] : .isButton)
                 .accessibilityIdentifier("newChat.person.\(person.name)")
+            }
+            .safeAreaInset(edge: .bottom) {
+                if let failure = services.chat.startFailure {
+                    Text(Self.message(for: failure))
+                        .font(.callout)
+                        .foregroundStyle(.red)
+                        .multilineTextAlignment(.center)
+                        .padding()
+                        .accessibilityIdentifier("newChat.error")
+                }
             }
             .overlay {
                 if services.contacts.isEmpty {
