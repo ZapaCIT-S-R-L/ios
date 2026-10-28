@@ -3,6 +3,7 @@ included:
   - ZapaKid
   - ZapaKidKit
   - ZapaCalls
+  - ZapaChat
   - ZapaKidTests
   - ZapaKidUITests
 excluded:
@@ -10,6 +11,7 @@ excluded:
   - DerivedData
   - ZapaKidKit/.build
   - ZapaCalls/.build
+  - ZapaChat/.build
   - Pods
 disabled_rules:
   - trailing_comma
