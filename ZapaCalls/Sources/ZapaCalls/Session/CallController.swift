@@ -59,6 +59,11 @@ public final class CallController {
     private var events: CallEventsConnection?
     private var tasks: [Task<Void, Never>] = []
     private var subscribed: Set<TrackRef> = []
+    /// The others' tracks from the latest roster. Pulled only once this phone's SFU session exists.
+    private var wanted: Set<TrackRef> = []
+    private var mediaStarted = false
+    private var retryTask: Task<Void, Never>?
+    private var pullAttempts = 0
     private var trackOwner: [String: String] = [:]
     private var hadOthers = false
     private var reconnectTask: Task<Void, Never>?
@@ -147,6 +152,8 @@ public final class CallController {
         try await engine.start(
             callId: grant.callId, iceServers: grant.iceServers, api: api, trackName: Self.trackName(for: me)
         )
+        mediaStarted = true
+        await syncTracks()
     }
 
     /// `audio-<accountId>_<deviceId>`: the API allows only `A-Za-z0-9_-` in track names (the same on Android).
@@ -190,16 +197,8 @@ public final class CallController {
             try? await events?.send(.keys(epoch: call.epoch, envelopes))
         }
 
-        let tracks = Set(others.flatMap(\.trackRefs))
-        let added = tracks.subtracting(subscribed)
-        let removed = subscribed.subtracting(tracks)
-        subscribed = tracks
-        if !removed.isEmpty {
-            await engine.unsubscribe(Array(removed))
-        }
-        if !added.isEmpty {
-            try? await engine.subscribe(added.sorted { $0.trackName < $1.trackName })
-        }
+        wanted = Set(others.flatMap(\.trackRefs))
+        await syncTracks()
 
         if !others.isEmpty {
             hadOthers = true
@@ -208,6 +207,36 @@ public final class CallController {
             await end(.remoteEnded)
         }
     }
+
+    /// Pulls the others' new tracks and drops the ones that left. A pull before this phone's SFU session exists
+    /// would go out without a session (404), so it waits for `start`; a failed pull is tried again shortly.
+    private func syncTracks() async {
+        guard mediaStarted else { return }
+        let added = wanted.subtracting(subscribed)
+        let removed = subscribed.subtracting(wanted)
+        subscribed.subtract(removed)
+        if !removed.isEmpty {
+            await engine.unsubscribe(Array(removed))
+        }
+        guard !added.isEmpty else { return }
+        subscribed.formUnion(added)
+        do {
+            try await engine.subscribe(added.sorted { $0.trackName < $1.trackName })
+            pullAttempts = 0
+        } catch {
+            subscribed.subtract(added)
+            pullAttempts += 1
+            guard pullAttempts <= Self.maxPullAttempts else { return }
+            retryTask?.cancel()
+            retryTask = Task { [weak self] in
+                try? await Task.sleep(for: .milliseconds(500))
+                guard !Task.isCancelled else { return }
+                await self?.syncTracks()
+            }
+        }
+    }
+
+    private static let maxPullAttempts = 10
 
     private func handle(_ event: MediaEvent) {
         switch event {
@@ -243,6 +272,7 @@ public final class CallController {
 
     private func tearDown(leave: Bool) async {
         reconnectTask?.cancel()
+        retryTask?.cancel()
         for task in tasks {
             task.cancel()
         }
