@@ -63,20 +63,11 @@ struct MainTabView: View {
             }
         }
         .modifier(ThemedBars(role: role))
-        .fullScreenCover(isPresented: Binding(
-            get: { services.calls.current != nil || shownCall != nil },
-            set: {
-                if !$0 {
-                    shownCall = nil
-                }
-            }
-        )) {
-            if let controller = services.calls.current ?? shownCall {
-                CallScreen(controller: controller) {
-                    shownCall = nil
-                    Task { await services.refreshLog() }
-                }
-                .zapaTheme(role)
+        // The call screen closes as soon as the call ends: back to where the call started (Stefan, 2026-10-29).
+        .fullScreenCover(isPresented: Binding(get: { services.calls.current != nil }, set: { _ in })) {
+            if let controller = services.calls.current {
+                CallScreen(controller: controller)
+                    .zapaTheme(role)
             }
         }
         .onChange(of: scenePhase) { _, phase in
@@ -85,8 +76,8 @@ struct MainTabView: View {
             }
         }
         .onChange(of: services.calls.current == nil) { _, ended in
-            if !ended {
-                shownCall = services.calls.current
+            if ended {
+                Task { await services.refreshLog() }
             }
         }
         .task {
@@ -105,7 +96,6 @@ struct MainTabView: View {
     }
 
     /// Keeps the ended call on screen until the person taps Close.
-    @State private var shownCall: CallController?
     @Environment(\.scenePhase) private var scenePhase
 }
 

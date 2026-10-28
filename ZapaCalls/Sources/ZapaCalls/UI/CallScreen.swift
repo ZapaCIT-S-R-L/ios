@@ -4,12 +4,10 @@ import SwiftUI
 /// connecting, the call clock, reconnecting, ended) and big round buttons. VoiceOver, Dynamic Type and dark mode.
 public struct CallScreen: View {
     let controller: CallController
-    let onClose: (() -> Void)?
     @Environment(\.zapaTheme) private var theme
 
-    public init(controller: CallController, onClose: (() -> Void)? = nil) {
+    public init(controller: CallController) {
         self.controller = controller
-        self.onClose = onClose
     }
 
     public var body: some View {
@@ -142,16 +140,7 @@ public struct CallScreen: View {
                 .accessibilityIdentifier("call.accept")
             }
         case .ended:
-            if let onClose {
-                Button(action: onClose) {
-                    Text("Close", bundle: .module)
-                        .font(.headline)
-                        .frame(maxWidth: .infinity, minHeight: 52)
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(theme.callButton.color)
-                .accessibilityIdentifier("call.close")
-            }
+            EmptyView()
         default:
             HStack(spacing: 28) {
                 CallButton(
