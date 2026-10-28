@@ -49,6 +49,7 @@ targets:
         INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: UIInterfaceOrientationPortrait
         INFOPLIST_KEY_ITSAppUsesNonExemptEncryption: NO
         # Kid-friendly; RO and DE in ZapaKid/InfoPlist.xcstrings.
+        INFOPLIST_KEY_NSCameraUsageDescription: "ZapaKid uses the camera only to scan your parent's QR code."
         INFOPLIST_KEY_NSMicrophoneUsageDescription: "ZapaKid uses the microphone so you can talk with your family in calls and voice messages."
         # The robot with the spring antenna (ZapaKid/Assets.xcassets/AppIcon.appiconset, one 1024 image).
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon

@@ -1,6 +1,22 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "A family can have up to 12 kids.": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O familie poate avea cel mult 12 copii."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eine Familie kann bis zu 12 Kinder haben."
+          }
+        }
+      }
+    },
     "Apple or Google can't be reached right now. Try again later.": {
       "localizations": {
         "ro": {
@@ -81,6 +97,70 @@
         }
       }
     },
+    "Something went wrong. Try again.": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ceva n-a mers. Încearcă din nou."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Etwas ist schiefgelaufen. Versuche es noch einmal."
+          }
+        }
+      }
+    },
+    "That isn't a ZapaKid invitation.": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Acesta nu e o invitație ZapaKid."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Das ist keine ZapaKid-Einladung."
+          }
+        }
+      }
+    },
+    "That isn't a ZapaKid pairing code.": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Acesta nu e un cod de asociere ZapaKid."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Das ist kein ZapaKid-Kopplungscode."
+          }
+        }
+      }
+    },
+    "This code expired or was already used. Ask for a new one.": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Codul a expirat sau a fost deja folosit. Cere unul nou."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dieser Code ist abgelaufen oder wurde schon benutzt. Bitte um einen neuen."
+          }
+        }
+      }
+    },
     "This copy of ZapaKid couldn't be verified. Install it from the App Store.": {
       "localizations": {
         "ro": {
@@ -93,6 +173,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Diese ZapaKid-Kopie konnte nicht überprüft werden. Installiere sie aus dem App Store."
+          }
+        }
+      }
+    },
+    "Too many open codes. Use one or wait until it expires.": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prea multe coduri deschise. Folosește unul sau așteaptă să expire."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zu viele offene Codes. Nutze einen oder warte, bis er abläuft."
           }
         }
       }
@@ -173,6 +269,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Zu viele Anmeldeversuche. Versuche es in ein paar Minuten noch einmal."
+          }
+        }
+      }
+    },
+    "You're already in a family with kids or another parent.": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Faci deja parte dintr-o familie cu copii sau cu alt părinte."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Du bist schon in einer Familie mit Kindern oder einem anderen Elternteil."
           }
         }
       }

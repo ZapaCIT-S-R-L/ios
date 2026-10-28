@@ -24,6 +24,30 @@
           }
         }
       }
+    },
+    "NSCameraUsageDescription": {
+      "comment": "Camera permission (scan the parent's pairing QR); kid-friendly.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ZapaKid uses the camera only to scan your parent's QR code."
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ZapaKid folosește camera doar ca să scanezi codul QR al părintelui tău."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ZapaKid nutzt die Kamera nur, um den QR-Code deiner Eltern zu scannen."
+          }
+        }
+      }
     }
   },
   "version": "1.0"
