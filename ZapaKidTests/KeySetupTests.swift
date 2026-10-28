@@ -18,15 +18,22 @@ struct KeySetupTests {
     }
 
     func identityStore() -> LocalIdentityStore {
-        LocalIdentityStore(keychain: KeychainData(service: keychainService, account: "identity"))
+        LocalIdentityStore(keychain: .syncedIdentity(service: keychainService))
+    }
+
+    /// A new account: no identity anywhere yet, so this phone creates it.
+    func newAccountIdentity() throws -> LocalIdentity {
+        guard case let .ready(identity) = try identityStore().resolve(accountHasIdentity: false, reshare: NoReshare())
+        else { throw CancellationError() }
+        return identity
     }
 
     func protocolStore() throws -> ZapaKidProtocolStore {
-        try ZapaKidProtocolStore(identity: identityStore().loadOrCreate(), files: files())
+        try ZapaKidProtocolStore(identity: newAccountIdentity(), files: files())
     }
 
     func cleanUp() {
-        try? KeychainData(service: keychainService, account: "identity").clear()
+        try? KeychainData.syncedIdentity(service: keychainService).clear()
         try? FileManager.default.removeItem(at: directory)
     }
 
@@ -34,30 +41,13 @@ struct KeySetupTests {
 
     @Test func identityIsCreatedOnceAndKept() throws {
         defer { cleanUp() }
-        let first = try identityStore().loadOrCreate()
+        let first = try newAccountIdentity()
 
-        let again = try identityStore().loadOrCreate()
+        let again = try newAccountIdentity()
 
         #expect(again.keyPair.publicKey.serialize() == first.keyPair.publicKey.serialize())
         #expect(again.registrationId == first.registrationId)
         #expect((1 ... 16380).contains(first.registrationId), "libsignal registration IDs are 14-bit, not 0")
-    }
-
-    @Test func identityIsInTheKeychainThisDeviceOnly() throws {
-        defer { cleanUp() }
-        _ = try identityStore().loadOrCreate()
-
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: keychainService,
-            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny,
-            kSecReturnAttributes as String: true,
-        ]
-        var result: CFTypeRef?
-        #expect(SecItemCopyMatching(query as CFDictionary, &result) == errSecSuccess)
-        let item = try #require(result as? [String: Any])
-        #expect(item[kSecAttrAccessible as String] as? String == kSecAttrAccessibleWhenUnlockedThisDeviceOnly as String)
-        #expect((item[kSecAttrSynchronizable as String] as? NSNumber)?.boolValue != true)
     }
 
     // MARK: Device keys
