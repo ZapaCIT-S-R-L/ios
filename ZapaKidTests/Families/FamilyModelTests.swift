@@ -64,7 +64,7 @@ struct FamilyModelTests {
         #expect(invite.url.absoluteString == "https://zapakid.ro/join#\(api.inviteCode)")
     }
 
-    // Stefan (2026-10-28): "father can't change name".
+    /// Stefan (2026-10-28): "father can't change name".
     @Test func aParentRenamesThemselvesAndTheRowShowsIt() async {
         let family = model()
         await family.load()

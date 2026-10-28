@@ -273,6 +273,22 @@
         }
       }
     },
+    "Use 1 to 40 letters for your name.": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Folosește între 1 și 40 de caractere pentru nume."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verwende 1 bis 40 Zeichen für deinen Namen."
+          }
+        }
+      }
+    },
     "You're already in a family with kids or another parent.": {
       "localizations": {
         "ro": {

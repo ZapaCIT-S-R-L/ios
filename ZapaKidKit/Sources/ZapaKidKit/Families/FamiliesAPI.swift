@@ -10,6 +10,8 @@ public protocol FamiliesAPI: Sendable {
     func join(code: String, token: String) async throws -> Family
     func addKid(familyId: String, nickname: String, avatar: String, grade: Int?, token: String) async throws -> Kid
     func createPairing(familyId: String, kidId: String, token: String) async throws -> PairingGrant
+    /// The signed-in parent's display name (`PATCH /v1/me`); answers with the updated parent.
+    func setDisplayName(_ name: String, token: String) async throws -> FamilyParent
     /// No session: the code is the credential.
     func redeemPairing(code: String) async throws -> KidSession
 }
@@ -107,6 +109,10 @@ public struct HTTPFamiliesAPI: FamiliesAPI {
         )
     }
 
+    public func setDisplayName(_ name: String, token: String) async throws -> FamilyParent {
+        try await send("PATCH", ["v1", "me"], token: token, body: DisplayName(displayName: name))
+    }
+
     public func redeemPairing(code: String) async throws -> KidSession {
         let reply: Redeemed = try await send("POST", ["v1", "pairing", "redeem"], token: nil, body: Code(code: code))
         return KidSession(
@@ -116,6 +122,10 @@ public struct HTTPFamiliesAPI: FamiliesAPI {
     }
 
     // MARK: HTTP
+
+    private struct DisplayName: Encodable {
+        var displayName: String
+    }
 
     private struct ErrorReply: Decodable {
         struct Detail: Decodable {

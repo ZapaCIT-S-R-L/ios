@@ -10,15 +10,45 @@ public final class FamilyModel {
     public private(set) var isBusy = false
     public private(set) var errorMessage: String?
 
+    /// The signed-in parent's account id: only their own row can be renamed.
+    public let me: String?
     private let api: FamiliesAPI
     private let token: () -> String?
     private let fingerprint: () -> String?
 
     /// `fingerprint`: this parent's identity key fingerprint (hex) for the pairing QR.
-    public init(api: FamiliesAPI, token: @escaping () -> String?, fingerprint: @escaping () -> String?) {
+    public init(
+        api: FamiliesAPI, me: String? = nil, token: @escaping () -> String?, fingerprint: @escaping () -> String?
+    ) {
         self.api = api
+        self.me = me
         self.token = token
         self.fingerprint = fingerprint
+    }
+
+    public func canRename(_ parent: FamilyParent) -> Bool {
+        parent.id == me
+    }
+
+    /// Changes the signed-in parent's display name: trimmed, 1 to 40 characters, no control characters (as the API).
+    public func rename(to name: String) async -> Bool {
+        let name = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty, name.count <= 40,
+              !name.unicodeScalars.contains(where: { CharacterSet.controlCharacters.contains($0) })
+        else {
+            errorMessage = String(localized: "Use 1 to 40 letters for your name.", bundle: .module)
+            return false
+        }
+        var renamed = false
+        await run { api, token in
+            let parent = try await api.setDisplayName(name, token: token)
+            if var updated = family {
+                updated.parents = updated.parents.map { $0.id == parent.id ? parent : $0 }
+                family = updated
+            }
+            renamed = true
+        }
+        return renamed
     }
 
     public func load() async {

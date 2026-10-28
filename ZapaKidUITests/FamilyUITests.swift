@@ -37,7 +37,7 @@ final class FamilyUITests: XCTestCase {
         XCTAssertFalse(app.images["pairing.qr"].label.isEmpty, "VoiceOver says what the QR is for")
     }
 
-    // Stefan (2026-10-28): "father can't change name".
+    /// Stefan (2026-10-28): "father can't change name".
     func testParentChangesTheirName() {
         let app = launch(session: "signed-in")
         XCTAssertTrue(app.tabBars.buttons["Family"].waitForExistence(timeout: 10))
@@ -52,7 +52,9 @@ final class FamilyUITests: XCTestCase {
         field.clearAndType("Tata Stefan")
         app.buttons["rename.save"].tap()
 
-        XCTAssertTrue(app.staticTexts["Tata Stefan"].waitForExistence(timeout: 5))
+        let renamed = NSPredicate(format: "label CONTAINS %@", "Tata Stefan")
+        expectation(for: renamed, evaluatedWith: me)
+        waitForExpectations(timeout: 5)
     }
 
     func testParentInvitesTheSecondParent() {
