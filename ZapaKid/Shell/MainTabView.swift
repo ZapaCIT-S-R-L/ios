@@ -9,8 +9,6 @@ struct MainTabView: View {
     let role: ZapaTheme.Role
     let services: AppServices
     let family: FamilyModel?
-    /// A kid's nickname, greeted above the chats.
-    let greeting: String?
     let onSignOut: (() -> Void)?
 
     var body: some View {
@@ -24,18 +22,6 @@ struct MainTabView: View {
                     .safeAreaInset(edge: .bottom) {
                         if let setup = services.setup {
                             SetupBanner(setup: setup)
-                        }
-                    }
-                    .safeAreaInset(edge: .top) {
-                        if let greeting {
-                            HStack {
-                                (Text("Hello,") + Text(verbatim: " \(greeting)!"))
-                                    .font(.title2.bold())
-                                    .accessibilityIdentifier("kid.hello")
-                                Sparkles()
-                                Spacer()
-                            }
-                            .padding(.horizontal, 16)
                         }
                     }
             }
