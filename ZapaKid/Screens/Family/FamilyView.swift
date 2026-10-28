@@ -9,17 +9,25 @@ struct FamilyView: View {
     @State private var addingKid = false
     @State private var pairing: FamilyModel.Pairing?
     @State private var invitation: FamilyModel.Invitation?
+    @Environment(\.zapaTheme) private var theme
 
     var body: some View {
         List {
             if let family = model.family {
                 Section {
                     ForEach(family.parents) { parent in
-                        Label {
-                            Text(verbatim: parent.displayName ?? "—")
-                        } icon: {
-                            Image(systemName: "person.fill")
+                        HStack(spacing: 12) {
+                            RobotAvatarView(avatar: "robot-2", size: 44)
+                            VStack(alignment: .leading) {
+                                Text(verbatim: parent.displayName ?? "—")
+                                    .font(.headline)
+                                    .foregroundStyle(theme.text.color)
+                                Text("Parent")
+                                    .font(.subheadline)
+                                    .foregroundStyle(theme.secondaryText.color)
+                            }
                         }
+                        .accessibilityElement(children: .combine)
                     }
                     Button {
                         Task { invitation = await model.inviteParent() }
@@ -28,8 +36,9 @@ struct FamilyView: View {
                     }
                     .accessibilityIdentifier("family.inviteParent")
                 } header: {
-                    Text("Parents")
+                    Text("Parents").foregroundStyle(theme.accent.color)
                 }
+                .listRowBackground(theme.surface.color)
                 Section {
                     ForEach(family.kids) { kid in
                         kidRow(kid)
@@ -41,28 +50,31 @@ struct FamilyView: View {
                     }
                     .accessibilityIdentifier("family.addKid")
                 } header: {
-                    Text("Kids")
+                    Text("Kids").foregroundStyle(theme.accent.color)
                 }
+                .listRowBackground(theme.surface.color)
             } else if model.isBusy {
                 ProgressView()
                     .accessibilityLabel(Text("Loading"))
             }
             if let message = model.errorMessage {
                 Text(message)
-                    .foregroundStyle(.red)
+                    .foregroundStyle(theme.danger.color)
                     .accessibilityIdentifier("family.error")
             }
         }
+        .scrollContentBackground(.hidden)
+        .background(theme.background.color.ignoresSafeArea())
         .navigationTitle(Text("Family"))
         .task { await model.load() }
         .sheet(isPresented: $addingKid) {
-            AddKidView(model: model)
+            AddKidView(model: model).zapaTheme(theme.role)
         }
         .sheet(item: $pairing) { pairing in
-            PairingQRView(pairing: pairing)
+            PairingQRView(pairing: pairing).zapaTheme(theme.role)
         }
         .sheet(item: $invitation) { invitation in
-            InviteParentView(invitation: invitation)
+            InviteParentView(invitation: invitation).zapaTheme(theme.role)
         }
         .accessibilityIdentifier("family.screen")
     }
@@ -73,9 +85,10 @@ struct FamilyView: View {
             VStack(alignment: .leading) {
                 Text(verbatim: kid.nickname)
                     .font(.headline)
+                    .foregroundStyle(theme.text.color)
                 GradeText.text(kid.grade)
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(theme.secondaryText.color)
             }
             Spacer()
             Button {
@@ -83,8 +96,13 @@ struct FamilyView: View {
             } label: {
                 Label("Pair phone", systemImage: "qrcode")
                     .labelStyle(.titleAndIcon)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(theme.onPrimary.color)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(Capsule().fill(theme.primary.color))
             }
-            .buttonStyle(.bordered)
+            .buttonStyle(.plain)
             .accessibilityIdentifier("family.kid.\(kid.nickname).pair")
         }
     }

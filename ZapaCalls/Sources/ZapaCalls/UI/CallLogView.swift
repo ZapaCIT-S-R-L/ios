@@ -4,6 +4,7 @@ import SwiftUI
 public struct CallLogView: View {
     let entries: [CallLogEntry]
     let onCall: (CallLogEntry) -> Void
+    @Environment(\.zapaTheme) private var theme
 
     public init(entries: [CallLogEntry], onCall: @escaping (CallLogEntry) -> Void) {
         self.entries = entries
@@ -21,10 +22,14 @@ public struct CallLogView: View {
             } else {
                 List(entries) { entry in
                     row(entry)
+                        .listRowBackground(theme.background.color)
+                        .listRowSeparatorTint(theme.separator.color)
                 }
                 .listStyle(.plain)
+                .scrollContentBackground(.hidden)
             }
         }
+        .background(theme.background.color.ignoresSafeArea())
         .navigationTitle(Text("Calls", bundle: .module))
         .accessibilityIdentifier("calls.log")
     }
@@ -36,10 +41,10 @@ public struct CallLogView: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(verbatim: name)
                     .font(.headline)
-                    .foregroundStyle(entry.isMissed ? Color.red : Color.primary)
+                    .foregroundStyle(entry.isMissed ? theme.danger.color : theme.text.color)
                 HStack(spacing: 6) {
                     Image(systemName: icon(entry))
-                        .foregroundStyle(entry.isMissed ? Color.red : Color.secondary)
+                        .foregroundStyle(entry.isMissed ? theme.danger.color : theme.secondaryText.color)
                         .accessibilityHidden(true)
                     Text(outcomeKey(entry), bundle: .module)
                     if entry.outcome == .answered {
@@ -49,10 +54,10 @@ public struct CallLogView: View {
                     }
                 }
                 .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(theme.secondaryText.color)
                 Text(entry.startedAt, format: .relative(presentation: .named))
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(theme.secondaryText.color)
             }
             Spacer(minLength: 8)
             Button {
@@ -60,9 +65,9 @@ public struct CallLogView: View {
             } label: {
                 Image(systemName: "phone.fill")
                     .font(.title3)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(theme.onPrimary.color)
                     .frame(width: 52, height: 52)
-                    .background(Circle().fill(Color.green))
+                    .background(Circle().fill(theme.primary.color))
             }
             .buttonStyle(.plain)
             .accessibilityLabel(Text("Call back", bundle: .module))
