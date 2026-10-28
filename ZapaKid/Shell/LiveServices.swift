@@ -33,7 +33,7 @@ enum LiveServices {
             let system: CallSystem = CallKitSystem()
         #endif
         let services = AppServices(
-            me: me, canStartChats: !kid,
+            me: me,
             chat: ChatModel(me: me, api: chatAPI, sealer: messageSealer, store: store),
             people: [], log: InMemoryCallLog(), system: system
         ) { services in

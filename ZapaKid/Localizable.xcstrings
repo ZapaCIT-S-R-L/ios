@@ -145,6 +145,22 @@
         }
       }
     },
+    "Can't reach ZapaKid. Check your connection and try again.": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nu ne putem conecta la ZapaKid. Verifică conexiunea și încearcă din nou."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ZapaKid ist nicht erreichbar. Prüfe deine Verbindung und versuche es noch einmal."
+          }
+        }
+      }
+    },
     "Cancel": {
       "localizations": {
         "ro": {
@@ -1153,6 +1169,22 @@
         }
       }
     },
+    "The chat didn't start. Try again.": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conversația nu a pornit. Încearcă din nou."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Chat wurde nicht gestartet. Versuche es noch einmal."
+          }
+        }
+      }
+    },
     "The other parent signs in to ZapaKid and scans this code, or opens the link.": {
       "localizations": {
         "ro": {
@@ -1261,6 +1293,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Sprachnachricht"
+          }
+        }
+      }
+    },
+    "You can't start a chat with these people.": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nu poți începe o conversație cu aceste persoane."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mit diesen Personen kannst du keinen Chat beginnen."
           }
         }
       }

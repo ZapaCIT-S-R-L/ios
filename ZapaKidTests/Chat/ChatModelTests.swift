@@ -35,6 +35,25 @@ struct ChatModelTests {
         #expect(try await store.messages(in: "c_1").count == 1)
     }
 
+    /// Regression (staging, 2026-10-28): New chat → Start did nothing when the service refused; the error was
+    /// swallowed. Now the model reports why, and a later success clears it.
+    @Test(arguments: [
+        (ChatAPIError.forbidden, ChatModel.StartFailure.notAllowed),
+        (ChatAPIError.network, ChatModel.StartFailure.network),
+        (ChatAPIError.server(status: 500, code: nil), ChatModel.StartFailure.other),
+    ])
+    func aFailedStartSaysWhy(error: ChatAPIError, expected: ChatModel.StartFailure) async {
+        let chat = model()
+        api.failNextCreate = error
+
+        let started = await chat.start(with: ["acc-k"])
+
+        #expect(started == nil)
+        #expect(chat.startFailure == expected)
+        #expect(await chat.start(with: ["acc-k"]) != nil)
+        #expect(chat.startFailure == nil)
+    }
+
     @Test func staleDevicesRefreshTheConversationAndRetryOnce() async {
         let chat = model()
         await chat.loadConversations()
@@ -185,6 +204,7 @@ final class FakeChatAPI: ChatAPI, @unchecked Sendable {
     private var ackLog: [String] = []
     private var uploadLog: [Data] = []
     var failNextSend: ChatAPIError?
+    var failNextCreate: ChatAPIError?
     var devicesAfterRefresh: [Int]?
 
     var sent: [Sent] {
@@ -225,7 +245,14 @@ final class FakeChatAPI: ChatAPI, @unchecked Sendable {
     }
 
     func createConversation(members _: [String]) async throws -> Conversation {
-        conversation(devices: [1, 2])
+        let failure: ChatAPIError? = lock.withLock {
+            defer { failNextCreate = nil }
+            return failNextCreate
+        }
+        if let failure {
+            throw failure
+        }
+        return conversation(devices: [1, 2])
     }
 
     func send(conversationId: String, messageId: String, envelopes: [OutgoingEnvelope]) async throws -> Date {
