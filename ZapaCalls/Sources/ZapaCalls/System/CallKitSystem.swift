@@ -44,6 +44,14 @@
             provider.reportOutgoingCall(with: uuid, startedConnectingAt: nil)
         }
 
+        public func requestAnswer(uuid: UUID) async throws {
+            try await callController.request(CXTransaction(action: CXAnswerCallAction(call: uuid)))
+        }
+
+        public func requestEnd(uuid: UUID) async throws {
+            try await callController.request(CXTransaction(action: CXEndCallAction(call: uuid)))
+        }
+
         public func reportConnected(uuid: UUID) {
             provider.reportOutgoingCall(with: uuid, connectedAt: nil)
         }

@@ -85,6 +85,34 @@ public final class CallCoordinator: CallSystemActions {
         }
     }
 
+    // MARK: The app's buttons
+
+    /// Answers the ringing call through the system, so CallKit's own UI stops ringing.
+    public func accept() async {
+        guard let current else { return }
+        do {
+            guard let uuid = currentUUID else { throw CancellationError() }
+            try await system.requestAnswer(uuid: uuid)
+        } catch {
+            await current.accept()
+        }
+    }
+
+    /// Declines a ringing call or hangs up, through the system.
+    public func hangUp() async {
+        guard let current else { return }
+        do {
+            guard let uuid = currentUUID else { throw CancellationError() }
+            try await system.requestEnd(uuid: uuid)
+        } catch {
+            if current.phase == .ringing {
+                await current.decline()
+            } else {
+                await current.hangUp()
+            }
+        }
+    }
+
     // MARK: CallKit actions
 
     public func answer(_ uuid: UUID) async {

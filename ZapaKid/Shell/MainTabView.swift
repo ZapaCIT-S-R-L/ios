@@ -66,7 +66,7 @@ struct MainTabView: View {
         // The call screen closes as soon as the call ends: back to where the call started (Stefan, 2026-10-29).
         .fullScreenCover(isPresented: Binding(get: { services.calls.current != nil }, set: { _ in })) {
             if let controller = services.calls.current {
-                CallScreen(controller: controller)
+                CallScreen(controller: controller, coordinator: services.calls)
                     .zapaTheme(role)
             }
         }
