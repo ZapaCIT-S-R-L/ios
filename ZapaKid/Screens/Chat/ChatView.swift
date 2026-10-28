@@ -41,11 +41,6 @@ struct ChatView: View {
         .navigationTitle(Text(verbatim: services.name(of: conversation)))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItemGroup(placement: .keyboard) {
-                Spacer()
-                Button { typing = false } label: { Text("Done") }
-                    .accessibilityIdentifier("chat.hideKeyboard")
-            }
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
                     Task { await services.call(conversation) }
