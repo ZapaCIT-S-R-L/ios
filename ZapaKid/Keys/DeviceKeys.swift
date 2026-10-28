@@ -1,27 +1,6 @@
 import Foundation
 import LibSignalClient
-
-/// The public keys this phone publishes (`DeviceKeys` in openapi.yaml, `POST /v1/devices`). Only public keys and the
-/// identity's signatures over them; the private parts stay in `ZapaKidProtocolStore`. Base64, as the contract says.
-struct DeviceKeys: Codable, Equatable {
-    struct PreKey: Codable, Equatable {
-        var keyId: UInt32
-        var publicKey: String
-    }
-
-    struct SignedPreKey: Codable, Equatable {
-        var keyId: UInt32
-        var publicKey: String
-        var signature: String
-    }
-
-    var registrationId: UInt32
-    var identityKey: String
-    var signedPreKey: SignedPreKey
-    var pqLastResortPreKey: SignedPreKey
-    var preKeys: [PreKey]
-    var pqPreKeys: [SignedPreKey]
-}
+import ZapaKidKit
 
 /// Makes a fresh set of keys with libsignal, stores the private records, and returns what to publish:
 /// a signed EC prekey, a signed Kyber last-resort prekey, and `oneTimeCount` one-time EC and Kyber prekeys.

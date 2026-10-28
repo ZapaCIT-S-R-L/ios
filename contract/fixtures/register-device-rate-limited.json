@@ -1,0 +1,16 @@
+{
+  "operation": "POST /v1/devices",
+  "request": null,
+  "response": {
+    "status": 429,
+    "headers": {
+      "Retry-After": "60"
+    },
+    "body": {
+      "error": {
+        "code": "rate_limited",
+        "message": "TEST"
+      }
+    }
+  }
+}
