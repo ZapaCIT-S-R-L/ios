@@ -61,9 +61,7 @@ struct AppDependencies {
             ageCheck: DeclaredAgeRangeCheck(),
             families: HTTPFamiliesAPI.staging,
             fingerprint: { accountId in
-                (try? AccountKeys.app(accountId: accountId).identity.load()).flatMap(\.self).map {
-                    IdentityFingerprint.hex(Data($0.keyPair.publicKey.serialize()))
-                }
+                (try? AccountKeys.app(accountId: accountId)).flatMap { PairingFingerprint.current($0.identity) }
             },
             makeServices: { me, isKid in
                 let services = LiveServices.make(me: me, kid: isKid, auth: auth)
