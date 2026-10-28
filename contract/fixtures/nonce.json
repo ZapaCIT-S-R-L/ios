@@ -1,0 +1,11 @@
+{
+  "operation": "POST /v1/auth/nonce",
+  "request": null,
+  "response": {
+    "status": 200,
+    "body": {
+      "nonce": "Zx8mQ2v4pL9sT1wR6yB3nK7cF0hJ5dG2aE4uI8oP1qM",
+      "expiresAt": "2026-10-26T18:10:00Z"
+    }
+  }
+}
