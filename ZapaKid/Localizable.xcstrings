@@ -17,6 +17,38 @@
         }
       }
     },
+    "Add a kid": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Adaugă un copil"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kind hinzufügen"
+          }
+        }
+      }
+    },
+    "Add your kids in Family first.": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Adaugă mai întâi copiii în Familie."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Füge zuerst deine Kinder unter Familie hinzu."
+          }
+        }
+      }
+    },
     "Apple didn't return a sign-in token.": {
       "localizations": {
         "ro": {
@@ -29,6 +61,166 @@
           "stringUnit": {
             "state": "translated",
             "value": "Apple hat kein Anmelde-Token zurückgegeben."
+          }
+        }
+      }
+    },
+    "Ask your parent to show the QR code in ZapaKid (Family, Pair phone).": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Roagă-ți părintele să-ți arate codul QR în ZapaKid (Familie, Asociază telefonul)."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bitte deine Eltern, dir den QR-Code in ZapaKid zu zeigen (Familie, Handy koppeln)."
+          }
+        }
+      }
+    },
+    "Call": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sună"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anrufen"
+          }
+        }
+      }
+    },
+    "Calls": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apeluri"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anrufe"
+          }
+        }
+      }
+    },
+    "Cancel": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anulează"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abbrechen"
+          }
+        }
+      }
+    },
+    "Chats": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chaturi"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chats"
+          }
+        }
+      }
+    },
+    "Chats with your family show up here.": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chaturile cu familia ta apar aici."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chats mit deiner Familie erscheinen hier."
+          }
+        }
+      }
+    },
+    "Done": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gata"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fertig"
+          }
+        }
+      }
+    },
+    "End-to-end encrypted": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Criptat end-to-end"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ende-zu-Ende-verschlüsselt"
+          }
+        }
+      }
+    },
+    "Expires in": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Expiră în"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Läuft ab in"
+          }
+        }
+      }
+    },
+    "Family": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Familie"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Familie"
           }
         }
       }
@@ -81,6 +273,70 @@
         }
       }
     },
+    "Grade": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clasa"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Klasse"
+          }
+        }
+      }
+    },
+    "Grade %lld": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clasa a %lld-a"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld. Klasse"
+          }
+        }
+      }
+    },
+    "Hello,": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Salut,"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hallo,"
+          }
+        }
+      }
+    },
+    "Hold to record a voice message": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ține apăsat ca să înregistrezi un mesaj vocal"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gedrückt halten für eine Sprachnachricht"
+          }
+        }
+      }
+    },
     "I agree": {
       "localizations": {
         "ro": {
@@ -93,6 +349,86 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ich stimme zu"
+          }
+        }
+      }
+    },
+    "Invitation QR code": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cod QR de invitație"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Einladungs-QR-Code"
+          }
+        }
+      }
+    },
+    "Invite the other parent": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Invită celălalt părinte"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anderen Elternteil einladen"
+          }
+        }
+      }
+    },
+    "Kid": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copil"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kind"
+          }
+        }
+      }
+    },
+    "Kid's phone": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Telefonul copilului"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Handy des Kindes"
+          }
+        }
+      }
+    },
+    "Kids": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copii"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kinder"
           }
         }
       }
@@ -113,6 +449,22 @@
         }
       }
     },
+    "Kindergarten": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Grădiniță"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kindergarten"
+          }
+        }
+      }
+    },
     "Loading": {
       "localizations": {
         "ro": {
@@ -125,6 +477,134 @@
           "stringUnit": {
             "state": "translated",
             "value": "Wird geladen"
+          }
+        }
+      }
+    },
+    "Message": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mesaj"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nachricht"
+          }
+        }
+      }
+    },
+    "My family": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Familia mea"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meine Familie"
+          }
+        }
+      }
+    },
+    "New chat": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chat nou"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Neuer Chat"
+          }
+        }
+      }
+    },
+    "Nickname": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Poreclă"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spitzname"
+          }
+        }
+      }
+    },
+    "No chats yet": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Niciun chat încă"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Noch keine Chats"
+          }
+        }
+      }
+    },
+    "No grade": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fără clasă"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keine Klasse"
+          }
+        }
+      }
+    },
+    "Not sent. Tap to try again.": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Netrimis. Atinge ca să încerci din nou."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nicht gesendet. Tippe, um es noch einmal zu versuchen."
+          }
+        }
+      }
+    },
+    "Only a nickname. No real names, birthdays or photos.": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Doar o poreclă. Fără nume reale, zile de naștere sau poze."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nur ein Spitzname. Keine echten Namen, Geburtstage oder Fotos."
           }
         }
       }
@@ -161,6 +641,102 @@
         }
       }
     },
+    "Open ZapaKid on your kid's phone, tap \"This is my kid's phone\" and scan this code.": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deschide ZapaKid pe telefonul copilului, atinge „Acesta e telefonul copilului meu” și scanează codul."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Öffne ZapaKid auf dem Handy deines Kindes, tippe auf „Das ist das Handy meines Kindes“ und scanne diesen Code."
+          }
+        }
+      }
+    },
+    "Or type the code": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sau scrie codul"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Oder gib den Code ein"
+          }
+        }
+      }
+    },
+    "Pair phone": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Asociază telefonul"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Handy koppeln"
+          }
+        }
+      }
+    },
+    "Pair this phone": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Asociază acest telefon"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dieses Handy koppeln"
+          }
+        }
+      }
+    },
+    "Pairing": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se asociază"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wird gekoppelt"
+          }
+        }
+      }
+    },
+    "Pairing QR code": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cod QR de asociere"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kopplungs-QR-Code"
+          }
+        }
+      }
+    },
     "Parent": {
       "localizations": {
         "ro": {
@@ -193,6 +769,38 @@
         }
       }
     },
+    "Parents": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Părinți"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eltern"
+          }
+        }
+      }
+    },
+    "Photo": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Poză"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Foto"
+          }
+        }
+      }
+    },
     "Placeholder: the final text is being reviewed.": {
       "localizations": {
         "ro": {
@@ -209,6 +817,22 @@
         }
       }
     },
+    "Preparatory class": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clasa pregătitoare"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vorschule"
+          }
+        }
+      }
+    },
     "Private chat for your family. Parents sign in with Apple or Google.": {
       "localizations": {
         "ro": {
@@ -221,6 +845,118 @@
           "stringUnit": {
             "state": "translated",
             "value": "Privater Chat für deine Familie. Eltern melden sich mit Apple oder Google an."
+          }
+        }
+      }
+    },
+    "Robot": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Robot"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Roboter"
+          }
+        }
+      }
+    },
+    "Robot %lld": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Robotul %lld"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Roboter %lld"
+          }
+        }
+      }
+    },
+    "Save": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Salvează"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Speichern"
+          }
+        }
+      }
+    },
+    "Scan the QR code": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scanează codul QR"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "QR-Code scannen"
+          }
+        }
+      }
+    },
+    "Send": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trimite"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Senden"
+          }
+        }
+      }
+    },
+    "Send a photo": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trimite o poză"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Foto senden"
+          }
+        }
+      }
+    },
+    "Share invitation": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trimite invitația"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Einladung teilen"
           }
         }
       }
@@ -321,6 +1057,38 @@
         }
       }
     },
+    "Start": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Începe"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Starten"
+          }
+        }
+      }
+    },
+    "The other parent signs in to ZapaKid and scans this code, or opens the link.": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Celălalt părinte se conectează în ZapaKid și scanează codul sau deschide linkul."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der andere Elternteil meldet sich bei ZapaKid an und scannt diesen Code oder öffnet den Link."
+          }
+        }
+      }
+    },
     "The parental agreement will appear here.": {
       "localizations": {
         "ro": {
@@ -337,6 +1105,22 @@
         }
       }
     },
+    "This is my kid's phone": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Acesta e telefonul copilului meu"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Das ist das Handy meines Kindes"
+          }
+        }
+      }
+    },
     "Try again": {
       "localizations": {
         "ro": {
@@ -349,6 +1133,54 @@
           "stringUnit": {
             "state": "translated",
             "value": "Erneut versuchen"
+          }
+        }
+      }
+    },
+    "Unread messages: %lld": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mesaje necitite: %lld"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ungelesene Nachrichten: %lld"
+          }
+        }
+      }
+    },
+    "Valid for 3 days. It works once.": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Valabil 3 zile. Merge o singură dată."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "3 Tage gültig. Funktioniert einmal."
+          }
+        }
+      }
+    },
+    "Voice message": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mesaj vocal"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sprachnachricht"
           }
         }
       }

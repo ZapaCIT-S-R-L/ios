@@ -7,7 +7,8 @@ import Testing
 ///   TEST_RUNNER_ZK_CALLS_E2E_URL=http://127.0.0.1:8790
 ///   TEST_RUNNER_ZK_CALLS_E2E_CONVERSATION=<conversation id>
 ///   TEST_RUNNER_ZK_CALLS_E2E_TOKEN_A=<chat token, device A>   TEST_RUNNER_ZK_CALLS_E2E_TOKEN_B=<chat token, device B>
-///   TEST_RUNNER_ZK_CALLS_E2E_DEVICE_A=<device id A>          TEST_RUNNER_ZK_CALLS_E2E_DEVICE_B=<device id B>
+///   TEST_RUNNER_ZK_CALLS_E2E_DEVICE_A=<accountId>.<deviceId>
+///   TEST_RUNNER_ZK_CALLS_E2E_DEVICE_B=<accountId>.<deviceId>
 /// (xcodebuild passes TEST_RUNNER_-prefixed variables to the tests without the prefix.)
 @Suite(.enabled(if: CallsE2E.configured, "set ZK_CALLS_E2E_* to run against a local calls service"))
 struct CallsServiceE2ETests {
@@ -27,32 +28,38 @@ struct CallsServiceE2ETests {
             bobSocket.close()
         }
 
-        // Both see a roster with both devices.
-        let roster = try await CallsE2E.first(in: bobEvents) { signal -> [String]? in
-            if case let .roster(people) = signal, people.count == 2 {
-                people.map(\.deviceId).sorted()
+        // Both see the roster with both devices, the server's epoch and key leader.
+        let call = try await CallsE2E.first(in: bobEvents) { signal -> CallSnapshot? in
+            if case let .roster(call) = signal, call.participants.count == 2 {
+                call
             } else {
                 nil
             }
         }
-        #expect(roster == [env.deviceA, env.deviceB].sorted())
+        #expect(call.participants.map(\.name).sorted() == [env.deviceA, env.deviceB].sorted())
+        let leader = try #require(call.keyLeader?.name)
+        let follower = leader == env.deviceA ? env.deviceB : env.deviceA
+        let leaderSocket = leader == env.deviceA ? aliceSocket : bobSocket
+        let followerEvents = leader == env.deviceA ? bobEvents : aliceEvents
 
-        // A key envelope from A reaches B unchanged (the service relays only the opaque blob).
-        let envelope = KeyEnvelope(epoch: 1, fromDevice: env.deviceA, toDevice: env.deviceB, blob: Data([1, 2, 3, 4]))
-        try await aliceSocket.send(.key(envelope))
-        let relayed = try await CallsE2E.first(in: bobEvents) { signal -> KeyEnvelope? in
+        // The leader's sealed key for the current epoch reaches the other device unchanged.
+        let envelope = KeyEnvelope(epoch: call.epoch, fromDevice: leader, toDevice: follower, blob: Data([1, 2, 3, 4]))
+        try await leaderSocket.send(.keys(epoch: call.epoch, [envelope]))
+        let relayed = try await CallsE2E.first(in: followerEvents) { signal -> KeyEnvelope? in
             if case let .key(got) = signal {
                 got
             } else {
                 nil
             }
         }
-        #expect(relayed == envelope)
+        #expect(relayed.blob == envelope.blob)
+        #expect(relayed.fromDevice == leader)
+        #expect(relayed.epoch == call.epoch)
 
         try await bob.leave(callId: grant.callId)
         let left = try await CallsE2E.first(in: aliceEvents) { signal -> String? in
-            if case let .left(device) = signal {
-                device
+            if case let .left(device, _) = signal {
+                device.name
             } else {
                 nil
             }

@@ -72,7 +72,7 @@ final class DeviceRegistration {
             if let directoryKey, directoryKey != ourKey {
                 return .failed(.identityMismatch)
             }
-            let keys = try pendingKeys(for: local, files: files)
+            let keys = try pendingKeys(for: local, account: account)
             let deviceId = try await api.registerDevice(keys, token: session.token)
             try files.write(JSONEncoder().encode(Registered(deviceId: deviceId)), to: Self.deviceFile)
             try files.delete(Self.pendingFile)
@@ -85,14 +85,15 @@ final class DeviceRegistration {
     }
 
     /// The keys from an earlier failed upload, or new ones (private records stored, public payload kept).
-    private func pendingKeys(for local: LocalIdentity, files: ProtectedFileStore) throws -> DeviceKeys {
+    private func pendingKeys(for local: LocalIdentity, account: AccountKeys) throws -> DeviceKeys {
+        let files = account.files
         if let data = try files.read(Self.pendingFile),
            let keys = try? JSONDecoder().decode(DeviceKeys.self, from: data),
            keys.identityKey == local.keyPair.identityKey.serialize().base64EncodedString()
         {
             return keys
         }
-        let store = try ZapaKidProtocolStore(identity: local, files: files)
+        let store = try ZapaKidProtocolStore(identity: local, files: files, peers: account.peers)
         let keys = try DeviceKeyGenerator(store: store).generate(oneTimeCount: oneTimeCount)
         try files.write(JSONEncoder().encode(keys), to: Self.pendingFile)
         return keys

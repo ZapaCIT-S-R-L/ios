@@ -12,6 +12,7 @@ struct KeySetupTests {
     let directory = FileManager.default.temporaryDirectory.appendingPathComponent("keys-\(UUID().uuidString)")
     let keychainService = "ro.zapakid.app.tests.identity.\(UUID().uuidString)"
     let accountId = "6f1c0e2a-0000-4000-8000-000000000001"
+    let peersService = "ro.zapakid.app.tests.peers.\(UUID().uuidString)"
     let context = NullContext()
 
     func files() throws -> ProtectedFileStore {
@@ -33,10 +34,16 @@ struct KeySetupTests {
     }
 
     func protocolStore() throws -> ZapaKidProtocolStore {
-        try ZapaKidProtocolStore(identity: newAccountIdentity(), files: files())
+        try ZapaKidProtocolStore(identity: newAccountIdentity(), files: files(), peers: peers())
+    }
+
+    func peers() -> PeerTrustStore {
+        PeerTrustStore(accountId: accountId, keychain: .syncedPeers(service: peersService, accountId: accountId))
     }
 
     func cleanUp() {
+        try? KeychainData.syncedPeers(service: peersService, accountId: accountId).clear()
+        try? KeychainData.syncedPeers(service: peersService, accountId: "bob").clear()
         try? KeychainData.syncedIdentity(service: keychainService, accountId: accountId).clear()
         try? FileManager.default.removeItem(at: directory)
     }
@@ -227,7 +234,8 @@ struct KeySetupTests {
         let alice = try protocolStore()
         let bob = try ZapaKidProtocolStore(
             identity: LocalIdentity(keyPair: IdentityKeyPair.generate(), registrationId: 42),
-            files: ProtectedFileStore(directory: other)
+            files: ProtectedFileStore(directory: other),
+            peers: PeerTrustStore(accountId: "bob", keychain: .syncedPeers(service: peersService, accountId: "bob"))
         )
         let bobKeys = try DeviceKeyGenerator(store: bob).generate(oneTimeCount: 1)
         let aliceAddress = try ProtocolAddress(name: "alice", deviceId: 1)

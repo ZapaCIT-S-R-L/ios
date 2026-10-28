@@ -13,14 +13,28 @@ public struct IceServer: Codable, Sendable, Equatable {
     }
 }
 
-/// `POST /v1/calls` and `POST /v1/calls/{id}/join` → `{callId, iceServers}`.
-public struct CallGrant: Codable, Sendable, Equatable {
+/// `POST /v1/calls` (201) and `POST /v1/calls/{id}/join` (200) → `{call, iceServers}`.
+public struct CallGrant: Decodable, Sendable, Equatable {
     public var callId: String
     public var iceServers: [IceServer]
+    public var call: CallSnapshot?
 
-    public init(callId: String, iceServers: [IceServer]) {
+    public init(callId: String, iceServers: [IceServer], call: CallSnapshot?) {
         self.callId = callId
         self.iceServers = iceServers
+        self.call = call
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case call, iceServers
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let call = try container.decode(CallSnapshot.self, forKey: .call)
+        try self.init(
+            callId: call.callId, iceServers: container.decode([IceServer].self, forKey: .iceServers), call: call
+        )
     }
 }
 

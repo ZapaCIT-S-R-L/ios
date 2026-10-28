@@ -4,6 +4,7 @@ import SwiftUI
 struct PeerAvatar: View {
     let peer: CallPeer
     let size: CGFloat
+    @Environment(\.zapaTheme) private var theme
 
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
@@ -11,7 +12,7 @@ struct PeerAvatar: View {
                 .padding(size * 0.06)
                 .overlay {
                     Circle()
-                        .strokeBorder(Color.green, lineWidth: max(4, size * 0.05))
+                        .strokeBorder(theme.speaking.color, lineWidth: max(4, size * 0.05))
                         .opacity(peer.isSpeaking ? 1 : 0)
                         .scaleEffect(peer.isSpeaking ? 1.04 : 0.96)
                         .animation(.easeInOut(duration: 0.25), value: peer.isSpeaking)
@@ -19,9 +20,9 @@ struct PeerAvatar: View {
             if peer.isMuted {
                 Image(systemName: "mic.slash.fill")
                     .font(.system(size: size * 0.16, weight: .bold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(theme.onDanger.color)
                     .padding(size * 0.06)
-                    .background(Circle().fill(Color.red))
+                    .background(Circle().fill(theme.danger.color))
                     .accessibilityHidden(true)
             }
         }
@@ -31,6 +32,7 @@ struct PeerAvatar: View {
 /// One bubble in the group call grid.
 struct PeerBubble: View {
     let peer: CallPeer
+    @Environment(\.zapaTheme) private var theme
     @ScaledMetric(relativeTo: .body) private var size: CGFloat = 96
 
     var body: some View {
@@ -38,7 +40,7 @@ struct PeerBubble: View {
             PeerAvatar(peer: peer, size: min(size, 140))
             Text(verbatim: peer.displayName)
                 .font(.headline)
-                .foregroundStyle(.white)
+                .foregroundStyle(theme.text.color)
                 .lineLimit(1)
                 .minimumScaleFactor(0.6)
         }

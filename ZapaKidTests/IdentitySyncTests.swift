@@ -25,6 +25,7 @@ struct IdentitySyncTests {
     let directory = FileManager.default.temporaryDirectory.appendingPathComponent("keys-\(UUID().uuidString)")
     let keychainService = "ro.zapakid.app.tests.identity.\(UUID().uuidString)"
     let accountId = "6f1c0e2a-0000-4000-8000-000000000001"
+    let peersService = "ro.zapakid.app.tests.peers.\(UUID().uuidString)"
 
     func identityStore() -> LocalIdentityStore {
         LocalIdentityStore(
@@ -40,11 +41,18 @@ struct IdentitySyncTests {
     }
 
     func protocolStore() throws -> ZapaKidProtocolStore {
-        try ZapaKidProtocolStore(identity: newAccountIdentity(), files: ProtectedFileStore(directory: directory))
+        try ZapaKidProtocolStore(
+            identity: newAccountIdentity(), files: ProtectedFileStore(directory: directory),
+            peers: PeerTrustStore(
+                accountId: accountId,
+                keychain: .syncedPeers(service: peersService, accountId: accountId)
+            )
+        )
     }
 
     func cleanUp() {
         try? KeychainData.syncedIdentity(service: keychainService, accountId: accountId).clear()
+        try? KeychainData.syncedPeers(service: peersService, accountId: accountId).clear()
         try? FileManager.default.removeItem(at: directory)
     }
 

@@ -16,8 +16,8 @@ public protocol FrameKeyInstaller: Sendable {
     func useForSending(epoch: UInt32)
 }
 
-/// A sealed key on its way through the calls service, which relays it to `toDevice` and nothing else.
-/// Wire format (JSON on the call's event socket): `{"epoch", "fromDevice", "toDevice", "blob": base64}`.
+/// A sealed key on its way through the calls service, which relays it to `toDevice` and nothing else. Devices are
+/// `<accountId>.<deviceId>`; on the wire they become `toAccount`/`toDevice` (out) and `fromAccount`/`fromDevice` (in).
 public struct KeyEnvelope: Codable, Sendable, Equatable {
     public var epoch: UInt32
     public var fromDevice: String
@@ -31,3 +31,6 @@ public struct KeyEnvelope: Codable, Sendable, Equatable {
         self.blob = blob
     }
 }
+
+/// A call key sealer allowed in release builds (libsignal). Fakes must stay inside `#if DEBUG`.
+public protocol ReleaseCallKeySealer: CallKeySealer {}
