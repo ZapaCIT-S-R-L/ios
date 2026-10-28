@@ -33,6 +33,10 @@ public struct KeychainSessionStore: SessionStore {
     }
 
     public func load() throws -> Session? {
+        try loadData().flatMap { try? JSONDecoder().decode(Session.self, from: $0) }
+    }
+
+    func loadData() throws -> Data? {
         var query = baseQuery
         query[kSecReturnData as String] = true
         query[kSecMatchLimit as String] = kSecMatchLimitOne
@@ -42,11 +46,14 @@ public struct KeychainSessionStore: SessionStore {
             return nil
         }
         guard status == errSecSuccess, let data = result as? Data else { throw KeychainError(status: status) }
-        return try? JSONDecoder().decode(Session.self, from: data)
+        return data
     }
 
     public func save(_ session: Session) throws {
-        let data = try JSONEncoder().encode(session)
+        try saveData(JSONEncoder().encode(session))
+    }
+
+    func saveData(_ data: Data) throws {
         try clear()
         var item = baseQuery
         item[kSecValueData as String] = data

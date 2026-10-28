@@ -7,8 +7,10 @@ struct SignInView: View {
     let auth: AuthModel
     let google: GoogleSignInProviding
     let ageCheck: AgeRangeProviding
+    let pairing: KidPairingModel
 
     @Environment(\.colorScheme) private var colorScheme
+    @State private var pairingKidPhone = false
 
     var body: some View {
         ScrollView {
@@ -65,12 +67,25 @@ struct SignInView: View {
                     .font(.footnote.italic())
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
+                Button {
+                    pairingKidPhone = true
+                } label: {
+                    Label("This is my kid's phone", systemImage: "qrcode.viewfinder")
+                        .frame(maxWidth: .infinity, minHeight: 44)
+                }
+                .buttonStyle(.bordered)
+                .accessibilityIdentifier("signin.kidPhone")
             }
             .padding(24)
         }
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("signin.screen")
         .task { await auth.prepareNonce() }
+        .sheet(isPresented: $pairingKidPhone) {
+            NavigationStack {
+                PairPhoneView(model: pairing)
+            }
+        }
     }
 
     private func finishApple(_ result: Result<ASAuthorization, Error>) async {
