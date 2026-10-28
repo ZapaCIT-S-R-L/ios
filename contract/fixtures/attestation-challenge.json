@@ -1,0 +1,11 @@
+{
+  "operation": "POST /v1/attestation/challenge",
+  "request": null,
+  "response": {
+    "status": 200,
+    "body": {
+      "challenge": "Ch4llenge-Ch4llenge-Ch4llenge-Ch4llenge-Abc",
+      "expiresAt": "2026-10-28T18:05:00Z"
+    }
+  }
+}

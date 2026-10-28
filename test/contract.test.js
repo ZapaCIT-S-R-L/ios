@@ -21,6 +21,8 @@ export const APP_OPERATIONS = [
   "POST /v1/devices",
   "GET /v1/accounts/{accountId}/identity",
   "GET /v1/keys/prekeys",
+  "POST /v1/attestation/challenge",
+  "POST /v1/attestation/apple",
 ];
 
 async function contract() {
@@ -89,6 +91,16 @@ for (const fixture of fixtures) {
       const body = resolve(doc, operation.requestBody, `${operationPath}/requestBody`);
       assert.ok(body.node?.content?.["application/json"], "the operation takes a JSON body");
       validate(`${body.path}/content/application~1json/schema`, fixture.request, "request");
+    }
+
+    for (const [name, value] of Object.entries(fixture.requestHeaders ?? {})) {
+      const index = (operation.parameters ?? []).findIndex((p) => {
+        const param = resolve(doc, p, "").node;
+        return param.in === "header" && param.name.toLowerCase() === name.toLowerCase();
+      });
+      assert.ok(index >= 0, `request header ${name} is a parameter of ${fixture.operation}`);
+      const param = resolve(doc, operation.parameters[index], `${operationPath}/parameters/${index}`);
+      validate(`${param.path}/schema`, value, `request header ${name}`);
     }
 
     const status = String(fixture.response.status);

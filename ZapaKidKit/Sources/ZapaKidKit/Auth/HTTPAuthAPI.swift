@@ -7,13 +7,20 @@ import Foundation
 ///   `POST /v1/auth/google` `{nonce, idToken, ageRange}` → `{session: {token, expiresAt}, parent, newAccount}`
 /// - `GET /v1/me` → `Parent`;  `POST /v1/auth/logout` → 204 (both with `Authorization: Bearer <token>`)
 /// - errors `{"error": {"code", "message"}}`; the app branches on `code` only and never logs bodies or tokens.
-public struct HTTPAuthAPI: AuthAPI, DeviceAPI {
+/// With an `attestor`, `POST /v1/devices` and `PUT /v1/keys/identity` carry the `ZapaKid-Attestation` header.
+public struct HTTPAuthAPI: AuthAPI, DeviceAPI, AppAttestAPI {
     public let baseURL: URL
     private let session: URLSession
+    private let attestor: AppAttestor?
 
-    public init(baseURL: URL, session: URLSession = URLSession(configuration: HTTPAuthAPI.secureConfiguration())) {
+    public init(
+        baseURL: URL,
+        session: URLSession = URLSession(configuration: HTTPAuthAPI.secureConfiguration()),
+        attestor: AppAttestor? = nil
+    ) {
         self.baseURL = baseURL
         self.session = session
+        self.attestor = attestor
     }
 
     /// The staging API with the secure session.
@@ -68,7 +75,7 @@ public struct HTTPAuthAPI: AuthAPI, DeviceAPI {
         struct Reply: Decodable {
             var deviceId: Int
         }
-        let reply: Reply = try await send("POST", "v1/devices", token: token, body: Self.encoder.encode(keys))
+        let reply: Reply = try await attested("POST", "v1/devices", token: token, body: Self.encoder.encode(keys))
         guard (1 ... 127).contains(reply.deviceId) else { throw AuthAPIError.invalidResponse }
         return reply.deviceId
     }
@@ -78,7 +85,8 @@ public struct HTTPAuthAPI: AuthAPI, DeviceAPI {
         struct Reply: Decodable {
             var deviceId: Int
         }
-        let reply: Reply = try await send("PUT", "v1/keys/identity", token: token, body: Self.encoder.encode(keys))
+        let body = try Self.encoder.encode(keys)
+        let reply: Reply = try await attested("PUT", "v1/keys/identity", token: token, body: body)
         guard (1 ... 127).contains(reply.deviceId) else { throw AuthAPIError.invalidResponse }
         return reply.deviceId
     }
@@ -103,6 +111,44 @@ public struct HTTPAuthAPI: AuthAPI, DeviceAPI {
 
     public func preKeyCount(token: String) async throws -> PreKeyCount {
         try await send("GET", "v1/keys/prekeys", token: token)
+    }
+
+    // MARK: - App attestation
+
+    public func attestationChallenge() async throws -> String {
+        struct Reply: Decodable {
+            var challenge: String
+        }
+        let reply: Reply = try await send("POST", "v1/attestation/challenge")
+        return reply.challenge
+    }
+
+    public func registerAppAttestKey(keyId: String, attestationObject: Data, challenge: String) async throws {
+        struct Body: Encodable {
+            var keyId: String
+            var attestationObject: String
+            var challenge: String
+        }
+        let body = try Self.encoder.encode(Body(
+            keyId: keyId, attestationObject: attestationObject.base64EncodedString(), challenge: challenge
+        ))
+        _ = try await data("POST", "v1/attestation/apple", token: nil, body: body)
+    }
+
+    /// A request with app attestation over its exact body. When the API refuses the key (unknown to it, or unused
+    /// for 180 days and deleted), one more try with a new key; a second refusal is final.
+    private func attested<Reply: Decodable>(
+        _ method: String, _ path: String, token: String, body: Data
+    ) async throws -> Reply {
+        guard let attestor else { return try await send(method, path, token: token, body: body) }
+        let header = try await attestor.header(for: body)
+        do {
+            return try await send(method, path, token: token, body: body, attestation: header)
+        } catch AuthAPIError.attestationFailed where header != nil {
+            await attestor.discardKey()
+            let fresh = try await attestor.header(for: body)
+            return try await send(method, path, token: token, body: body, attestation: fresh)
+        }
     }
 
     // MARK: - Bodies
@@ -161,9 +207,9 @@ public struct HTTPAuthAPI: AuthAPI, DeviceAPI {
     }()
 
     private func send<Reply: Decodable>(
-        _ method: String, _ path: String, token: String? = nil, body: Data? = nil
+        _ method: String, _ path: String, token: String? = nil, body: Data? = nil, attestation: String? = nil
     ) async throws -> Reply {
-        let data = try await data(method, path, token: token, body: body)
+        let data = try await data(method, path, token: token, body: body, attestation: attestation)
         do {
             return try Self.decoder.decode(Reply.self, from: data)
         } catch {
@@ -171,7 +217,9 @@ public struct HTTPAuthAPI: AuthAPI, DeviceAPI {
         }
     }
 
-    private func data(_ method: String, _ path: String, token: String?, body: Data?) async throws -> Data {
+    private func data(
+        _ method: String, _ path: String, token: String?, body: Data?, attestation: String? = nil
+    ) async throws -> Data {
         // `path` is already escaped (see accountIdentity), so join strings instead of appendingPathComponent,
         // which would escape the escapes.
         let base = baseURL.absoluteString.hasSuffix("/") ? baseURL.absoluteString : baseURL.absoluteString + "/"
@@ -185,6 +233,9 @@ public struct HTTPAuthAPI: AuthAPI, DeviceAPI {
         }
         if let token {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        if let attestation {
+            request.setValue(attestation, forHTTPHeaderField: AppAttestor.headerName)
         }
 
         let data: Data

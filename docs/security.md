@@ -31,30 +31,30 @@ cryptographic primitives of its own.
 - **No chat content** in logs, crash reports, analytics or push payloads. Pushes carry only an opaque "new message"
   signal; a Notification Service Extension decrypts on the phone.
 
-## Planned: App Attest (later PR, required on sign-in before launch)
+## App Attest
 
 Goal: the API serves only genuine copies of the app on real Apple devices (DeviceCheck App Attest). Decided
-2026-10-26: **required on sign-in from launch**. Endpoints from `openapi.yaml` in ZapaCIT-S-R-L/api (tag
-`Draft: App attestation`, still a draft there):
+2026-10-26: **required in production**. Endpoints from `openapi.yaml` in ZapaCIT-S-R-L/zapakid-api (tag
+`App attestation`); the client is `AppAttestor` (ZapaKidKit, `Auth/AppAttest.swift`):
 
-1. First launch: `DCAppAttestService.shared.isSupported` (false on the simulator: UI tests keep the stub backend;
-   staging needs a debug path, to be agreed with the API). `generateKey()` → key ID, kept in the Keychain
-   (`WhenUnlockedThisDeviceOnly`).
+1. Once per install (parents and kids share it): `DCAppAttestService.shared.generateKey()` → key ID.
 2. `POST /v1/attestation/challenge` → `{challenge, expiresAt}` (single use, 5 minutes, no session needed).
 3. `attestKey(keyID, clientDataHash: SHA256(challenge))` → attestation object.
    `POST /v1/attestation/apple {keyId, attestationObject, challenge}` → 204. The API verifies the chain to Apple's
    App Attest root, App ID `9572LYGZ7S.ro.zapakid.app`, key ID, counter 0, production `aaguid` in production.
-4. Sign-in and other sensitive calls carry an assertion in the `ZapaKid-Attestation` header:
-   `generateAssertion(keyID, clientDataHash: SHA256(request body))`; the API checks the signature and that the
-   counter goes up. A refused client gets `403 attestation_failed` (the sign-in client already maps it to a
-   message).
-5. Reinstall or key loss: generate and attest a new key. App Attest protects the API; chat content stays end-to-end
+   Only then is the key ID kept in the Keychain (`WhenUnlockedThisDeviceOnly`, never synced).
+4. Attested calls carry `ZapaKid-Attestation: v1 keyId=<base64> assertion=<base64>`, the assertion from
+   `generateAssertion(keyID, clientDataHash: SHA256(exact body bytes))`; the API checks the signature and that the
+   counter goes up. Now: `POST /v1/devices` and `PUT /v1/keys/identity` (parents and kids). Still to do: sign-in
+   (`POST /v1/auth/apple`, `/v1/auth/google`) and `POST /v1/pairing/redeem`.
+5. Key loss (`DCError.invalidKey`, e.g. a Keychain item that outlived a reinstall) or a key the API refuses
+   (`403 attestation_failed`: unknown, or unused for 180 days): one new key and one more try, then the refusal is
+   final (the setup screen says so, no retry loop). App Attest protects the API; chat content stays end-to-end
    encrypted either way.
-6. Entitlement `com.apple.developer.devicecheck.appattest-environment` (`development` for Debug, `production` for
-   App Store builds).
-
-Tests: the attestation client against a mocked API (as `HTTPAuthAPITests`), `DCAppAttestService` behind a protocol
-with a fake, and a sign-in test that the header is sent.
+6. Simulator (no App Attest): only debug builds send the request without the header; the API accepts that only on
+   staging (`ATTESTATION_POLICY=allowlist`) for allowlisted test accounts. Release builds never skip.
+7. No entitlement needed: TestFlight and App Store builds use the production environment whatever the entitlement
+   says (docs/testflight.md); development builds use the development environment, which staging accepts.
 
 ## Planned: key verification (later PR)
 

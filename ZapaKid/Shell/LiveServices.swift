@@ -110,7 +110,7 @@ enum LiveServices {
             nil
         }
         let registration = DeviceRegistration(
-            api: HTTPAuthAPI.staging, keyspace: { try AccountKeys.app(accountId: $0, kid: kid) },
+            api: AppAttestation.devicesAPI, keyspace: { try AccountKeys.app(accountId: $0, kid: kid) },
             reshare: WaitForReshare()
         )
         let setup = DeviceSetup(

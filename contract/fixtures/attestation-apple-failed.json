@@ -1,0 +1,13 @@
+{
+  "operation": "POST /v1/attestation/apple",
+  "request": null,
+  "response": {
+    "status": 403,
+    "body": {
+      "error": {
+        "code": "attestation_failed",
+        "message": "TEST"
+      }
+    }
+  }
+}

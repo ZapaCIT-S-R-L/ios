@@ -1,5 +1,8 @@
 {
   "operation": "POST /v1/devices",
+  "requestHeaders": {
+    "ZapaKid-Attestation": "v1 keyId=ERERERERERERERERERERERERERERERERERERERERERE= assertion=VEVTVCBhc3NlcnRpb24="
+  },
   "request": {
     "registrationId": 1234,
     "identityKey": "BRERERERERERERERERERERERERERERERERERERERERER",
