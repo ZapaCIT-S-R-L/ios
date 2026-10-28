@@ -60,11 +60,7 @@ struct AppDependencies {
             google: GoogleSignIn(),
             ageCheck: DeclaredAgeRangeCheck(),
             families: HTTPFamiliesAPI.staging,
-            fingerprint: {
-                (try? LocalIdentityStore().loadOrCreate()).map {
-                    IdentityFingerprint.hex(Data($0.keyPair.publicKey.serialize()))
-                }
-            },
+            fingerprint: { PairingFingerprint.current(LocalIdentityStore()) },
             makeServices: { me, isKid in
                 let services = LiveServices.make(me: me, kid: isKid, auth: auth)
                 // Names and robots for chats and calls: the parent's family (created on first use) or the kid's.
