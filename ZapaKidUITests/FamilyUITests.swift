@@ -37,6 +37,26 @@ final class FamilyUITests: XCTestCase {
         XCTAssertFalse(app.images["pairing.qr"].label.isEmpty, "VoiceOver says what the QR is for")
     }
 
+    /// Stefan (2026-10-28): "father can't change name".
+    func testParentChangesTheirName() {
+        let app = launch(session: "signed-in")
+        XCTAssertTrue(app.tabBars.buttons["Family"].waitForExistence(timeout: 10))
+        app.tabBars.buttons["Family"].tap()
+
+        let me = app.buttons["family.me"]
+        XCTAssertTrue(me.waitForExistence(timeout: 5))
+        me.tap()
+        let field = app.textFields["rename.name"]
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        field.tap()
+        field.clearAndType("Tata Stefan")
+        app.buttons["rename.save"].tap()
+
+        let renamed = NSPredicate(format: "label CONTAINS %@", "Tata Stefan")
+        expectation(for: renamed, evaluatedWith: me)
+        waitForExpectations(timeout: 5)
+    }
+
     func testParentInvitesTheSecondParent() {
         let app = launch(session: "signed-in")
         XCTAssertTrue(app.tabBars.buttons["Family"].waitForExistence(timeout: 10))
@@ -62,5 +82,12 @@ final class FamilyUITests: XCTestCase {
 
         XCTAssertTrue(app.staticTexts["kid.hello"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["kid.hello"].label.contains("Ana"))
+    }
+}
+
+private extension XCUIElement {
+    func clearAndType(_ text: String) {
+        let current = value as? String ?? ""
+        typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: current.count) + text)
     }
 }
