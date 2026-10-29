@@ -3,6 +3,8 @@ import Foundation
 public enum ChatRole: String, Codable, Sendable {
     case parent
     case kid
+    /// A guardian who follows a kid's conversation without writing to it (the service's role "observer").
+    case observer
 }
 
 public struct DeviceRef: Codable, Sendable, Equatable {
