@@ -51,6 +51,10 @@ final class PushTargetSync {
                 try await api.setDevicePush(deviceId: deviceId, target: target, token: token)
                 synced = .known(target)
             } catch {
+                // A newer target arrived while this request was out: send it now rather than wait for a callback.
+                if wanted != .known(target) {
+                    continue
+                }
                 return // Left unsynced: the next token change or registration tries again.
             }
         }

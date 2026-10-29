@@ -88,6 +88,8 @@ struct PushTargetSyncTests {
     final class GatedPushAPI: DevicePushAPI, @unchecked Sendable {
         var targets: [PushTarget?] = []
         var gate: CheckedContinuation<Void, Never>?
+        /// The held first request fails once released (the server or network refused it).
+        var failFirst = false
         private var holdFirst = true
 
         func setDevicePush(deviceId _: Int, target: PushTarget?, token _: String) async throws {
@@ -95,6 +97,9 @@ struct PushTargetSyncTests {
             guard holdFirst else { return }
             holdFirst = false
             await withCheckedContinuation { gate = $0 }
+            if failFirst {
+                throw URLError(.networkConnectionLost)
+            }
         }
     }
 
@@ -118,6 +123,27 @@ struct PushTargetSyncTests {
         #expect(api.targets == [PushTarget(provider: .apns, token: "aa"), PushTarget(provider: .apns, token: "bb")])
         await sync.deviceRegistered()
         #expect(api.targets.count == 2)
+    }
+
+    @Test func aTokenThatArrivesDuringAFailedRequestIsStillSent() async throws {
+        let api = GatedPushAPI()
+        api.failFirst = true
+        let box = Box()
+        box.deviceId = 1
+        let sync = PushTargetSync(api: api, token: { box.session }, deviceId: { box.deviceId })
+
+        let first = Task { await sync.voipTokenChanged("aa") }
+        for _ in 0 ..< 200 where api.gate == nil {
+            try await Task.sleep(for: .milliseconds(5))
+        }
+        #expect(api.gate != nil)
+
+        await sync.voipTokenChanged("bb")
+        api.gate?.resume() // PUT(aa) fails now.
+        await first.value
+
+        // bb went out without waiting for another PushKit or registration callback.
+        #expect(api.targets == [PushTarget(provider: .apns, token: "aa"), PushTarget(provider: .apns, token: "bb")])
     }
 
     @Test func noSessionMeansNothingIsSent() async {
