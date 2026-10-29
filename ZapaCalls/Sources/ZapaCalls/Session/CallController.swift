@@ -193,17 +193,21 @@ public final class CallController {
             answeredAt = answered
         }
         let others = call.participants.filter { $0.name != me }
-        participants = others.map { person in
+        let listed = others.map { person in
             let known = participants.first { $0.deviceId == person.name } ?? participants.first {
                 $0.accountId == person.accountId
             }
-            let listed = directory?(person.accountId)
+            let directoryEntry = directory?(person.accountId)
             return CallPeer(
                 accountId: person.accountId, deviceId: person.name,
-                displayName: listed?.displayName ?? known?.displayName ?? "",
-                avatar: listed?.avatar ?? known?.avatar ?? "robot-1", role: person.role,
+                displayName: directoryEntry?.displayName ?? known?.displayName ?? "",
+                avatar: directoryEntry?.avatar ?? known?.avatar ?? "robot-1", role: person.role,
                 isMuted: false, isSpeaking: known?.isSpeaking ?? false
             )
+        }
+        // Still ringing: the roster lists only this phone, so keep the invited peers on screen until someone joins.
+        if !others.isEmpty || hadOthers {
+            participants = listed
         }
         trackOwner = Dictionary(
             others.flatMap { person in person.tracks.map { ($0, person.name) } }

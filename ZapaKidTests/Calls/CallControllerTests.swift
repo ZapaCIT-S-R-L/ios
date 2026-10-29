@@ -56,6 +56,19 @@ struct CallControllerTests {
         #expect(await eventually { call.phase == .active })
     }
 
+    /// Calling: the roster lists only this phone until the callee joins. The callee's robot stays on screen meanwhile
+    /// (it vanished after 1–2 s, leaving "Calling…" alone; Stefan, 2026-10-29).
+    @Test func theCalleeStaysShownWhileTheCallRings() async {
+        let call = controller()
+        await call.startCall(conversationId: "conv-1", peers: [mama])
+
+        api.push(roster(["acc-k.1"]))
+        try? await Task.sleep(for: .milliseconds(200))
+
+        #expect(call.phase == .calling)
+        #expect(call.participants.map(\.displayName) == ["Mama"])
+    }
+
     /// Joining a call: the roster with the caller's track arrived before this phone's SFU session existed, the pull
     /// went out with an empty session id (404), and the track was never pulled again. No voice (Stefan, 2026-10-29).
     @Test func aRosterDuringStartIsSubscribedOnceTheSessionExists() async {
