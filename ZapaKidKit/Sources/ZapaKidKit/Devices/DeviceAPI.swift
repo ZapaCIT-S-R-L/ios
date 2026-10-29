@@ -67,3 +67,25 @@ public protocol DeviceAPI: Sendable {
     /// `PUT /v1/keys/identity` → this phone's device id (it becomes the account's only device).
     func changeIdentity(_ keys: DeviceKeys, token: String) async throws -> Int
 }
+
+/// Where a device's content-free wake-ups go: APNs (a PushKit VoIP token, for iPhones) or FCM (Android).
+public struct PushTarget: Equatable, Sendable {
+    public enum Provider: String, Sendable {
+        case apns
+        case fcm
+    }
+
+    public var provider: Provider
+    public var token: String
+
+    public init(provider: Provider, token: String) {
+        self.provider = provider
+        self.token = token
+    }
+}
+
+/// `PUT /v1/devices/{deviceId}/push` (openapi.yaml, "Devices and keys"): sets this phone's wake-up target, or clears
+/// it (`nil`). Only the session's own device may be set.
+public protocol DevicePushAPI: Sendable {
+    func setDevicePush(deviceId: Int, target: PushTarget?, token: String) async throws
+}

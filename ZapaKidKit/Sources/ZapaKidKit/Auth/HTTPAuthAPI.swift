@@ -8,7 +8,7 @@ import Foundation
 /// - `GET /v1/me` → `Parent`;  `POST /v1/auth/logout` → 204 (both with `Authorization: Bearer <token>`)
 /// - errors `{"error": {"code", "message"}}`; the app branches on `code` only and never logs bodies or tokens.
 /// With an `attestor`, `POST /v1/devices` and `PUT /v1/keys/identity` carry the `ZapaKid-Attestation` header.
-public struct HTTPAuthAPI: AuthAPI, DeviceAPI, AppAttestAPI {
+public struct HTTPAuthAPI: AuthAPI, DeviceAPI, DevicePushAPI, AppAttestAPI {
     public let baseURL: URL
     private let session: URLSession
     private let attestor: AppAttestor?
@@ -89,6 +89,14 @@ public struct HTTPAuthAPI: AuthAPI, DeviceAPI, AppAttestAPI {
         let reply: Reply = try await attested("PUT", "v1/keys/identity", token: token, body: body)
         guard (1 ... 127).contains(reply.deviceId) else { throw AuthAPIError.invalidResponse }
         return reply.deviceId
+    }
+
+    /// `PUT /v1/devices/{deviceId}/push`: nulls clear the target (JSONEncoder would drop them, so this is spelled out).
+    public func setDevicePush(deviceId: Int, target: PushTarget?, token: String) async throws {
+        let fields: [String: Any] = target.map { ["provider": $0.provider.rawValue, "token": $0.token] }
+            ?? ["provider": NSNull(), "token": NSNull()]
+        let body = try JSONSerialization.data(withJSONObject: fields)
+        _ = try await data("PUT", "v1/devices/\(deviceId)/push", token: token, body: body)
     }
 
     public func accountIdentity(accountId: String, token: String) async throws -> String? {

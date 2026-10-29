@@ -48,8 +48,15 @@ enum LiveServices {
                 directory: { [weak services] account in services?.peer(account) }
             )
         }
+        // The VoIP token goes to the server once this phone is registered (in either order).
+        let pushSync = PushTargetSync(
+            api: AppAttestation.devicesAPI,
+            token: { auth.sessionToken },
+            deviceId: { (try? AccountKeys.app(accountId: me, kid: kid)).flatMap(DeviceRegistration.registeredDeviceId) }
+        )
         services.setup = deviceSetup(me: me, kid: kid, auth: auth, endKidSession: endKidSession) { [weak services] in
             box.sessions = SecureSessions.make(accountId: me, kid: kid, bundles: bundles)
+            Task { await pushSync.deviceRegistered() }
             guard let services else { return }
             Task {
                 await services.chat.loadConversations()
@@ -59,6 +66,10 @@ enum LiveServices {
         #if canImport(PushKit)
             // Start PushKit at sign-in, so a killed app is woken for an incoming call.
             let pushes = VoIPPushes(coordinator: services.calls)
+            pushes.onToken = { data in
+                let hex = data.map(PushTargetSync.hex)
+                Task { await pushSync.voipTokenChanged(hex) }
+            }
             pushes.register()
             services.voipPushes = pushes
         #endif
