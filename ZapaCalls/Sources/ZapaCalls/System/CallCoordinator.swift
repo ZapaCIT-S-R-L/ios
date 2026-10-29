@@ -1,6 +1,16 @@
 import Foundation
 import Observation
 
+/// Why a call the user placed ended without a conversation, shown briefly after the call screen closes.
+public struct CallNotice: Equatable, Sendable {
+    public enum Reason: Equatable, Sendable {
+        case declined, noAnswer, interrupted
+    }
+
+    public let reason: Reason
+    public let names: [String]
+}
+
 public enum CallDirection: Sendable, Equatable {
     case incoming, outgoing
 }
@@ -10,6 +20,8 @@ public enum CallDirection: Sendable, Equatable {
 @Observable
 public final class CallCoordinator: CallSystemActions {
     public private(set) var current: CallController?
+    /// Why the last call this phone placed ended (declined, no answer, interrupted); nil after a normal hang-up.
+    public private(set) var notice: CallNotice?
     /// Which call CallKit last refused (no `voip` background mode, Do Not Disturb, …), so the UI can say so.
     public private(set) var refused: CallDirection?
     /// The media engine follows CallKit's audio session. CallKit may activate it before an outgoing call's engine
@@ -115,6 +127,34 @@ public final class CallCoordinator: CallSystemActions {
         }
     }
 
+    // MARK: The app's buttons
+
+    /// Answers the ringing call through the system, so CallKit's own UI stops ringing.
+    public func accept() async {
+        guard let current else { return }
+        do {
+            guard let uuid = currentUUID else { throw CancellationError() }
+            try await system.requestAnswer(uuid: uuid)
+        } catch {
+            await current.accept()
+        }
+    }
+
+    /// Declines a ringing call or hangs up, through the system.
+    public func hangUp() async {
+        guard let current else { return }
+        do {
+            guard let uuid = currentUUID else { throw CancellationError() }
+            try await system.requestEnd(uuid: uuid)
+        } catch {
+            if current.phase == .ringing {
+                await current.decline()
+            } else {
+                await current.hangUp()
+            }
+        }
+    }
+
     // MARK: CallKit actions
 
     public func answer(_ uuid: UUID) async {
@@ -191,9 +231,26 @@ public final class CallCoordinator: CallSystemActions {
             outcome: .init(endReason: reason, wasConnected: controller.connectedAt != nil),
             conversationId: conversationId
         )
+        notice = Self.notice(for: reason, direction: direction, peers: controller.participants)
         current = nil
         currentUUID = nil
         Task { await log.record(entry) }
+    }
+
+    /// The banner showed the notice.
+    public func clearNotice() {
+        notice = nil
+    }
+
+    static func notice(for reason: CallEndReason, direction: CallLogEntry.Direction, peers: [CallPeer]) -> CallNotice? {
+        guard direction == .outgoing else { return nil }
+        let names = peers.map(\.displayName).filter { !$0.isEmpty }
+        return switch reason {
+        case .declined: CallNotice(reason: .declined, names: names)
+        case .noAnswer: CallNotice(reason: .noAnswer, names: names)
+        case .failed: CallNotice(reason: .interrupted, names: names)
+        case .hungUp, .remoteEnded, .missed: nil
+        }
     }
 
     static func systemReason(_ reason: CallEndReason) -> CallSystemEndReason {

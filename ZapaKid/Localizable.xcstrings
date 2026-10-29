@@ -1,6 +1,38 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "%@ declined the call": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ a refuzat apelul"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ hat den Anruf abgelehnt"
+          }
+        }
+      }
+    },
+    "%@ didn't answer": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ nu a răspuns"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ hat nicht geantwortet"
+          }
+        }
+      }
+    },
     "A call couldn't ring": {
       "localizations": {
         "ro": {
@@ -1213,6 +1245,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Der Anruf konnte nicht starten"
+          }
+        }
+      }
+    },
+    "The call was interrupted": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apelul s-a întrerupt"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Anruf wurde unterbrochen"
           }
         }
       }

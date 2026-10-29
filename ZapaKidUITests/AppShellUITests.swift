@@ -111,9 +111,9 @@ final class AppShellUITests: XCTestCase {
         XCTAssertTrue(app.buttons["call.end"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["call.timer"].waitForExistence(timeout: 10))
         app.buttons["call.end"].tap()
-        XCTAssertTrue(app.buttons["call.close"].waitForExistence(timeout: 5))
-        app.buttons["call.close"].tap()
+        // Hanging up goes straight back to the chat; no "Close" screen (Stefan, 2026-10-29).
         XCTAssertTrue(app.textFields["chat.input"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["call.close"].exists)
     }
 
     func testTheCallsTabListsCallsAfterACall() {
@@ -123,7 +123,7 @@ final class AppShellUITests: XCTestCase {
         app.buttons["chat.call"].tap()
         XCTAssertTrue(app.buttons["call.end"].waitForExistence(timeout: 5))
         app.buttons["call.end"].tap()
-        app.buttons["call.close"].tap()
+        XCTAssertTrue(app.textFields["chat.input"].waitForExistence(timeout: 5))
 
         app.tabBars.buttons["Calls"].tap()
 

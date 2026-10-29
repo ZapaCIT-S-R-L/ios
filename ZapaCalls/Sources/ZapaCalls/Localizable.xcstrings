@@ -113,22 +113,6 @@
         }
       }
     },
-    "Close": {
-      "localizations": {
-        "ro": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Închide"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Schließen"
-          }
-        }
-      }
-    },
     "Connecting…": {
       "localizations": {
         "ro": {

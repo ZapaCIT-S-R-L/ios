@@ -16,10 +16,26 @@ test("finds SwiftUI and String(localized:) literals, interpolation as %lld", () 
         "on the next line"
     )
   `;
-  assert.deepEqual(
-    [...keysIn(swift)].sort(),
-    ["Sign in with Google", "Sign out", "Signs out on this phone", "Try again in %lld seconds.", "on the next line"],
-  );
+  assert.deepEqual([...keysIn(swift)].sort(), [
+    "Sign in with Google",
+    "Sign out",
+    "Signs out on this phone",
+    "Try again in %lld seconds.",
+    "on the next line",
+  ]);
+});
+
+test("names are text: interpolating a name or names is %@, not %lld", () => {
+  const swift = `
+    Text("\\(names) declined the call")
+    Text("\\(person.name) is calling")
+    Text("\\(count) new messages")
+  `;
+  assert.deepEqual([...keysIn(swift)].sort(), [
+    "%@ declined the call",
+    "%@ is calling",
+    "%lld new messages",
+  ]);
 });
 
 const catalog = {
@@ -31,7 +47,11 @@ const catalog = {
         de: { stringUnit: { state: "translated", value: "Abmelden" } },
       },
     },
-    "Half done": { localizations: { ro: { stringUnit: { state: "translated", value: "Pe jumătate" } } } },
+    "Half done": {
+      localizations: {
+        ro: { stringUnit: { state: "translated", value: "Pe jumătate" } },
+      },
+    },
     "Needs review": {
       localizations: {
         ro: { stringUnit: { state: "needs_review", value: "x" } },
@@ -44,7 +64,9 @@ const catalog = {
         ro: {
           variations: {
             plural: {
-              one: { stringUnit: { state: "translated", value: "%lld secundă" } },
+              one: {
+                stringUnit: { state: "translated", value: "%lld secundă" },
+              },
               other: { stringUnit: { state: "new", value: "" } },
             },
           },
@@ -52,8 +74,12 @@ const catalog = {
         de: {
           variations: {
             plural: {
-              one: { stringUnit: { state: "translated", value: "%lld Sekunde" } },
-              other: { stringUnit: { state: "translated", value: "%lld Sekunden" } },
+              one: {
+                stringUnit: { state: "translated", value: "%lld Sekunde" },
+              },
+              other: {
+                stringUnit: { state: "translated", value: "%lld Sekunden" },
+              },
             },
           },
         },
@@ -67,7 +93,9 @@ test("a translated key passes; brand names need no translation", () => {
 });
 
 test("a key missing from the catalog is reported", () => {
-  assert.deepEqual(problems(new Set(["Nope"]), catalog), ['missing key: "Nope"']);
+  assert.deepEqual(problems(new Set(["Nope"]), catalog), [
+    'missing key: "Nope"',
+  ]);
 });
 
 test("a missing or unreviewed translation is reported", () => {
@@ -78,7 +106,9 @@ test("a missing or unreviewed translation is reported", () => {
 });
 
 test("plural forms must all be translated", () => {
-  assert.deepEqual(problems(new Set(["%lld seconds"]), catalog), ['not translated into ro: "%lld seconds"']);
+  assert.deepEqual(problems(new Set(["%lld seconds"]), catalog), [
+    'not translated into ro: "%lld seconds"',
+  ]);
 });
 
 test("the app's strings are all translated into RO and DE", () => {

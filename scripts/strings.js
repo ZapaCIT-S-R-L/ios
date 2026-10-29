@@ -10,12 +10,18 @@ export const LANGUAGES = ["en", "ro", "de"];
 // Catalog and the Swift sources whose strings it holds (the app, and the ZapaKidKit package with bundle: .module).
 export const CATALOGS = [
   { catalog: "ZapaKid/Localizable.xcstrings", sources: ["ZapaKid"] },
-  { catalog: "ZapaKidKit/Sources/ZapaKidKit/Localizable.xcstrings", sources: ["ZapaKidKit/Sources"] },
-  { catalog: "ZapaCalls/Sources/ZapaCalls/Localizable.xcstrings", sources: ["ZapaCalls/Sources"] },
+  {
+    catalog: "ZapaKidKit/Sources/ZapaKidKit/Localizable.xcstrings",
+    sources: ["ZapaKidKit/Sources"],
+  },
+  {
+    catalog: "ZapaCalls/Sources/ZapaCalls/Localizable.xcstrings",
+    sources: ["ZapaCalls/Sources"],
+  },
 ];
 
-// SwiftUI views and String(localized:) take a literal as the localization key. `\(x)` becomes `%lld` (all
-// interpolations in this app are integers; add a case here when that changes).
+// SwiftUI views and String(localized:) take a literal as the localization key. `\(x)` becomes `%lld` for numbers
+// and `%@` for text; the only text interpolated in this app is people's names (`name`, `names`, `x.name`).
 const PATTERNS = [
   /\b(?:Text|Label|Button|navigationTitle|accessibilityLabel|accessibilityHint)\(\s*"((?:[^"\\]|\\.)*)"/g,
   /String\(\s*localized:\s*"((?:[^"\\]|\\.)*)"/g,
@@ -26,7 +32,10 @@ export function keysIn(swift) {
   const keys = new Set();
   for (const pattern of PATTERNS) {
     for (const match of withoutComments.matchAll(pattern)) {
-      keys.add(match[1].replace(/\\\([^)]*\)/g, "%lld").replace(/\\"/g, '"'));
+      const key = match[1].replace(/\\\(([^)]*)\)/g, (_, expression) =>
+        /\bnames?$/.test(expression) ? "%@" : "%lld",
+      );
+      keys.add(key.replace(/\\"/g, '"'));
     }
   }
   return keys;
@@ -45,13 +54,21 @@ export function problems(keys, catalog) {
       continue;
     }
     if (VERBATIM.has(key)) continue;
-    for (const language of LANGUAGES.filter((l) => l !== catalog.sourceLanguage)) {
+    for (const language of LANGUAGES.filter(
+      (l) => l !== catalog.sourceLanguage,
+    )) {
       const localization = entry.localizations?.[language];
       // A plain string, or plural variations (one, few, other...): every form must be translated.
       const units = localization?.variations?.plural
-        ? Object.values(localization.variations.plural).map((form) => form.stringUnit)
+        ? Object.values(localization.variations.plural).map(
+            (form) => form.stringUnit,
+          )
         : [localization?.stringUnit];
-      if (units.some((unit) => !unit || unit.state !== "translated" || !unit.value)) {
+      if (
+        units.some(
+          (unit) => !unit || unit.state !== "translated" || !unit.value,
+        )
+      ) {
         found.push(`not translated into ${language}: ${JSON.stringify(key)}`);
       }
     }
@@ -70,7 +87,9 @@ function swiftFiles(dir) {
 export function check(root) {
   return CATALOGS.flatMap(({ catalog, sources }) => {
     const keys = new Set(
-      sources.flatMap((dir) => swiftFiles(join(root, dir))).flatMap((file) => [...keysIn(readFileSync(file, "utf8"))]),
+      sources
+        .flatMap((dir) => swiftFiles(join(root, dir)))
+        .flatMap((file) => [...keysIn(readFileSync(file, "utf8"))]),
     );
     const parsed = JSON.parse(readFileSync(join(root, catalog), "utf8"));
     return problems(keys, parsed).map((p) => `${catalog}: ${p}`);
@@ -81,5 +100,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const found = check(fileURLToPath(new URL("..", import.meta.url)));
   for (const line of found) console.error(line);
   if (found.length) process.exit(1);
-  console.log("Strings: every key is in a catalog and translated into RO and DE.");
+  console.log(
+    "Strings: every key is in a catalog and translated into RO and DE.",
+  );
 }

@@ -23,6 +23,11 @@ public protocol CallSystem: AnyObject {
     func startOutgoing(uuid: UUID, name: String) async throws
     func reportConnected(uuid: UUID)
     func reportEnded(uuid: UUID, reason: CallSystemEndReason)
+    /// The app's own answer button: asks the system to answer, which comes back as `actions.answer`, so the system
+    /// UI (CallKit's banner) stops ringing too.
+    func requestAnswer(uuid: UUID) async throws
+    /// The app's own decline or hang-up button: comes back as `actions.end`.
+    func requestEnd(uuid: UUID) async throws
 }
 
 @MainActor

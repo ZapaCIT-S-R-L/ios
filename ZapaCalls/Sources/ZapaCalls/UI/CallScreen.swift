@@ -4,12 +4,13 @@ import SwiftUI
 /// connecting, the call clock, reconnecting, ended) and big round buttons. VoiceOver, Dynamic Type and dark mode.
 public struct CallScreen: View {
     let controller: CallController
-    let onClose: (() -> Void)?
+    /// The phone's calls: the buttons go through CallKit when there is one (else straight to the controller).
+    let coordinator: CallCoordinator?
     @Environment(\.zapaTheme) private var theme
 
-    public init(controller: CallController, onClose: (() -> Void)? = nil) {
+    public init(controller: CallController, coordinator: CallCoordinator? = nil) {
         self.controller = controller
-        self.onClose = onClose
+        self.coordinator = coordinator
     }
 
     public var body: some View {
@@ -128,30 +129,45 @@ public struct CallScreen: View {
 
     // MARK: Buttons
 
+    private func accept() async {
+        if let coordinator {
+            await coordinator.accept()
+        } else {
+            await controller.accept()
+        }
+    }
+
+    private func decline() async {
+        if let coordinator {
+            await coordinator.hangUp()
+        } else {
+            await controller.decline()
+        }
+    }
+
+    private func hangUp() async {
+        if let coordinator {
+            await coordinator.hangUp()
+        } else {
+            await controller.hangUp()
+        }
+    }
+
     @ViewBuilder private var controls: some View {
         switch controller.phase {
         case .ringing:
             HStack(spacing: 56) {
                 CallButton(systemImage: "phone.down.fill", title: "Decline", kind: .end) {
-                    Task { await controller.decline() }
+                    Task { await decline() }
                 }
                 .accessibilityIdentifier("call.decline")
                 CallButton(systemImage: "phone.fill", title: "Accept", kind: .accept) {
-                    Task { await controller.accept() }
+                    Task { await accept() }
                 }
                 .accessibilityIdentifier("call.accept")
             }
         case .ended:
-            if let onClose {
-                Button(action: onClose) {
-                    Text("Close", bundle: .module)
-                        .font(.headline)
-                        .frame(maxWidth: .infinity, minHeight: 52)
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(theme.callButton.color)
-                .accessibilityIdentifier("call.close")
-            }
+            EmptyView()
         default:
             HStack(spacing: 28) {
                 CallButton(
@@ -174,7 +190,7 @@ public struct CallScreen: View {
                 }
                 .accessibilityIdentifier("call.speaker")
                 CallButton(systemImage: "phone.down.fill", title: "End call", kind: .end) {
-                    Task { await controller.hangUp() }
+                    Task { await hangUp() }
                 }
                 .accessibilityIdentifier("call.end")
             }
