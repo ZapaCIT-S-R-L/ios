@@ -22,6 +22,15 @@ test("finds SwiftUI and String(localized:) literals, interpolation as %lld", () 
   );
 });
 
+test("names are text: interpolating a name or names is %@, not %lld", () => {
+  const swift = `
+    Text("\\(names) declined the call")
+    Text("\\(person.name) is calling")
+    Text("\\(count) new messages")
+  `;
+  assert.deepEqual([...keysIn(swift)].sort(), ["%@ declined the call", "%@ is calling", "%lld new messages"]);
+});
+
 const catalog = {
   sourceLanguage: "en",
   strings: {
