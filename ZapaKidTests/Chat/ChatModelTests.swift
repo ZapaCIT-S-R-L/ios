@@ -181,11 +181,11 @@ struct ChatModelTests {
         let chat = model()
         api.failConversations = true
 
-        await chat.refresh()
+        await chat.refresh(reportErrors: false)
 
         #expect(chat.errorMessage == nil)
-        await chat.loadConversations()
-        #expect(chat.errorMessage != nil, "a pull-to-refresh still reports")
+        await chat.refresh()
+        #expect(chat.errorMessage != nil, "the first load at launch still reports")
     }
 
     @Test func markingReadClearsTheUnreadCount() async {
