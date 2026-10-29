@@ -21,6 +21,45 @@ struct FamilyModelTests {
         #expect(api.calls == ["create", "create"], "POST /v1/families is idempotent: 201 then 200")
     }
 
+    @Test func renamingAKidUpdatesTheList() async {
+        let family = model()
+        await family.load()
+        _ = await family.addKid(nickname: "Ana", avatar: "robot-4", grade: 2)
+        let kid = family.family!.kids[0]
+
+        let renamed = await family.renameKid(kid, nickname: "  Ioana ", avatar: "robot-6")
+
+        #expect(renamed)
+        #expect(family.family?.kids.first?.nickname == "Ioana")
+        #expect(family.family?.kids.first?.avatar == "robot-6")
+        #expect(api.calls.last == "updateKid \(kid.id) Ioana robot-6")
+    }
+
+    @Test func aKidCanNotBeRenamedToAnEmptyName() async {
+        let family = model()
+        await family.load()
+        _ = await family.addKid(nickname: "Ana", avatar: "robot-4", grade: 2)
+        let kid = family.family!.kids[0]
+
+        let renamed = await family.renameKid(kid, nickname: "   ", avatar: "robot-4")
+
+        #expect(!renamed)
+        #expect(family.family?.kids.first?.nickname == "Ana")
+    }
+
+    @Test func removingAKidDropsItFromTheFamily() async {
+        let family = model()
+        await family.load()
+        _ = await family.addKid(nickname: "Ana", avatar: "robot-4", grade: 2)
+        let kid = family.family!.kids[0]
+
+        let removed = await family.removeKid(kid)
+
+        #expect(removed)
+        #expect(family.family?.kids.isEmpty == true)
+        #expect(api.calls.last == "removeKid \(kid.id)")
+    }
+
     @Test func addingAKidShowsItInTheList() async {
         let family = model()
         await family.load()
@@ -164,6 +203,18 @@ final class FakeFamiliesAPI: FamiliesAPI, @unchecked Sendable {
     func join(code _: String, token _: String) async throws -> Family {
         try record("join")
         return family
+    }
+
+    func updateKid(familyId _: String, kidId: String, nickname: String, avatar: String, token _: String) async throws -> Kid {
+        try record("updateKid \(kidId) \(nickname) \(avatar)")
+        let kid = Kid(id: kidId, nickname: nickname, avatar: avatar, grade: nil)
+        lock.withLock { kids = kids.map { $0.id == kidId ? kid : $0 } }
+        return kid
+    }
+
+    func removeKid(familyId _: String, kidId: String, token _: String) async throws {
+        try record("removeKid \(kidId)")
+        lock.withLock { kids.removeAll { $0.id == kidId } }
     }
 
     func addKid(

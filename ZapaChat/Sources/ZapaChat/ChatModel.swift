@@ -17,6 +17,8 @@ public final class ChatModel {
     private let sealer: MessageSealer
     private let store: ChatStore
     private var streams: [String: Task<Void, Never>] = [:]
+    /// Call results whose call message hasn't arrived yet.
+    private var pendingCallResults: [String: CallResult] = [:]
     /// A call message from the last minute arrived: (callId, conversationId, caller account).
     public var onIncomingCall: ((String, String, String) -> Void)?
 
@@ -34,6 +36,8 @@ public final class ChatModel {
     public enum AttachmentKind: Sendable {
         case image
         case voice
+        case video
+        case document
     }
 
     // MARK: Conversations
@@ -120,6 +124,26 @@ public final class ChatModel {
         }
     }
 
+    /// How a call ended on this phone: kept on its call message in the history. If that message hasn't arrived yet,
+    /// it is kept until it does.
+    public func recordCallResult(callId: String, result: CallResult) async {
+        var found = false
+        for (conversationId, list) in messages {
+            guard let index = list.firstIndex(where: { message in
+                if case let .call(id) = message.content.body { return id == callId }
+                return false
+            }) else { continue }
+            var updated = list
+            updated[index].callResult = result
+            messages[conversationId] = updated
+            await persist(conversationId)
+            found = true
+        }
+        if !found {
+            pendingCallResults[callId] = result
+        }
+    }
+
     /// Tells the others in the conversation that this phone is calling (sealed like any message).
     public func announceCall(_ callId: String, in conversationId: String) async {
         await deliver(
@@ -144,7 +168,8 @@ public final class ChatModel {
     }
 
     public func send(
-        attachment plaintext: Data, kind: AttachmentKind, mimeType: String, duration: Double?, in conversationId: String
+        attachment plaintext: Data, kind: AttachmentKind, mimeType: String, duration: Double?, fileName: String? = nil,
+        in conversationId: String
     ) async {
         do {
             let sealed = try AttachmentCrypto.encrypt(plaintext)
@@ -153,7 +178,12 @@ public final class ChatModel {
                 id: id, key: sealed.key, digest: sealed.digest, size: sealed.ciphertext.count, mimeType: mimeType,
                 duration: duration
             )
-            let body: ChatContent.Body = kind == .image ? .image(pointer) : .voice(pointer)
+            let body: ChatContent.Body = switch kind {
+            case .image: .image(pointer)
+            case .voice: .voice(pointer)
+            case .video: .video(pointer)
+            case .document: .document(pointer, name: fileName ?? "file")
+            }
             await deliver(
                 ChatContent(id: UUID().uuidString.lowercased(), sentAt: Date(), body: body),
                 in: conversationId
@@ -170,6 +200,11 @@ public final class ChatModel {
             key: pointer.key,
             digest: pointer.digest
         )
+    }
+
+    /// Sends a body that has no attachment (a contact card, a location).
+    public func send(body: ChatContent.Body, in conversationId: String) async {
+        await deliver(ChatContent(id: UUID().uuidString.lowercased(), sentAt: Date(), body: body), in: conversationId)
     }
 
     public func retry(_ message: ChatMessage) async {
@@ -214,32 +249,37 @@ public final class ChatModel {
     /// Opens the conversation's live stream (and fetches what queued while away).
     public func connect(_ conversationId: String) {
         guard streams[conversationId] == nil else { return }
+        // Keeps the stream open for as long as the conversation is connected: when it drops (network, sleep, the
+        // server closing it), it reopens with a growing pause, so new messages keep arriving without a refresh.
         streams[conversationId] = Task { [weak self, api] in
-            if let page = try? await api.fetch(conversationId: conversationId) {
-                for envelope in page.envelopes {
-                    await self?.receive(envelope)
-                }
-            }
-            guard let stream = try? await api.openStream(conversationId: conversationId) else { return }
-            do {
-                for try await frame in stream.frames() {
-                    switch frame {
-                    case let .envelope(envelope): await self?.receive(envelope)
-                    case .event: await self?.refresh(conversationId)
-                    case .other: break
+            var pause: UInt64 = 1
+            while !Task.isCancelled {
+                if let page = try? await api.fetch(conversationId: conversationId) {
+                    for envelope in page.envelopes {
+                        await self?.receive(envelope)
                     }
                 }
-            } catch {}
-            await self?.dropStream(conversationId)
+                if let stream = try? await api.openStream(conversationId: conversationId) {
+                    pause = 1
+                    do {
+                        for try await frame in stream.frames() {
+                            switch frame {
+                            case let .envelope(envelope): await self?.receive(envelope)
+                            case .event: await self?.refresh(conversationId)
+                            case .other: break
+                            }
+                        }
+                    } catch {}
+                }
+                if Task.isCancelled { break }
+                try? await Task.sleep(for: .seconds(pause))
+                pause = min(pause * 2, 30)
+            }
         }
     }
 
     public func disconnect(_ conversationId: String) {
         streams.removeValue(forKey: conversationId)?.cancel()
-    }
-
-    private func dropStream(_ conversationId: String) {
-        streams[conversationId] = nil
     }
 
     private func refresh(_ conversationId: String) async {
@@ -260,10 +300,14 @@ public final class ChatModel {
         }
         let conversationId = envelope.conversationId
         guard !(messages[conversationId] ?? []).contains(where: { $0.id == content.id }) else { return }
-        upsert(ChatMessage(
+        var message = ChatMessage(
             id: content.id, conversationId: conversationId, senderAccountId: envelope.senderAccountId,
             isMine: false, content: content, status: .received
-        ))
+        )
+        if case let .call(callId) = content.body {
+            message.callResult = pendingCallResults.removeValue(forKey: callId)
+        }
+        upsert(message)
         unread[conversationId, default: 0] += 1
         await persist(conversationId)
         if case let .call(callId) = content.body, abs(content.sentAt.timeIntervalSinceNow) < 60 {

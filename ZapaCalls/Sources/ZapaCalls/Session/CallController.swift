@@ -40,6 +40,8 @@ public final class CallController {
     public private(set) var isMuted = false
     public private(set) var isSpeakerOn = false
     public private(set) var callId: String?
+    /// True for a call someone else placed to this phone (it rings here).
+    public private(set) var isIncoming = false
     public private(set) var lastError: CallsAPIError?
     /// The call clock's start: the server's answer time when it sent one (the same on every phone), else when this
     /// phone's call became active.
@@ -108,6 +110,7 @@ public final class CallController {
     public func reportIncoming(callId: String, caller: CallPeer) {
         guard apply(.incoming) else { return }
         self.callId = callId
+        isIncoming = true
         participants = [caller]
     }
 

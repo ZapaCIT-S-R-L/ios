@@ -9,6 +9,18 @@ public struct CallNotice: Equatable, Sendable {
 
     public let reason: Reason
     public let names: [String]
+
+    /// Red for a failure, blue for information (declined, no answer).
+    public enum Tone: Equatable, Sendable {
+        case info, error
+    }
+
+    public var tone: Tone {
+        switch reason {
+        case .interrupted: .error
+        case .declined, .noAnswer: .info
+        }
+    }
 }
 
 public enum CallDirection: Sendable, Equatable {
@@ -22,6 +34,10 @@ public final class CallCoordinator: CallSystemActions {
     public private(set) var current: CallController?
     /// Why the last call this phone placed ended (declined, no answer, interrupted); nil after a normal hang-up.
     public private(set) var notice: CallNotice?
+    /// The calls that ended on this phone, by call id: the chat shows each call message from this.
+    public private(set) var records: [String: CallLogEntry] = [:]
+    /// Called once a call has ended and been logged (the app stores the outcome in the chat history).
+    public var onFinished: ((CallLogEntry) -> Void)?
     /// Which call CallKit last refused (no `voip` background mode, Do Not Disturb, …), so the UI can say so.
     public private(set) var refused: CallDirection?
     /// The media engine follows CallKit's audio session. CallKit may activate it before an outgoing call's engine
@@ -232,8 +248,19 @@ public final class CallCoordinator: CallSystemActions {
             conversationId: conversationId
         )
         notice = Self.notice(for: reason, direction: direction, peers: controller.participants)
+        if let shown = notice {
+            // Clears itself, whatever screen is open; a newer notice is left alone.
+            Task {
+                try? await Task.sleep(for: .seconds(4))
+                if notice == shown {
+                    notice = nil
+                }
+            }
+        }
         current = nil
         currentUUID = nil
+        records[entry.id] = entry
+        onFinished?(entry)
         Task { await log.record(entry) }
     }
 

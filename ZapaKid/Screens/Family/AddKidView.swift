@@ -9,6 +9,9 @@ struct AddKidView: View {
     @State private var nickname = ""
     @State private var avatar = "robot-1"
     @State private var grade: Int?
+    @State private var photo: Data?
+    @State private var choosingPhoto = false
+    @State private var noPhoto = false
 
     var body: some View {
         NavigationStack {
@@ -19,7 +22,20 @@ struct AddKidView: View {
                         .autocorrectionDisabled()
                         .accessibilityIdentifier("addKid.nickname")
                 } footer: {
-                    Text("Only a nickname. No real names, birthdays or photos.")
+                    Text("Only a nickname and no birthdays. A photo, if you add one, stays on this phone.")
+                }
+                Section {
+                    Button { choosingPhoto = true } label: {
+                        Label("Choose from contacts", systemImage: "person.crop.circle.badge.plus")
+                    }
+                    .accessibilityIdentifier("addKid.photo")
+                    if photo != nil {
+                        Button(role: .destructive) { photo = nil } label: {
+                            Label("Remove photo", systemImage: "trash")
+                        }
+                    }
+                } header: {
+                    Text("Photo")
                 }
                 Section {
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 64), spacing: 12)], spacing: 12) {
@@ -45,6 +61,19 @@ struct AddKidView: View {
                 }
             }
             .navigationTitle(Text("Add a kid"))
+            .sheet(isPresented: $choosingPhoto) {
+                ContactPhotoPicker(
+                    onPick: { data in
+                        choosingPhoto = false
+                        if let data { photo = data } else { noPhoto = true }
+                    },
+                    onCancel: { choosingPhoto = false }
+                )
+                .ignoresSafeArea()
+            }
+            .alert("That contact has no photo", isPresented: $noPhoto) {
+                Button("OK") {}
+            }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button { dismiss() } label: { Text("Cancel") }
@@ -53,6 +82,10 @@ struct AddKidView: View {
                     Button {
                         Task {
                             if await model.addKid(nickname: nickname, avatar: avatar, grade: grade) {
+                                // addKid appends the new kid, so the last one is theirs.
+                                if let photo, let id = model.family?.kids.last?.id {
+                                    PersonPhotos.shared.set(photo, for: id)
+                                }
                                 dismiss()
                             }
                         }

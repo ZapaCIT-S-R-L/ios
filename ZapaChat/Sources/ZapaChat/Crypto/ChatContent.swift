@@ -22,6 +22,30 @@ public struct AttachmentPointer: Codable, Sendable, Equatable {
     }
 }
 
+/// A contact card, sent sealed. Only what the sender chose to share goes in.
+public struct ContactCard: Codable, Sendable, Equatable {
+    public var name: String
+    public var phones: [String]
+    public var emails: [String]
+
+    public init(name: String, phones: [String], emails: [String]) {
+        self.name = name
+        self.phones = phones
+        self.emails = emails
+    }
+}
+
+/// A position in degrees (WGS84).
+public struct Location: Codable, Sendable, Equatable {
+    public var latitude: Double
+    public var longitude: Double
+
+    public init(latitude: Double, longitude: Double) {
+        self.latitude = latitude
+        self.longitude = longitude
+    }
+}
+
 /// The plaintext inside a sealed message (version 1, JSON). Same layout on Android.
 public struct ChatContent: Codable, Sendable, Equatable {
     public enum Body: Codable, Sendable, Equatable {
@@ -30,6 +54,14 @@ public struct ChatContent: Codable, Sendable, Equatable {
         case voice(AttachmentPointer)
         /// "I'm calling you": rings the others while VoIP pushes aren't set up, and shows in the chat as a call.
         case call(callId: String)
+        /// A video, encrypted like a photo.
+        case video(AttachmentPointer)
+        /// Any file, with the name it had on the sender's phone.
+        case document(AttachmentPointer, name: String)
+        /// A contact card the sender picked from their phone.
+        case contact(ContactCard)
+        /// The sender's position when they sent it.
+        case location(Location)
     }
 
     public static let version = 1

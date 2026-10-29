@@ -14,6 +14,10 @@ public protocol FamiliesAPI: Sendable {
     func setDisplayName(_ name: String, token: String) async throws -> FamilyParent
     /// No session: the code is the credential.
     func redeemPairing(code: String) async throws -> KidSession
+    /// A kid's nickname and robot (`PATCH /v1/families/{familyId}/kids/{kidId}`).
+    func updateKid(familyId: String, kidId: String, nickname: String, avatar: String, token: String) async throws -> Kid
+    /// Removes a kid with their account and phones (`DELETE /v1/families/{familyId}/kids/{kidId}`, 204).
+    func removeKid(familyId: String, kidId: String, token: String) async throws
 }
 
 public struct HTTPFamiliesAPI: FamiliesAPI {
@@ -103,6 +107,33 @@ public struct HTTPFamiliesAPI: FamiliesAPI {
         )
     }
 
+    private struct KidChange: Encodable {
+        var nickname: String
+        var avatar: String
+    }
+
+    /// For 204 answers, which have no body.
+    private struct NoContent: Decodable {
+        init() {}
+
+        init(from decoder: Decoder) throws {}
+    }
+
+    public func updateKid(
+        familyId: String, kidId: String, nickname: String, avatar: String, token: String
+    ) async throws -> Kid {
+        try await send(
+            "PATCH", ["v1", "families", familyId, "kids", kidId], token: token,
+            body: KidChange(nickname: nickname, avatar: avatar)
+        )
+    }
+
+    public func removeKid(familyId: String, kidId: String, token: String) async throws {
+        let _: NoContent = try await send(
+            "DELETE", ["v1", "families", familyId, "kids", kidId], token: token, body: Name?.none
+        )
+    }
+
     public func createPairing(familyId: String, kidId: String, token: String) async throws -> PairingGrant {
         try await send(
             "POST", ["v1", "families", familyId, "kids", kidId, "pairing"], token: token, body: Name?.none
@@ -176,6 +207,9 @@ public struct HTTPFamiliesAPI: FamiliesAPI {
             )
         }
         do {
+            if data.isEmpty, let none = NoContent() as? Reply {
+                return none
+            }
             return try HTTPAuthAPI.decoder.decode(Reply.self, from: data)
         } catch {
             throw FamiliesAPIError.invalidResponse

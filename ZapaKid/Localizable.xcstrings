@@ -145,6 +145,102 @@
         }
       }
     },
+    "Call declined": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anruf abgelehnt"
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apel respins"
+          }
+        }
+      }
+    },
+    "Missed call": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verpasster Anruf"
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apel pierdut"
+          }
+        }
+      }
+    },
+    "Call received - %@": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anruf angenommen - %@"
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apel primit - %@"
+          }
+        }
+      }
+    },
+    "Call made - %@": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ausgehender Anruf - %@"
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apel efectuat - %@"
+          }
+        }
+      }
+    },
+    "Call answered - %@": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anruf beantwortet - %@"
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apel răspuns - %@"
+          }
+        }
+      }
+    },
+    "Call unanswered": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anruf unbeantwortet"
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apel nepreluat"
+          }
+        }
+      }
+    },
     "Call": {
       "localizations": {
         "ro": {
@@ -333,6 +429,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "Familie"
+          }
+        }
+      }
+    },
+    "Invite another adult": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Einen anderen Erwachsenen einladen"
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Invită alt adult"
+          }
+        }
+      }
+    },
+    "Adults": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Erwachsene"
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Adulți"
           }
         }
       }

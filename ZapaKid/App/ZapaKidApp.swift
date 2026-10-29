@@ -1,9 +1,15 @@
 import SwiftUI
+import ZapaCalls
 import ZapaKidKit
 
 @main
 struct ZapaKidApp: App {
     @State private var dependencies = AppDependencies.make()
+
+    init() {
+        // Calls show a kid's (or anyone's) contact photo instead of the robot, when this phone has one.
+        CallPeerPhotos.photo = { PersonPhotos.shared.image(for: $0) }
+    }
 
     var body: some Scene {
         WindowGroup {
@@ -25,6 +31,7 @@ struct ZapaKidApp: App {
             google: dependencies.google,
             ageCheck: dependencies.ageCheck,
             families: dependencies.families,
+            connections: dependencies.connections,
             fingerprint: dependencies.fingerprint,
             makeServices: dependencies.makeServices
         )
@@ -38,6 +45,8 @@ struct AppDependencies {
     let google: GoogleSignInProviding
     let ageCheck: AgeRangeProviding
     let families: FamiliesAPI
+    /// The connections to other families (one instance, so the Settings list survives redraws).
+    let connections: ConnectionsModel
     /// This phone's identity key fingerprint (hex) for the kid pairing QR, per account.
     let fingerprint: (String) -> String?
     /// The chats and calls of the signed-in account (`me`; `kid` for a kid's phone).
@@ -60,11 +69,13 @@ struct AppDependencies {
             google: GoogleSignIn(),
             ageCheck: DeclaredAgeRangeCheck(),
             families: HTTPFamiliesAPI.staging,
+            connections: ConnectionsModel(api: HTTPConnectionsAPI.staging, token: { auth.parentToken }),
             fingerprint: { accountId in
                 (try? AccountKeys.app(accountId: accountId)).flatMap { PairingFingerprint.current($0.identity) }
             },
             makeServices: { me, isKid in
                 let services = LiveServices.make(me: me, kid: isKid, auth: auth)
+                services.isParentPhone = !isKid
                 // Names and robots for chats and calls: the parent's family (created on first use) or the kid's.
                 services.loadPeople = { services in
                     guard let token = auth.sessionToken else { return }

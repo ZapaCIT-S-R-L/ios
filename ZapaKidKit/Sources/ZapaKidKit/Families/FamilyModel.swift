@@ -78,6 +78,35 @@ public final class FamilyModel {
         public let kid: Kid
     }
 
+    /// Changes a kid's nickname and robot. False for an empty nickname or when the API refused.
+    public func renameKid(_ kid: Kid, nickname: String, avatar: String) async -> Bool {
+        let nickname = nickname.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !nickname.isEmpty, nickname.count <= 40, let familyId = family?.id else { return false }
+        var renamed = false
+        await run { api, token in
+            let updated = try await api.updateKid(
+                familyId: familyId, kidId: kid.id, nickname: nickname, avatar: avatar, token: token
+            )
+            if let index = family?.kids.firstIndex(where: { $0.id == kid.id }) {
+                family?.kids[index] = updated
+            }
+            renamed = true
+        }
+        return renamed
+    }
+
+    /// Removes a kid from the family, with their account and phones.
+    public func removeKid(_ kid: Kid) async -> Bool {
+        guard let familyId = family?.id else { return false }
+        var removed = false
+        await run { api, token in
+            try await api.removeKid(familyId: familyId, kidId: kid.id, token: token)
+            family?.kids.removeAll { $0.id == kid.id }
+            removed = true
+        }
+        return removed
+    }
+
     public func pairing(for kid: Kid) async -> Pairing? {
         guard let familyId = family?.id else { return nil }
         var pairing: Pairing?

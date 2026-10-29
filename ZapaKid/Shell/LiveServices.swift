@@ -82,6 +82,10 @@ enum LiveServices {
             pushes.register()
             services.voipPushes = pushes
         #endif
+        services.calls.onFinished = { [weak services] entry in
+            guard let services, let result = CallResult(entry) else { return }
+            Task { await services.chat.recordCallResult(callId: entry.id, result: result) }
+        }
         return services
     }
 

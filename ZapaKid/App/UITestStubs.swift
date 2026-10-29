@@ -50,6 +50,7 @@
                 google: StubGoogleSignIn(),
                 ageCheck: StubAgeRangeCheck(range: age),
                 families: StubFamiliesAPI(demo: environment["ZK_DEMO_FAMILY"] == "1"),
+                connections: ConnectionsModel(api: HTTPConnectionsAPI.staging, token: { nil }),
                 fingerprint: { _ in String(repeating: "ab", count: 32) },
                 makeServices: { me, isKid in
                     let services = stubServices(
@@ -140,6 +141,20 @@
                 family.kids.append(kid)
                 return kid
             }
+        }
+
+        func updateKid(
+            familyId _: String, kidId: String, nickname: String, avatar: String, token _: String
+        ) async throws -> Kid {
+            lock.withLock {
+                let kid = Kid(id: kidId, nickname: nickname, avatar: avatar, grade: nil)
+                family.kids = family.kids.map { $0.id == kidId ? kid : $0 }
+                return kid
+            }
+        }
+
+        func removeKid(familyId _: String, kidId: String, token _: String) async throws {
+            lock.withLock { family.kids.removeAll { $0.id == kidId } }
         }
 
         func setDisplayName(_ name: String, token _: String) async throws -> FamilyParent {

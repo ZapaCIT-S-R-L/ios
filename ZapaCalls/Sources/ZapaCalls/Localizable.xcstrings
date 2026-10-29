@@ -1,418 +1,434 @@
 {
   "sourceLanguage": "en",
   "strings": {
-    "Accept": {
+    "%@ is calling…": {
       "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ ruft an…"
+          }
+        },
         "ro": {
           "stringUnit": {
             "state": "translated",
-            "value": "Răspunde"
+            "value": "%@ te sună…"
           }
-        },
+        }
+      }
+    },
+    "Accept": {
+      "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
             "value": "Annehmen"
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Răspunde"
           }
         }
       }
     },
     "Call back": {
       "localizations": {
-        "ro": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sună înapoi"
-          }
-        },
         "de": {
           "stringUnit": {
             "state": "translated",
             "value": "Zurückrufen"
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sună înapoi"
           }
         }
       }
     },
     "Call ended": {
       "localizations": {
-        "ro": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Apel încheiat"
-          }
-        },
         "de": {
           "stringUnit": {
             "state": "translated",
             "value": "Anruf beendet"
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apel încheiat"
           }
         }
       }
     },
     "Calling…": {
       "localizations": {
-        "ro": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Se sună…"
-          }
-        },
         "de": {
           "stringUnit": {
             "state": "translated",
             "value": "Wird angerufen…"
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se sună…"
           }
         }
       }
     },
     "Calls": {
       "localizations": {
-        "ro": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Apeluri"
-          }
-        },
         "de": {
           "stringUnit": {
             "state": "translated",
             "value": "Anrufe"
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apeluri"
           }
         }
       }
     },
     "Calls with your family show up here.": {
       "localizations": {
-        "ro": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Apelurile cu familia ta apar aici."
-          }
-        },
         "de": {
           "stringUnit": {
             "state": "translated",
             "value": "Anrufe mit deiner Familie erscheinen hier."
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apelurile cu familia ta apar aici."
           }
         }
       }
     },
     "Cancelled": {
       "localizations": {
-        "ro": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Anulat"
-          }
-        },
         "de": {
           "stringUnit": {
             "state": "translated",
             "value": "Abgebrochen"
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anulat"
           }
         }
       }
     },
     "Connecting…": {
       "localizations": {
-        "ro": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Se conectează…"
-          }
-        },
         "de": {
           "stringUnit": {
             "state": "translated",
             "value": "Verbinde…"
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se conectează…"
           }
         }
       }
     },
     "Decline": {
       "localizations": {
-        "ro": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Respinge"
-          }
-        },
         "de": {
           "stringUnit": {
             "state": "translated",
             "value": "Ablehnen"
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Respinge"
           }
         }
       }
     },
     "Declined": {
       "localizations": {
-        "ro": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Respins"
-          }
-        },
         "de": {
           "stringUnit": {
             "state": "translated",
             "value": "Abgelehnt"
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Respins"
           }
         }
       }
     },
     "End call": {
       "localizations": {
-        "ro": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Închide apelul"
-          }
-        },
         "de": {
           "stringUnit": {
             "state": "translated",
             "value": "Auflegen"
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Închide apelul"
           }
         }
       }
     },
     "Incoming call": {
       "localizations": {
-        "ro": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Apel primit"
-          }
-        },
         "de": {
           "stringUnit": {
             "state": "translated",
             "value": "Eingehender Anruf"
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apel primit"
           }
         }
       }
     },
     "Missed call": {
       "localizations": {
-        "ro": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Apel pierdut"
-          }
-        },
         "de": {
           "stringUnit": {
             "state": "translated",
             "value": "Verpasster Anruf"
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apel pierdut"
           }
         }
       }
     },
     "Mute": {
       "localizations": {
-        "ro": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Oprește microfonul"
-          }
-        },
         "de": {
           "stringUnit": {
             "state": "translated",
             "value": "Stumm"
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Oprește microfonul"
           }
         }
       }
     },
     "No answer": {
       "localizations": {
-        "ro": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nu a răspuns nimeni"
-          }
-        },
         "de": {
           "stringUnit": {
             "state": "translated",
             "value": "Keine Antwort"
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nu a răspuns nimeni"
           }
         }
       }
     },
     "No calls yet": {
       "localizations": {
-        "ro": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Niciun apel încă"
-          }
-        },
         "de": {
           "stringUnit": {
             "state": "translated",
             "value": "Noch keine Anrufe"
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Niciun apel încă"
           }
         }
       }
     },
     "Off": {
       "localizations": {
-        "ro": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Oprit"
-          }
-        },
         "de": {
           "stringUnit": {
             "state": "translated",
             "value": "Aus"
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Oprit"
           }
         }
       }
     },
     "On": {
       "localizations": {
-        "ro": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Pornit"
-          }
-        },
         "de": {
           "stringUnit": {
             "state": "translated",
             "value": "Ein"
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pornit"
           }
         }
       }
     },
     "Outgoing call": {
       "localizations": {
-        "ro": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Apel efectuat"
-          }
-        },
         "de": {
           "stringUnit": {
             "state": "translated",
             "value": "Ausgehender Anruf"
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apel efectuat"
           }
         }
       }
     },
     "Reconnecting…": {
       "localizations": {
-        "ro": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Se reconectează…"
-          }
-        },
         "de": {
           "stringUnit": {
             "state": "translated",
             "value": "Verbindung wird wiederhergestellt…"
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se reconectează…"
           }
         }
       }
     },
     "Speaker": {
       "localizations": {
-        "ro": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Difuzor"
-          }
-        },
         "de": {
           "stringUnit": {
             "state": "translated",
             "value": "Lautsprecher"
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Difuzor"
           }
         }
       }
     },
     "The call is full (8 people).": {
       "localizations": {
-        "ro": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Apelul e plin (8 persoane)."
-          }
-        },
         "de": {
           "stringUnit": {
             "state": "translated",
             "value": "Der Anruf ist voll (8 Personen)."
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apelul e plin (8 persoane)."
           }
         }
       }
     },
     "The call was interrupted.": {
       "localizations": {
-        "ro": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Apelul s-a întrerupt."
-          }
-        },
         "de": {
           "stringUnit": {
             "state": "translated",
             "value": "Der Anruf wurde unterbrochen."
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apelul s-a întrerupt."
           }
         }
       }
     },
     "Unmute": {
       "localizations": {
-        "ro": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Pornește microfonul"
-          }
-        },
         "de": {
           "stringUnit": {
             "state": "translated",
             "value": "Ton an"
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pornește microfonul"
           }
         }
       }
     },
     "muted": {
       "localizations": {
-        "ro": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "microfon oprit"
-          }
-        },
         "de": {
           "stringUnit": {
             "state": "translated",
             "value": "stumm"
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "microfon oprit"
           }
         }
       }
     },
     "speaking": {
       "localizations": {
-        "ro": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "vorbește"
-          }
-        },
         "de": {
           "stringUnit": {
             "state": "translated",
             "value": "spricht"
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "vorbește"
           }
         }
       }

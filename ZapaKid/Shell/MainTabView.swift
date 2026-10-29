@@ -10,20 +10,10 @@ struct MainTabView: View {
     let services: AppServices
     let family: FamilyModel?
     let onSignOut: (() -> Void)?
+    var connections: ConnectionsModel?
 
     var body: some View {
         tabs.zapaTheme(role)
-            .overlay(alignment: .top) {
-                if let notice = services.calls.notice {
-                    CallNoticeBanner(notice: notice)
-                        .transition(.move(edge: .top).combined(with: .opacity))
-                        .task {
-                            try? await Task.sleep(for: .seconds(3))
-                            withAnimation { services.calls.clearNotice() }
-                        }
-                }
-            }
-            .animation(.default, value: services.calls.notice)
             // iOS refusing a call is never silent, on either phone.
             .alert(refusal.map { Text($0.title) } ?? Text(verbatim: ""), isPresented: Binding(
                 get: { services.calls.refused != nil },
@@ -46,7 +36,7 @@ struct MainTabView: View {
     }
 
     private var tabs: some View {
-        TabView {
+        TabView(selection: $tab) {
             NavigationStack {
                 ChatListView(services: services)
                     .safeAreaInset(edge: .bottom) {
@@ -59,10 +49,14 @@ struct MainTabView: View {
                     }
             }
             .tabItem { Label("Chats", systemImage: "bubble.left.and.bubble.right.fill") }
+            .tag(0)
 
             if let family {
                 NavigationStack {
-                    FamilyView(model: family)
+                    FamilyView(
+                        model: family, connections: connections, pendingKid: services.pendingKidEdit,
+                        onKidEditOpened: { services.pendingKidEdit = nil }
+                    )
                         .onChange(of: family.family) { _, loaded in
                             if let loaded {
                                 services.update(from: loaded)
@@ -78,11 +72,13 @@ struct MainTabView: View {
                         }
                 }
                 .tabItem { Label("Settings", systemImage: "gearshape.fill") }
+                .tag(1)
             } else {
                 NavigationStack {
                     KidFamilyView(services: services)
                 }
                 .tabItem { Label("Settings", systemImage: "gearshape.fill") }
+                .tag(1)
             }
         }
         .modifier(ThemedBars(role: role))
@@ -91,6 +87,11 @@ struct MainTabView: View {
             if let controller = services.calls.current {
                 CallScreen(controller: controller, coordinator: services.calls)
                     .zapaTheme(role)
+            }
+        }
+        .onChange(of: services.pendingKidEdit) { _, kidId in
+            if kidId != nil {
+                tab = 1
             }
         }
         .onChange(of: scenePhase) { _, phase in
@@ -116,6 +117,7 @@ struct MainTabView: View {
 
     /// Keeps the ended call on screen until the person taps Close.
     @Environment(\.scenePhase) private var scenePhase
+    @State private var tab = 0
 }
 
 /// Tab and navigation bars in the theme's colors.
@@ -155,7 +157,7 @@ struct KidFamilyView: View {
                         id: \.element.accountId
                     ) { index, person in
                         VStack(spacing: 8) {
-                            RobotAvatarView(avatar: person.avatar, size: 72)
+                            PersonAvatar(accountId: person.accountId, avatar: person.avatar, size: 72)
                             Text(verbatim: person.name)
                                 .font(.headline)
                                 .foregroundStyle(theme.text.color)
@@ -172,7 +174,7 @@ struct KidFamilyView: View {
             .padding(theme.spacing)
         }
         .background(theme.background.color.ignoresSafeArea())
-        .navigationTitle(Text("Settings"))
+        .modifier(ZapaTopBar(title: "Settings"))
         .accessibilityIdentifier("family.screen")
     }
 }
@@ -231,28 +233,38 @@ struct SetupBanner: View {
     }
 }
 
-/// After the call screen closed: why a call this phone placed didn't go through (Stefan, 2026-10-29).
-private struct CallNoticeBanner: View {
-    let notice: CallNotice
-    @Environment(\.zapaTheme) private var theme
+/// Under the chat's title: why a call this phone placed didn't go through. Red for a failure, blue for information.
+/// It clears itself after a few seconds.
+struct CallNoticeBar: View {
+    let services: AppServices
 
     var body: some View {
-        text
-            .font(.subheadline.weight(.semibold))
-            .foregroundStyle(theme.onPrimary.color)
-            .padding(.horizontal, 16)
-            .padding(.vertical, 10)
-            .background(Capsule().fill(theme.primary.color))
-            .padding(.top, 8)
-            .accessibilityIdentifier("call.notice")
+        if let notice = services.calls.notice {
+            Text(text(for: notice))
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(.white)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 5)
+                .background(Capsule().fill(color(for: notice.tone)))
+                .frame(maxWidth: .infinity)
+                .padding(.top, 4)
+                .accessibilityIdentifier("call.notice")
+        }
     }
 
-    private var text: Text {
+    private func color(for tone: CallNotice.Tone) -> Color {
+        switch tone {
+        case .error: .red
+        case .info: .blue
+        }
+    }
+
+    private func text(for notice: CallNotice) -> String {
         let names = notice.names.formatted(.list(type: .and))
         return switch notice.reason {
-        case .declined: Text("\(names) declined the call")
-        case .noAnswer: Text("\(names) didn't answer")
-        case .interrupted: Text("The call was interrupted")
+        case .declined: String(localized: "\(names) declined the call")
+        case .noAnswer: String(localized: "\(names) didn't answer")
+        case .interrupted: String(localized: "The call was interrupted")
         }
     }
 }

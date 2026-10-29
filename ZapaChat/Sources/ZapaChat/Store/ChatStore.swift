@@ -1,6 +1,25 @@
 import CryptoKit
 import Foundation
 
+/// How a call message ended on this phone, kept with the message so the history shows it (set when the call ends).
+public struct CallResult: Codable, Sendable, Equatable {
+    public enum Kind: String, Codable, Sendable {
+        case answered, declined, unanswered
+    }
+
+    public var kind: Kind
+    /// Answered calls: the length in seconds.
+    public var seconds: Int
+    /// Whether this phone received the call (rather than placed it).
+    public var incoming: Bool
+
+    public init(kind: Kind, seconds: Int, incoming: Bool) {
+        self.kind = kind
+        self.seconds = seconds
+        self.incoming = incoming
+    }
+}
+
 /// A message on this phone.
 public struct ChatMessage: Codable, Sendable, Equatable, Identifiable {
     public enum Status: String, Codable, Sendable {
@@ -16,10 +35,12 @@ public struct ChatMessage: Codable, Sendable, Equatable, Identifiable {
     public var isMine: Bool
     public var content: ChatContent
     public var status: Status
+    /// For a call message: how the call ended on this phone.
+    public var callResult: CallResult?
 
     public init(
         id: String, conversationId: String, senderAccountId: String, isMine: Bool, content: ChatContent,
-        status: Status
+        status: Status, callResult: CallResult? = nil
     ) {
         self.id = id
         self.conversationId = conversationId
@@ -27,6 +48,7 @@ public struct ChatMessage: Codable, Sendable, Equatable, Identifiable {
         self.isMine = isMine
         self.content = content
         self.status = status
+        self.callResult = callResult
     }
 }
 
