@@ -1,13 +1,28 @@
 import Foundation
 import Observation
 
+public enum CallDirection: Sendable, Equatable {
+    case incoming, outgoing
+}
+
 /// The phone's calls: one at a time, ringing through the system call UI (CallKit), logged when they end.
 @MainActor
 @Observable
 public final class CallCoordinator: CallSystemActions {
     public private(set) var current: CallController?
-    /// The media engine follows CallKit's audio session.
-    public var onAudioSessionChange: ((Bool) -> Void)?
+    /// Which call CallKit last refused (no `voip` background mode, Do Not Disturb, …), so the UI can say so.
+    public private(set) var refused: CallDirection?
+    /// The media engine follows CallKit's audio session. CallKit may activate it before an outgoing call's engine
+    /// is wired up, so a newly set handler gets the current state at once.
+    public var onAudioSessionChange: ((Bool) -> Void)? {
+        didSet {
+            if audioActive {
+                onAudioSessionChange?(true)
+            }
+        }
+    }
+
+    private var audioActive = false
 
     private let system: CallSystem
     private let log: CallLogStore
@@ -31,6 +46,11 @@ public final class CallCoordinator: CallSystemActions {
         system.actions = self
     }
 
+    /// The UI showed the refusal.
+    public func clearRefusal() {
+        refused = nil
+    }
+
     public func uuid(for callId: String) -> UUID? {
         uuids[callId]
     }
@@ -47,8 +67,16 @@ public final class CallCoordinator: CallSystemActions {
         )
         do {
             try await system.reportIncoming(uuid: uuid, callerName: caller.displayName)
+        } catch CallSystemError.filtered {
+            // Do Not Disturb or blocked: the user chose not to be rung. Decline, so the caller stops ringing at once.
+            let controller = makeController()
+            controller.reportIncoming(callId: push.callId, caller: caller)
+            await controller.decline()
+            return
         } catch {
-            return // Do Not Disturb or blocked: CallKit refused; nothing rings.
+            // Any other refusal (e.g. no `voip` background mode) is a fault: record it, never decline silently.
+            refused = .incoming
+            return
         }
         let controller = makeController()
         controller.reportIncoming(callId: push.callId, caller: caller)
@@ -75,8 +103,10 @@ public final class CallCoordinator: CallSystemActions {
         do {
             try await system.startOutgoing(uuid: uuid, name: peers.map(\.displayName).joined(separator: ", "))
         } catch {
+            refused = .outgoing
             return
         }
+        refused = nil
         let controller = makeController()
         begin(controller, uuid: uuid, direction: .outgoing, conversationId: conversationId)
         await controller.startCall(conversationId: conversationId, peers: peers)
@@ -108,6 +138,7 @@ public final class CallCoordinator: CallSystemActions {
     }
 
     public func audioSession(active: Bool) {
+        audioActive = active
         onAudioSessionChange?(active)
     }
 

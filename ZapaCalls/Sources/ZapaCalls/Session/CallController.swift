@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import os
 
 /// Someone in the call as the screens show them: a robot avatar, a name, muted, speaking.
 public struct CallPeer: Sendable, Equatable, Identifiable {
@@ -40,9 +41,14 @@ public final class CallController {
     public private(set) var isSpeakerOn = false
     public private(set) var callId: String?
     public private(set) var lastError: CallsAPIError?
+    /// The call clock's start: the server's answer time when it sent one (the same on every phone), else when this
+    /// phone's call became active.
     public var connectedAt: Date? {
-        machine.connectedAt
+        guard let local = machine.connectedAt else { return nil }
+        return answeredAt ?? local
     }
+
+    private var answeredAt: Date?
 
     /// Level above which a participant shows the speaking ring.
     static let speakingLevel: Float = 0.08
@@ -59,14 +65,23 @@ public final class CallController {
     private var events: CallEventsConnection?
     private var tasks: [Task<Void, Never>] = []
     private var subscribed: Set<TrackRef> = []
+    /// The others' tracks from the latest roster. Pulled only once this phone's SFU session exists.
+    private var wanted: Set<TrackRef> = []
+    private var mediaStarted = false
+    private var retryTask: Task<Void, Never>?
+    private var pullAttempts = 0
+    private let pullRetryDelay: @Sendable (Int) -> Duration
     private var trackOwner: [String: String] = [:]
     private var hadOthers = false
     private var reconnectTask: Task<Void, Never>?
 
     public init(
         me: String, api: CallsAPI, engine: CallMediaEngine, sealer: CallKeySealer,
-        reconnectTimeout: Duration = .seconds(20), directory: ((String) -> CallPeer?)? = nil
+        reconnectTimeout: Duration = .seconds(20),
+        pullRetryDelay: @escaping @Sendable (Int) -> Duration = CallController.defaultPullRetryDelay,
+        directory: ((String) -> CallPeer?)? = nil
     ) {
+        self.pullRetryDelay = pullRetryDelay
         self.directory = directory
         self.me = me
         self.api = api
@@ -147,6 +162,8 @@ public final class CallController {
         try await engine.start(
             callId: grant.callId, iceServers: grant.iceServers, api: api, trackName: Self.trackName(for: me)
         )
+        mediaStarted = true
+        await syncTracks()
     }
 
     /// `audio-<accountId>_<deviceId>`: the API allows only `A-Za-z0-9_-` in track names (the same on Android).
@@ -167,6 +184,9 @@ public final class CallController {
     }
 
     private func rosterChanged(_ call: CallSnapshot) async {
+        if let answered = call.answeredDate {
+            answeredAt = answered
+        }
         let others = call.participants.filter { $0.name != me }
         participants = others.map { person in
             let known = participants.first { $0.deviceId == person.name } ?? participants.first {
@@ -190,16 +210,8 @@ public final class CallController {
             try? await events?.send(.keys(epoch: call.epoch, envelopes))
         }
 
-        let tracks = Set(others.flatMap(\.trackRefs))
-        let added = tracks.subtracting(subscribed)
-        let removed = subscribed.subtracting(tracks)
-        subscribed = tracks
-        if !removed.isEmpty {
-            await engine.unsubscribe(Array(removed))
-        }
-        if !added.isEmpty {
-            try? await engine.subscribe(added.sorted { $0.trackName < $1.trackName })
-        }
+        wanted = Set(others.flatMap(\.trackRefs))
+        await syncTracks()
 
         if !others.isEmpty {
             hadOthers = true
@@ -207,6 +219,46 @@ public final class CallController {
         } else if hadOthers {
             await end(.remoteEnded)
         }
+    }
+
+    /// Pulls the others' new tracks and drops the ones that left. A pull before this phone's SFU session exists
+    /// would go out without a session (404), so it waits for `start`; a failed pull is tried again shortly.
+    private func syncTracks() async {
+        guard mediaStarted else { return }
+        let added = wanted.subtracting(subscribed)
+        let removed = subscribed.subtracting(wanted)
+        subscribed.subtract(removed)
+        if !removed.isEmpty {
+            await engine.unsubscribe(Array(removed))
+        }
+        guard !added.isEmpty else { return }
+        subscribed.formUnion(added)
+        do {
+            try await engine.subscribe(added.sorted { $0.trackName < $1.trackName })
+            pullAttempts = 0
+        } catch {
+            // The SFU may not have a just-published track yet: try again, backing off, for as long as the call is
+            // live (tearDown cancels it). Never give up silently with one-way audio.
+            subscribed.subtract(added)
+            let delay = pullRetryDelay(pullAttempts)
+            pullAttempts += 1
+            let attempt = pullAttempts
+            let reason = String(describing: error) // may hold the SFU's reply: private in logs
+            Self.log.warning("Track pull refused (attempt \(attempt, privacy: .public)): \(reason, privacy: .private)")
+            retryTask?.cancel()
+            retryTask = Task { [weak self] in
+                try? await Task.sleep(for: delay)
+                guard !Task.isCancelled else { return }
+                await self?.syncTracks()
+            }
+        }
+    }
+
+    private static let log = Logger(subsystem: "ro.zapakid.app", category: "calls")
+
+    /// 0.5 s, 1 s, 2 s, 4 s, then every 5 s.
+    public nonisolated static func defaultPullRetryDelay(_ attempt: Int) -> Duration {
+        min(.milliseconds(500) * (1 << min(attempt, 4)), .seconds(5))
     }
 
     private func handle(_ event: MediaEvent) {
@@ -243,6 +295,7 @@ public final class CallController {
 
     private func tearDown(leave: Bool) async {
         reconnectTask?.cancel()
+        retryTask?.cancel()
         for task in tasks {
             task.cancel()
         }

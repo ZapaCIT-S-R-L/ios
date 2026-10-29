@@ -28,6 +28,7 @@ public final class WebRTCMediaEngine: NSObject, CallMediaEngine, @unchecked Send
     private var levelTask: Task<Void, Never>?
 
     override public init() {
+        CallAudio.leaveSessionToCallKit()
         LKRTCInitializeSSL()
         factory = LKRTCPeerConnectionFactory()
         (events, continuation) = AsyncStream<MediaEvent>.makeStream()
@@ -78,8 +79,13 @@ public final class WebRTCMediaEngine: NSObject, CallMediaEngine, @unchecked Send
         startLevels()
     }
 
+    /// Pulls these tracks. Idempotent: tracks already pulled are skipped, so the controller may retry. Throws when the
+    /// SFU refused any of them (it may not have a just-published track yet), after negotiating the others.
     public func subscribe(_ tracks: [TrackRef]) async throws {
-        guard let api, !tracks.isEmpty else { return }
+        guard let api, !sessionId.isEmpty else { throw CallsAPIError.invalidResponse }
+        let pulled = queue.sync { Set(remoteMids.values) }
+        let tracks = tracks.filter { !pulled.contains($0) }
+        guard !tracks.isEmpty else { return }
         let reply = try await api.addTracks(callId: callId, sessionId: sessionId, request: TracksRequest(
             tracks: tracks.map { TrackObject(location: .remote, trackName: $0.trackName, sessionId: $0.sessionId) }
         ))
@@ -98,6 +104,9 @@ public final class WebRTCMediaEngine: NSObject, CallMediaEngine, @unchecked Send
             )
         }
         attachReceiveCryptors()
+        if reply.tracks?.contains(where: { $0.errorCode != nil }) ?? true {
+            throw CallsAPIError.invalidResponse
+        }
     }
 
     public func unsubscribe(_ tracks: [TrackRef]) async {
@@ -140,7 +149,6 @@ public final class WebRTCMediaEngine: NSObject, CallMediaEngine, @unchecked Send
     public func audioSession(active: Bool) {
         #if os(iOS)
             let session = LKRTCAudioSession.sharedInstance()
-            session.useManualAudio = true
             if active {
                 session.audioSessionDidActivate(AVAudioSession.sharedInstance())
             } else {
