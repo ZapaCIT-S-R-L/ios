@@ -93,6 +93,8 @@ struct MainTabView: View {
         .onChange(of: scenePhase) { _, phase in
             if phase == .active {
                 services.setup?.retryNow()
+                // A group made elsewhere while the app slept shows up here, and its stream opens with the reload.
+                Task { await services.chat.loadConversations() }
             }
         }
         .task {
