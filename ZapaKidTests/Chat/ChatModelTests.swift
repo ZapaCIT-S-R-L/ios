@@ -164,6 +164,30 @@ struct ChatModelTests {
         #expect(chat.connectedConversations == ["c_1"])
     }
 
+    /// Regression (ios #65): a group created after launch never got a stream, so its call ring never arrived.
+    @Test func refreshingConnectsConversationsCreatedAfterLaunch() async {
+        let chat = model()
+        await chat.refresh()
+        #expect(chat.connectedConversations == ["c_1"])
+
+        api.laterConversations = [api.conversation(id: "c_2", devices: [1])]
+        await chat.refresh()
+
+        #expect(chat.connectedConversations == ["c_1", "c_2"])
+    }
+
+    /// The background poll runs every 20 s; a network blip must not put an error on screen.
+    @Test func aFailedRefreshStaysSilent() async {
+        let chat = model()
+        api.failConversations = true
+
+        await chat.refresh(reportErrors: false)
+
+        #expect(chat.errorMessage == nil)
+        await chat.refresh()
+        #expect(chat.errorMessage != nil, "the first load at launch still reports")
+    }
+
     @Test func markingReadClearsTheUnreadCount() async {
         let chat = model()
         await chat.loadConversations()
@@ -219,8 +243,15 @@ final class FakeChatAPI: ChatAPI, @unchecked Sendable {
         lock.withLock { uploadLog }
     }
 
+    var laterConversations: [Conversation] = []
+    var failConversations = false
+
     func conversation(devices: [Int]) -> Conversation {
-        Conversation(id: "c_1", kind: .direct, state: .open, members: [
+        conversation(id: "c_1", devices: devices)
+    }
+
+    func conversation(id: String, devices: [Int]) -> Conversation {
+        Conversation(id: id, kind: .direct, state: .open, members: [
             ConversationMember(
                 accountId: "acc-m",
                 role: .parent,
@@ -237,7 +268,10 @@ final class FakeChatAPI: ChatAPI, @unchecked Sendable {
     }
 
     func conversations() async throws -> [Conversation] {
-        [conversation(devices: [1, 2])]
+        if failConversations {
+            throw ChatAPIError.network
+        }
+        return [conversation(devices: [1, 2])] + laterConversations
     }
 
     func conversation(id _: String) async throws -> Conversation {

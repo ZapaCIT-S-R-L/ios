@@ -103,6 +103,7 @@ struct MainTabView: View {
         .onChange(of: scenePhase) { _, phase in
             if phase == .active {
                 services.setup?.retryNow()
+                Task { await services.chat.refresh(reportErrors: false) }
             }
         }
         .onChange(of: services.calls.current == nil) { _, ended in
@@ -120,8 +121,15 @@ struct MainTabView: View {
         }
         .task {
             await services.loadPeople?(services)
-            await services.chat.loadConversations()
-            services.chat.connectAll()
+            await services.chat.refresh()
+        }
+        .task(id: scenePhase == .active) {
+            // Stopgap: until the account events stream (api #100) tells the phone about new conversations,
+            // poll for them every 20 s while the app is open. Remove this poll when that stream lands.
+            while scenePhase == .active, !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(20))
+                await services.chat.refresh(reportErrors: false)
+            }
         }
     }
 

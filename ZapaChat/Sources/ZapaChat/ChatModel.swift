@@ -37,14 +37,16 @@ public final class ChatModel {
 
     // MARK: Conversations
 
-    public func loadConversations() async {
+    public func loadConversations(reportErrors: Bool = true) async {
         do {
             conversations = try await api.conversations()
             for conversation in conversations where messages[conversation.id] == nil {
                 messages[conversation.id] = await (try? store.messages(in: conversation.id)) ?? []
             }
         } catch {
-            errorMessage = String(describing: error)
+            if reportErrors {
+                errorMessage = String(describing: error)
+            }
         }
     }
 
@@ -77,6 +79,13 @@ public final class ChatModel {
             messages[conversation.id] = []
         }
         return conversation
+    }
+
+    /// Reloads the conversations and opens streams for any new ones, so a group created after launch rings too.
+    /// The poll passes `reportErrors: false`: it runs every 20 s, so a network blip shows no error.
+    public func refresh(reportErrors: Bool = true) async {
+        await loadConversations(reportErrors: reportErrors)
+        connectAll()
     }
 
     /// Keeps every conversation's stream open, so messages and call rings arrive while the app is open.
