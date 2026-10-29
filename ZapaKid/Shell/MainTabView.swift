@@ -50,8 +50,11 @@ struct MainTabView: View {
             NavigationStack {
                 ChatListView(services: services)
                     .safeAreaInset(edge: .bottom) {
-                        if let setup = services.setup {
-                            SetupBanner(setup: setup)
+                        VStack(spacing: 0) {
+                            E2EEBadge()
+                            if let setup = services.setup {
+                                SetupBanner(setup: setup)
+                            }
                         }
                     }
             }
@@ -74,12 +77,12 @@ struct MainTabView: View {
                             }
                         }
                 }
-                .tabItem { Label("Family", systemImage: "person.3.fill") }
+                .tabItem { Label("Settings", systemImage: "gearshape.fill") }
             } else {
                 NavigationStack {
                     KidFamilyView(services: services)
                 }
-                .tabItem { Label("Family", systemImage: "person.3.fill") }
+                .tabItem { Label("Settings", systemImage: "gearshape.fill") }
             }
         }
         .modifier(ThemedBars(role: role))
@@ -169,7 +172,7 @@ struct KidFamilyView: View {
             .padding(theme.spacing)
         }
         .background(theme.background.color.ignoresSafeArea())
-        .navigationTitle(Text("Family"))
+        .navigationTitle(Text("Settings"))
         .accessibilityIdentifier("family.screen")
     }
 }

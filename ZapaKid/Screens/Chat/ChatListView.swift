@@ -22,7 +22,7 @@ struct ChatListView: View {
                         ArchivedChatsView(services: services)
                     } label: {
                         Label("Archived (\(archivedCount))", systemImage: "archivebox")
-                            .foregroundStyle(theme.text.color)
+                            .foregroundStyle(.white)
                     }
                     .accessibilityIdentifier("chats.archived")
                 }
@@ -34,7 +34,7 @@ struct ChatListView: View {
                     }
                     .accessibilityIdentifier("chats.row.\(services.name(of: conversation))")
                     .listRowSeparator(theme.cardShadow ? .hidden : .visible)
-                    .listRowSeparatorTint(theme.separator.color)
+                    .listRowSeparatorTint(Color(white: 0.2))
                     .listRowBackground(rowBackground(index))
                     .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                         Button {
@@ -46,20 +46,11 @@ struct ChatListView: View {
                         .accessibilityIdentifier("chats.archive")
                     }
                 }
-            } header: {
-                Label { Text("End-to-end encrypted") } icon: { Image(systemName: "lock.fill") }
-                    .font(.footnote)
-                    .foregroundStyle(theme.secondaryText.color)
-                    .frame(maxWidth: .infinity)
-                    .textCase(nil)
-                    .accessibilityElement(children: .combine)
-                    .accessibilityIdentifier("theme.e2ee")
-                    .accessibilityValue(Text(verbatim: theme.role.rawValue))
             }
         }
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
-        .background(theme.background.color.ignoresSafeArea())
+        .background(Color.black.ignoresSafeArea())
         .overlay {
             if services.chat.conversations.isEmpty {
                 ContentUnavailableView {
@@ -69,9 +60,17 @@ struct ChatListView: View {
                 }
             }
         }
-        .navigationTitle(Text("Chats"))
         .refreshable { await services.chat.loadConversations() }
+        .navigationTitle(Text("Chats"))
+        .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Image("ZapaLogo")
+                    .resizable()
+                    .frame(width: 36, height: 36)
+                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    .accessibilityLabel(Text("ZapaKid"))
+            }
             if services.canStartChats {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button { choosing = true } label: { Image(systemName: "square.and.pencil") }
@@ -112,7 +111,7 @@ struct ChatListView: View {
                 .padding(.vertical, 6)
                 .padding(.horizontal, 12)
         } else {
-            theme.background.color
+            Color.black
         }
     }
 
@@ -122,12 +121,12 @@ struct ChatListView: View {
                 .background(Circle().fill(theme.secondary.color.opacity(0.25)))
             VStack(alignment: .leading, spacing: 4) {
                 Text(verbatim: services.name(of: conversation))
-                    .font(theme.cardShadow ? .title3.bold() : .headline)
-                    .foregroundStyle(theme.text.color)
+                    .font(.headline.bold())
+                    .foregroundStyle(theme.cardShadow ? theme.text.color : .white)
                 if let last = services.chat.messages[conversation.id]?.last {
                     ChatPreview(content: last.content)
                         .font(.subheadline)
-                        .foregroundStyle(theme.secondaryText.color)
+                        .foregroundStyle(.gray)
                         .lineLimit(1)
                 }
             }
@@ -142,9 +141,8 @@ struct ChatListView: View {
                     .accessibilityLabel(Text("Unread messages: \(unread)"))
             }
         }
-        .padding(.vertical, theme.cardShadow ? 18 : 10)
+        .padding(.vertical, theme.cardShadow ? 18 : 4)
         .padding(.horizontal, theme.cardShadow ? 16 : 0)
-        .frame(minHeight: theme.minTapTarget)
     }
 }
 
@@ -171,7 +169,8 @@ struct ArchivedChatsView: View {
                     .foregroundStyle(theme.text.color)
                 }
                 .accessibilityIdentifier("archived.row.\(services.name(of: conversation))")
-                .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                // In a trailing swipe the first button sits at the far right, so Unarchive comes first.
+                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                     Button {
                         archivedRaw = ArchivedChats.encode(archived.subtracting([conversation.id]))
                     } label: {
@@ -179,13 +178,12 @@ struct ArchivedChatsView: View {
                     }
                     .tint(.indigo)
                     .accessibilityIdentifier("archived.unarchive")
-                }
-                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                    Button(role: .destructive) {
+                    Button {
                         confirming = conversation
                     } label: {
                         Label("Delete", systemImage: "trash")
                     }
+                    .tint(.red)
                     .accessibilityIdentifier("archived.delete")
                 }
             }
@@ -328,5 +326,23 @@ struct NewChatView: View {
                 }
             }
         }
+    }
+}
+
+/// The end-to-end encryption note, in a small bubble above the tab bar.
+struct E2EEBadge: View {
+    @Environment(\.zapaTheme) private var theme
+
+    var body: some View {
+        Label { Text("End-to-end encrypted") } icon: { Image(systemName: "lock.fill") }
+            .font(.caption)
+            .foregroundStyle(.gray)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+            .background(Capsule().fill(Color(white: 0.15)))
+            .accessibilityElement(children: .combine)
+            .accessibilityIdentifier("theme.e2ee")
+            .accessibilityValue(Text(verbatim: theme.role.rawValue))
+            .padding(.bottom, 4)
     }
 }

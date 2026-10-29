@@ -24,8 +24,8 @@ final class AppShellUITests: XCTestCase {
 
         XCTAssertTrue(app.tabBars.buttons["Chats"].waitForExistence(timeout: 10))
         XCTAssertFalse(app.tabBars.buttons["Calls"].exists)
-        XCTAssertTrue(app.tabBars.buttons["Family"].exists)
-        app.tabBars.buttons["Family"].tap()
+        XCTAssertTrue(app.tabBars.buttons["Settings"].exists)
+        app.tabBars.buttons["Settings"].tap()
         XCTAssertTrue(app.buttons["family.addKid"].waitForExistence(timeout: 5))
     }
 
@@ -34,8 +34,8 @@ final class AppShellUITests: XCTestCase {
 
         XCTAssertTrue(app.tabBars.buttons["Chats"].waitForExistence(timeout: 10))
         XCTAssertFalse(app.tabBars.buttons["Calls"].exists)
-        app.tabBars.buttons["Family"].tap()
-        XCTAssertTrue(app.navigationBars["Family"].waitForExistence(timeout: 5))
+        app.tabBars.buttons["Settings"].tap()
+        XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 5))
         XCTAssertFalse(app.buttons["family.addKid"].exists)
         XCTAssertFalse(app.buttons["family.inviteParent"].exists)
     }

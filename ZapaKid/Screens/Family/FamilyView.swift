@@ -66,7 +66,7 @@ struct FamilyView: View {
         }
         .scrollContentBackground(.hidden)
         .background(theme.background.color.ignoresSafeArea())
-        .navigationTitle(Text("Family"))
+        .navigationTitle(Text("Settings"))
         .task { await model.load() }
         .sheet(isPresented: $addingKid) {
             AddKidView(model: model).zapaTheme(theme.role)

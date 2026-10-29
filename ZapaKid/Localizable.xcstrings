@@ -337,6 +337,22 @@
         }
       }
     },
+    "Settings": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Einstellungen"
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Setări"
+          }
+        }
+      }
+    },
     "Family members see this name.": {
       "localizations": {
         "ro": {
