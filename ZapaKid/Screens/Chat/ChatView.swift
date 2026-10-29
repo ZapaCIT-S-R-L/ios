@@ -20,6 +20,9 @@ struct ChatView: View {
 
     var body: some View {
         ScrollViewReader { scroll in
+            // The tap below only hides the keyboard; it is not a control (VoiceOver users have the keyboard's own
+            // dismiss gesture), so it gets no button trait.
+            // swiftlint:disable:next accessibility_trait_for_button
             ScrollView {
                 LazyVStack(spacing: 8) {
                     ForEach(messages) { message in
