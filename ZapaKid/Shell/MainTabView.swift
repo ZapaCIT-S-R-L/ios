@@ -57,16 +57,6 @@ struct MainTabView: View {
             }
             .tabItem { Label("Chats", systemImage: "bubble.left.and.bubble.right.fill") }
 
-            NavigationStack {
-                CallLogView(entries: services.callLog) { entry in
-                    guard let conversation = services.chat.conversations.first(where: { $0.id == entry.conversationId })
-                    else { return }
-                    Task { await services.call(conversation) }
-                }
-                .task { await services.refreshLog() }
-            }
-            .tabItem { Label("Calls", systemImage: "phone.fill") }
-
             if let family {
                 NavigationStack {
                     FamilyView(model: family)
@@ -103,11 +93,6 @@ struct MainTabView: View {
         .onChange(of: scenePhase) { _, phase in
             if phase == .active {
                 services.setup?.retryNow()
-            }
-        }
-        .onChange(of: services.calls.current == nil) { _, ended in
-            if ended {
-                Task { await services.refreshLog() }
             }
         }
         .task {

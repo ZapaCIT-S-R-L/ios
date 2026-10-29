@@ -25,19 +25,6 @@
             )
         }
 
-        public static let log: [CallLogEntry] = {
-            let now = Date()
-            return [
-                CallLogEntry(
-                    id: "demo-1", peers: [mama], direction: .incoming, startedAt: now.addingTimeInterval(-600),
-                    duration: 0, outcome: .missed, conversationId: "conv-mama"
-                ),
-                CallLogEntry(
-                    id: "demo-2", peers: [tata, ana], direction: .outgoing, startedAt: now.addingTimeInterval(-7200),
-                    duration: 185, outcome: .answered, conversationId: "conv-family"
-                ),
-            ]
-        }()
     }
 
     final class DemoCallsAPI: CallsAPI, @unchecked Sendable {

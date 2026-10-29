@@ -20,8 +20,6 @@ final class AppServices {
     let chat: ChatModel
     let calls: CallCoordinator
     private(set) var people: [String: Person]
-    private(set) var callLog: [CallLogEntry] = []
-    private let log: CallLogStore
     /// The peers of the call being placed (the controller factory reads them).
     var placing: [CallPeer] = []
 
@@ -45,7 +43,6 @@ final class AppServices {
         self.canStartChats = canStartChats
         self.chat = chat
         self.people = Dictionary(people.map { ($0.accountId, $0) }) { first, _ in first }
-        self.log = log
         weak var services: AppServices?
         calls = CallCoordinator(
             system: system, log: log,
@@ -104,9 +101,5 @@ final class AppServices {
         if let callId = calls.current?.callId {
             await chat.announceCall(callId, in: conversation.id)
         }
-    }
-
-    func refreshLog() async {
-        callLog = await log.entries()
     }
 }

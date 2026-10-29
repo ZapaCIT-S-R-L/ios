@@ -327,7 +327,7 @@
     import SwiftUI
     import ZapaCalls
 
-    /// `ZK_CALL=outgoing|incoming|group|log` with `-zk-ui-test`: the call screens with the demo call engine.
+    /// `ZK_CALL=outgoing|incoming|group` with `-zk-ui-test`: the call screens with the demo call engine.
     struct CallsDemoRoot: View {
         let scenario: String
         @State private var controller: CallController?
@@ -335,11 +335,7 @@
         var body: some View {
             ZStack {
                 Color.clear
-                if scenario == "log" {
-                    NavigationStack {
-                        CallLogView(entries: DemoCalls.log) { _ in }
-                    }
-                } else if let controller {
+                if let controller {
                     CallScreen(controller: controller)
                 }
             }
