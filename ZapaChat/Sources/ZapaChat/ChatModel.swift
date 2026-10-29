@@ -21,13 +21,19 @@ public final class ChatModel {
 
     /// The parent's own chats first, then the ones they only observe (their kids' chats with others).
     public var orderedConversations: [Conversation] {
-        conversations.filter { !isObserving($0.id) } + conversations.filter { isObserving($0.id) }
+        let (observed, own) = conversations.partitioned(by: observes)
+        return own + observed
     }
 
-    /// This account only reads along in the conversation (server role `observer`, older name `guardian`).
+    /// This account only reads along in the conversation.
     public func isObserving(_ conversationId: String) -> Bool {
-        conversations.first { $0.id == conversationId }?.members
-            .contains { $0.accountId == me && ($0.role == .observer || $0.guardian) } ?? false
+        conversations.first { $0.id == conversationId }.map(observes) ?? false
+    }
+
+    /// `guardian` is the server's older name for `role == .observer`; drop that check once the chat service stops
+    /// sending `guardian` (api openapi, ConversationMember).
+    private func observes(_ conversation: Conversation) -> Bool {
+        conversation.members.contains { $0.accountId == me && ($0.role == .observer || $0.guardian) }
     }
 
     public var connectedConversations: [String] {
@@ -268,5 +274,21 @@ public final class ChatModel {
 
     private func persist(_ conversationId: String) async {
         try? await store.save(messages[conversationId] ?? [], in: conversationId)
+    }
+}
+
+private extension Array {
+    /// One pass: (matching, the rest), each in order.
+    func partitioned(by predicate: (Element) -> Bool) -> ([Element], [Element]) {
+        var matching: [Element] = []
+        var rest: [Element] = []
+        for element in self {
+            if predicate(element) {
+                matching.append(element)
+            } else {
+                rest.append(element)
+            }
+        }
+        return (matching, rest)
     }
 }
