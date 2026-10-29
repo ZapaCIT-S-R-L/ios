@@ -304,6 +304,22 @@
           }
         }
       }
+    },
+    "That code isn't a ZapaKid connection code.": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Acesta nu este un cod de conectare ZapaKid."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Das ist kein ZapaKid-Verbindungscode."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

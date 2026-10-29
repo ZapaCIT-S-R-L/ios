@@ -1,9 +1,10 @@
 import Foundation
 import Testing
-import ZapaKidKit
 @testable import ZapaKid
+import ZapaKidKit
 
-/// The phone's VoIP token reaches the server once the phone has a device ID, and follows the token as PushKit rotates it.
+/// The phone's VoIP token reaches the server once the phone has a device ID, and follows the token as PushKit rotates
+/// it.
 @MainActor
 struct PushTargetSyncTests {
     final class FakePushAPI: DevicePushAPI, @unchecked Sendable {
@@ -46,7 +47,10 @@ struct PushTargetSyncTests {
 
         await sync.voipTokenChanged("aa")
         await sync.voipTokenChanged("bb")
-        #expect(api.calls.map(\.target) == [PushTarget(provider: .apns, token: "aa"), PushTarget(provider: .apns, token: "bb")])
+        #expect(api.calls.map(\.target) == [
+            PushTarget(provider: .apns, token: "aa"),
+            PushTarget(provider: .apns, token: "bb"),
+        ])
     }
 
     @Test func invalidatedTokenClearsTheTargetOnlyIfOneWasSent() async {
@@ -76,6 +80,6 @@ struct PushTargetSyncTests {
     }
 
     @Test func tokenBytesBecomeLowercaseHex() {
-        #expect(PushTargetSync.hex(Data([0x0a, 0xff, 0x01])) == "0aff01")
+        #expect(PushTargetSync.hex(Data([0x0A, 0xFF, 0x01])) == "0aff01")
     }
 }

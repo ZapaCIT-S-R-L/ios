@@ -28,39 +28,45 @@ struct ChatListView: View {
         }
         List {
             if query.isEmpty {
-            Section {
-                if archivedShown {
-                    NavigationLink {
-                        ArchivedChatsView(services: services)
-                    } label: {
-                        Label("Archived (\(archivedCount))", systemImage: "archivebox")
-                            .foregroundStyle(.white)
-                    }
-                    .accessibilityIdentifier("chats.archived")
-                    .listRowSeparator(.hidden, edges: .top)
-                }
-                ForEach(Array(active.enumerated()), id: \.element.id) { index, conversation in
-                    NavigationLink {
-                        ChatView(services: services, conversation: conversation)
-                    } label: {
-                        row(conversation)
-                    }
-                    .accessibilityIdentifier("chats.row.\(services.name(of: conversation))")
-                    // The system lines are off; the lines between chats are drawn in each row's background.
-                    .listRowSeparator(.hidden)
-                    .listRowInsets(theme.cardShadow ? EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16) : EdgeInsets(top: 3, leading: 16, bottom: 3, trailing: 16))
-                    .listRowBackground(rowBackground(index, isLast: index == active.count - 1))
-                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                        Button {
-                            archivedRaw = ArchivedChats.encode(archived.union([conversation.id]))
+                Section {
+                    if archivedShown {
+                        NavigationLink {
+                            ArchivedChatsView(services: services)
                         } label: {
-                            Label("Archive", systemImage: "archivebox")
+                            Label("Archived (\(archivedCount))", systemImage: "archivebox")
+                                .foregroundStyle(.white)
                         }
-                        .tint(.indigo)
-                        .accessibilityIdentifier("chats.archive")
+                        .accessibilityIdentifier("chats.archived")
+                        .listRowSeparator(.hidden, edges: .top)
+                    }
+                    ForEach(Array(active.enumerated()), id: \.element.id) { index, conversation in
+                        NavigationLink {
+                            ChatView(services: services, conversation: conversation)
+                        } label: {
+                            row(conversation)
+                        }
+                        .accessibilityIdentifier("chats.row.\(services.name(of: conversation))")
+                        // The system lines are off; the lines between chats are drawn in each row's background.
+                        .listRowSeparator(.hidden)
+                        .listRowInsets(theme
+                            .cardShadow ? EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16) : EdgeInsets(
+                                top: 3,
+                                leading: 16,
+                                bottom: 3,
+                                trailing: 16
+                            ))
+                        .listRowBackground(rowBackground(index, isLast: index == active.count - 1))
+                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                            Button {
+                                archivedRaw = ArchivedChats.encode(archived.union([conversation.id]))
+                            } label: {
+                                Label("Archive", systemImage: "archivebox")
+                            }
+                            .tint(.indigo)
+                            .accessibilityIdentifier("chats.archive")
+                        }
                     }
                 }
-            }
             } else {
                 Section {
                     ForEach(matches, id: \.accountId) { person in
@@ -197,8 +203,12 @@ struct ChatListView: View {
 
     private func row(_ conversation: Conversation) -> some View {
         HStack(alignment: .top, spacing: 12) {
-            PersonAvatar(accountId: services.otherMemberId(of: conversation), avatar: services.avatar(of: conversation), size: theme.cardShadow ? 58 : 68)
-                .background(Circle().fill(theme.secondary.color.opacity(0.25)))
+            PersonAvatar(
+                accountId: services.otherMemberId(of: conversation),
+                avatar: services.avatar(of: conversation),
+                size: theme.cardShadow ? 58 : 68
+            )
+            .background(Circle().fill(theme.secondary.color.opacity(0.25)))
             VStack(alignment: .leading, spacing: 4) {
                 Text(verbatim: services.name(of: conversation))
                     .font(.title3.bold())
@@ -258,7 +268,11 @@ struct ArchivedChatsView: View {
                     Label {
                         Text(verbatim: services.name(of: conversation))
                     } icon: {
-                        PersonAvatar(accountId: services.otherMemberId(of: conversation), avatar: services.avatar(of: conversation), size: 40)
+                        PersonAvatar(
+                            accountId: services.otherMemberId(of: conversation),
+                            avatar: services.avatar(of: conversation),
+                            size: 40
+                        )
                     }
                     .foregroundStyle(theme.text.color)
                 }
@@ -295,7 +309,11 @@ struct ArchivedChatsView: View {
         .navigationTitle(Text("Archived"))
         .confirmationDialog(
             "Delete this chat?",
-            isPresented: Binding(get: { confirming != nil }, set: { if !$0 { confirming = nil } }),
+            isPresented: Binding(get: { confirming != nil }, set: {
+                if !$0 {
+                    confirming = nil
+                }
+            }),
             titleVisibility: .visible,
             presenting: confirming
         ) { conversation in

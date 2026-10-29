@@ -1635,6 +1635,806 @@
     },
     "ZapaKid": {
       "shouldTranslate": false
+    },
+    "Archived (%lld)": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Arhivate (%lld)"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Archiviert (%lld)"
+          }
+        }
+      }
+    },
+    "Archive": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Arhivează"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Archivieren"
+          }
+        }
+      }
+    },
+    "No one in your family matches.": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nimeni din familia ta nu se potrivește."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Niemand in deiner Familie passt."
+          }
+        }
+      }
+    },
+    "Search people": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Caută persoane"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Personen suchen"
+          }
+        }
+      }
+    },
+    "Unarchive": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scoate din arhivă"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aus dem Archiv holen"
+          }
+        }
+      }
+    },
+    "Delete": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Șterge"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Löschen"
+          }
+        }
+      }
+    },
+    "No archived chats": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nicio conversație arhivată"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keine archivierten Chats"
+          }
+        }
+      }
+    },
+    "Swipe a chat to archive it.": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Glisează o conversație ca s-o arhivezi."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wische über einen Chat, um ihn zu archivieren."
+          }
+        }
+      }
+    },
+    "Archived": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Arhivate"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Archiviert"
+          }
+        }
+      }
+    },
+    "Delete chat and history": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Șterge conversația și istoricul"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chat und Verlauf löschen"
+          }
+        }
+      }
+    },
+    "You lose the history on this phone. The others keep the chat.": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pierzi istoricul de pe acest telefon. Ceilalți păstrează conversația."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Verlauf auf diesem Handy geht verloren. Die anderen behalten den Chat."
+          }
+        }
+      }
+    },
+    "Video": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Video"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Video"
+          }
+        }
+      }
+    },
+    "Document": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Document"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dokument"
+          }
+        }
+      }
+    },
+    "Contact": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Contact"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kontakt"
+          }
+        }
+      }
+    },
+    "Location": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Locație"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Standort"
+          }
+        }
+      }
+    },
+    "Earlier messages": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mesaje mai vechi"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ältere Nachrichten"
+          }
+        }
+      }
+    },
+    "Photo or video": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fotografie sau video"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Foto oder Video"
+          }
+        }
+      }
+    },
+    "Current location": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Locația curentă"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aktueller Standort"
+          }
+        }
+      }
+    },
+    "Attach": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Atașează"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anhängen"
+          }
+        }
+      }
+    },
+    "Only a nickname and no birthdays. A photo, if you add one, stays on this phone.": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Doar o poreclă, fără zile de naștere. O fotografie, dacă adaugi una, rămâne pe acest telefon."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nur ein Spitzname und keine Geburtstage. Ein Foto, falls du eins hinzufügst, bleibt auf diesem Handy."
+          }
+        }
+      }
+    },
+    "Choose from contacts": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alege din contacte"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aus Kontakten wählen"
+          }
+        }
+      }
+    },
+    "Remove photo": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Șterge fotografia"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Foto entfernen"
+          }
+        }
+      }
+    },
+    "Connect with another family": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conectează-te cu altă familie"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mit einer anderen Familie verbinden"
+          }
+        }
+      }
+    },
+    "Enter a code from another family": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Introdu un cod de la altă familie"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Code einer anderen Familie eingeben"
+          }
+        }
+      }
+    },
+    "Other families": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alte familii"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Andere Familien"
+          }
+        }
+      }
+    },
+    "Shares with you: %@": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Împarte cu tine: %@"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Teilt mit dir: %@"
+          }
+        }
+      }
+    },
+    "Add a kid to share them.": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Adaugă un copil ca să-l poți împărți."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Füge ein Kind hinzu, um es zu teilen."
+          }
+        }
+      }
+    },
+    "Your kids they can see": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copiii tăi pe care îi pot vedea"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deine Kinder, die sie sehen können"
+          }
+        }
+      }
+    },
+    "All kids": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toți copiii"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alle Kinder"
+          }
+        }
+      }
+    },
+    "Disconnect": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deconectează"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trennen"
+          }
+        }
+      }
+    },
+    "Choose photo from contacts": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alege fotografia din contacte"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Foto aus Kontakten wählen"
+          }
+        }
+      }
+    },
+    "Use the robot again": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Folosește din nou robotul"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wieder den Roboter verwenden"
+          }
+        }
+      }
+    },
+    "Connection code": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cod de conectare"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verbindungscode"
+          }
+        }
+      }
+    },
+    "Let the other family scan this, or send them the link. It works once, for 72 hours.": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lasă cealaltă familie să scaneze codul sau trimite-le linkul. Merge o singură dată, timp de 72 de ore."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lass die andere Familie diesen Code scannen oder schick ihr den Link. Er funktioniert einmal, 72 Stunden lang."
+          }
+        }
+      }
+    },
+    "Share the link": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trimite linkul"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Link teilen"
+          }
+        }
+      }
+    },
+    "Connect a family": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conectează o familie"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eine Familie verbinden"
+          }
+        }
+      }
+    },
+    "Scan their code": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scanează codul lor"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ihren Code scannen"
+          }
+        }
+      }
+    },
+    "Code or link": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cod sau link"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Code oder Link"
+          }
+        }
+      }
+    },
+    "Connect": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conectează"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verbinden"
+          }
+        }
+      }
+    },
+    "Only connect with a family you know. You choose which kids they can see.": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conectează-te doar cu o familie pe care o cunoști. Tu alegi ce copii pot vedea."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verbinde dich nur mit einer Familie, die du kennst. Du wählst, welche Kinder sie sehen können."
+          }
+        }
+      }
+    },
+    "Choose a photo": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alege o fotografie"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ein Foto wählen"
+          }
+        }
+      }
+    },
+    "Link to a contact": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Leagă de un contact"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mit einem Kontakt verknüpfen"
+          }
+        }
+      }
+    },
+    "Use the robot avatar": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Folosește avatarul robot"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Roboter-Avatar verwenden"
+          }
+        }
+      }
+    },
+    "Picture": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Imagine"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bild"
+          }
+        }
+      }
+    },
+    "A photo stays on this phone.": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O fotografie rămâne pe acest telefon."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ein Foto bleibt auf diesem Handy."
+          }
+        }
+      }
+    },
+    "Name": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nume"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Name"
+          }
+        }
+      }
+    },
+    "Remove from family": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scoate din familie"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aus der Familie entfernen"
+          }
+        }
+      }
+    },
+    "Their account and phones are removed too. Their photo on this phone goes with them.": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Contul și telefoanele lor sunt șterse și ele. Fotografia lor de pe acest telefon dispare odată cu ei."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ihr Konto und ihre Handys werden ebenfalls entfernt. Ihr Foto auf diesem Handy wird mit gelöscht."
+          }
+        }
+      }
+    },
+    "Other family": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Altă familie"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Andere Familie"
+          }
+        }
+      }
+    },
+    "Edit %@": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Editează %@"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ bearbeiten"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

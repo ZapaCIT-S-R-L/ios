@@ -151,7 +151,11 @@ struct FamilyView: View {
             ContactPhotoPicker(
                 onPick: { data in
                     photoFor = nil
-                    if let data { PersonPhotos.shared.set(data, for: target.id) } else { noPhoto = true }
+                    if let data {
+                        PersonPhotos.shared.set(data, for: target.id)
+                    } else {
+                        noPhoto = true
+                    }
                 },
                 onCancel: { photoFor = nil }
             )
@@ -164,7 +168,11 @@ struct FamilyView: View {
     }
 
     /// One connected family: which of your kids it can see (one, some or all), and disconnecting.
-    private func connectionBlock(_ connection: Connection, kids: [Kid], model connections: ConnectionsModel) -> some View {
+    private func connectionBlock(
+        _ connection: Connection,
+        kids: [Kid],
+        model connections: ConnectionsModel
+    ) -> some View {
         let shared = Set(connection.sharedKids.mine)
         let allShared = !kids.isEmpty && kids.allSatisfy { shared.contains($0.id) }
         return VStack(alignment: .leading, spacing: 10) {
@@ -173,7 +181,8 @@ struct FamilyView: View {
                 .font(.headline)
                 .foregroundStyle(.white)
             if !connection.sharedKids.theirs.isEmpty {
-                Text("Shares with you: \(connection.sharedKids.theirs.map(\.nickname).joined(separator: ", "))")
+                let sharedText = connection.sharedKids.theirs.map(\.nickname).joined(separator: ", ")
+                Text("Shares with you: \(sharedText)")
                     .font(.subheadline)
                     .foregroundStyle(.gray)
             }
@@ -576,24 +585,27 @@ struct KidDetailView: View {
                 }
                 // With a photo or contact linked, the robots stay hidden until "Use the robot avatar".
                 if PersonPhotos.shared.image(for: kid.id) == nil {
-                Section {
-                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 64), spacing: 12)], spacing: 12) {
-                        ForEach(RobotAvatarStyle.all, id: \.index) { style in
-                            let name = "robot-\(style.index)"
-                            Button { avatar = name } label: {
-                                RobotAvatarView(avatar: name, size: 56)
-                                    .padding(4)
-                                    .overlay(Circle().strokeBorder(theme.accent.color, lineWidth: avatar == name ? 4 : 0))
+                    Section {
+                        LazyVGrid(columns: [GridItem(.adaptive(minimum: 64), spacing: 12)], spacing: 12) {
+                            ForEach(RobotAvatarStyle.all, id: \.index) { style in
+                                let name = "robot-\(style.index)"
+                                Button { avatar = name } label: {
+                                    RobotAvatarView(avatar: name, size: 56)
+                                        .padding(4)
+                                        .overlay(Circle().strokeBorder(
+                                            theme.accent.color,
+                                            lineWidth: avatar == name ? 4 : 0
+                                        ))
+                                }
+                                .buttonStyle(.plain)
+                                .accessibilityLabel(Text("Robot \(style.index)"))
+                                .accessibilityAddTraits(avatar == name ? [.isSelected, .isButton] : .isButton)
                             }
-                            .buttonStyle(.plain)
-                            .accessibilityLabel(Text("Robot \(style.index)"))
-                            .accessibilityAddTraits(avatar == name ? [.isSelected, .isButton] : .isButton)
                         }
+                        .padding(.vertical, 8)
+                    } header: {
+                        Text("Robot")
                     }
-                    .padding(.vertical, 8)
-                } header: {
-                    Text("Robot")
-                }
                 }
                 Section {
                     TextField(text: $nickname) { Text("Nickname") }
@@ -663,7 +675,11 @@ struct KidDetailView: View {
             ContactPhotoPicker(
                 onPick: { data in
                     showContacts = false
-                    if let data { PersonPhotos.shared.set(data, for: kidId) } else { noPhoto = true }
+                    if let data {
+                        PersonPhotos.shared.set(data, for: kidId)
+                    } else {
+                        noPhoto = true
+                    }
                 },
                 onCancel: { showContacts = false }
             )

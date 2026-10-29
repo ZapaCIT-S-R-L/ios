@@ -29,7 +29,7 @@ final class AppServices {
     var setup: DeviceSetup?
     /// Fills in names and robots from the family (account API).
     var loadPeople: (@MainActor (AppServices) async -> Void)?
-    /// Receives VoIP pushes, so a call rings even when the app isn't running. Kept here: PushKit holds it weakly.
+    // Receives VoIP pushes, so a call rings even when the app isn't running. Kept here: PushKit holds it weakly.
     #if canImport(PushKit)
         var voipPushes: VoIPPushes?
     #endif
@@ -158,7 +158,7 @@ enum KnownNames {
     }
 
     private static func stored() -> [String: String] {
-        guard let data = UserDefaults.standard.data(forKey: key) else { return [:] } 
+        guard let data = UserDefaults.standard.data(forKey: key) else { return [:] }
         return (try? JSONDecoder().decode([String: String].self, from: data)) ?? [:]
     }
 }

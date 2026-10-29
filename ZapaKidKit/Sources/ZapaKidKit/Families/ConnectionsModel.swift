@@ -143,7 +143,7 @@ public final class ConnectionsModel {
         }
         var accepted = false
         await run { token in
-            connections.append(try await api.accept(code: code, token: token))
+            try await connections.append(api.accept(code: code, token: token))
             accepted = true
         }
         return accepted

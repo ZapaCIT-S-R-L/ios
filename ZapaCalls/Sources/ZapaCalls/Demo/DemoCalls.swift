@@ -24,7 +24,6 @@
                 directory: { account in peers.first { $0.accountId == account } }
             )
         }
-
     }
 
     final class DemoCallsAPI: CallsAPI, @unchecked Sendable {

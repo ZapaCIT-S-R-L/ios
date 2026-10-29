@@ -1,5 +1,5 @@
-import AVKit
 import AVFoundation
+import AVKit
 import Contacts
 import ContactsUI
 import CoreLocation
@@ -143,7 +143,7 @@ struct ChatView: View {
         .safeAreaInset(edge: .bottom) { composer }
         .safeAreaInset(edge: .top, spacing: 0) { header }
         // The name is in the header below, not the navigation bar.
-        .navigationTitle(Text(""))
+        .navigationTitle(Text(verbatim: ""))
         .navigationBarTitleDisplayMode(.inline)
         // The chats and settings tabs stay away while a conversation is open; back returns to the chats.
         .toolbar(.hidden, for: .tabBar)
@@ -193,7 +193,11 @@ struct ChatView: View {
         }
         .alert(
             "Can't send that",
-            isPresented: Binding(get: { problem != nil }, set: { if !$0 { problem = nil } })
+            isPresented: Binding(get: { problem != nil }, set: {
+                if !$0 {
+                    problem = nil
+                }
+            })
         ) {
             Button("OK") { problem = nil }
         } message: {
@@ -230,7 +234,11 @@ struct ChatView: View {
     private func sendFile(_ result: Result<URL, Error>) async {
         guard case let .success(url) = result else { return }
         let scoped = url.startAccessingSecurityScopedResource()
-        defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+        defer {
+            if scoped {
+                url.stopAccessingSecurityScopedResource()
+            }
+        }
         guard let data = try? Data(contentsOf: url) else {
             problem = "That file couldn't be read."
             return
@@ -350,7 +358,11 @@ struct MessageBubble: View {
             if message.isMine {
                 Spacer(minLength: 48)
             } else {
-                PersonAvatar(accountId: message.senderAccountId, avatar: services.people[message.senderAccountId]?.avatar ?? "robot-1", size: 34)
+                PersonAvatar(
+                    accountId: message.senderAccountId,
+                    avatar: services.people[message.senderAccountId]?.avatar ?? "robot-1",
+                    size: 34
+                )
             }
             VStack(alignment: message.isMine ? .trailing : .leading, spacing: 2) {
                 content
@@ -409,7 +421,8 @@ struct CallMessageLabel: View {
         Label {
             switch result?.kind {
             case .answered?:
-                Text("Call answered - \(Duration.seconds(result?.seconds ?? 0).formatted(.time(pattern: .hourMinuteSecond)))")
+                let durationText = Duration.seconds(result?.seconds ?? 0).formatted(.time(pattern: .hourMinuteSecond))
+                Text("Call answered - \(durationText)")
             case .declined?:
                 Text("Call declined")
             case .unanswered?:
@@ -594,7 +607,9 @@ final class LocationFinder: NSObject, CLLocationManagerDelegate, @unchecked Send
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
         switch manager.authorizationStatus {
         case .authorizedWhenInUse, .authorizedAlways:
-            if continuation != nil { manager.requestLocation() }
+            if continuation != nil {
+                manager.requestLocation()
+            }
         case .denied, .restricted:
             finish(.failure(CocoaError(.userCancelled)))
         default:

@@ -66,7 +66,12 @@ public struct HTTPConnectionsAPI: ConnectionsAPI {
     }
 
     public func remove(connectionId: String, token: String) async throws {
-        let _: EmptyReply = try await send("DELETE", ["v1", "connections", connectionId], token: token, body: NoBody?.none)
+        let _: EmptyReply = try await send(
+            "DELETE",
+            ["v1", "connections", connectionId],
+            token: token,
+            body: NoBody?.none
+        )
     }
 
     private struct NoBody: Encodable {}
@@ -119,8 +124,12 @@ public struct HTTPConnectionsAPI: ConnectionsAPI {
             let text = try decoder.singleValueContainer().decode(String.self)
             let fractional = ISO8601DateFormatter()
             fractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-            if let date = fractional.date(from: text) { return date }
-            if let date = ISO8601DateFormatter().date(from: text) { return date }
+            if let date = fractional.date(from: text) {
+                return date
+            }
+            if let date = ISO8601DateFormatter().date(from: text) {
+                return date
+            }
             throw DecodingError.dataCorrupted(.init(codingPath: decoder.codingPath, debugDescription: text))
         }
         return try decoder.decode(Reply.self, from: data)

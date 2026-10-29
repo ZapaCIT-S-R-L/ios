@@ -46,7 +46,7 @@ public final class ChatModel {
         do {
             conversations = try await api.conversations()
             Logger(subsystem: "ro.zapakid.app", category: "chats").info(
-                "loaded \(self.conversations.count, privacy: .public) conversations"
+                "loaded \(conversations.count, privacy: .public) conversations"
             )
             for conversation in conversations where messages[conversation.id] == nil {
                 do {
@@ -130,7 +130,9 @@ public final class ChatModel {
         var found = false
         for (conversationId, list) in messages {
             guard let index = list.firstIndex(where: { message in
-                if case let .call(id) = message.content.body { return id == callId }
+                if case let .call(id) = message.content.body {
+                    return id == callId
+                }
                 return false
             }) else { continue }
             var updated = list
@@ -271,7 +273,9 @@ public final class ChatModel {
                         }
                     } catch {}
                 }
-                if Task.isCancelled { break }
+                if Task.isCancelled {
+                    break
+                }
                 try? await Task.sleep(for: .seconds(pause))
                 pause = min(pause * 2, 30)
             }

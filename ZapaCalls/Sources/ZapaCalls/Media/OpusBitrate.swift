@@ -1,7 +1,8 @@
 import Foundation
 
 /// Caps the Opus bitrate that WebRTC negotiates for call audio (`maxaveragebitrate` in the SDP fmtp line).
-/// Only the Debug build reads the setting (`-zkOpusKbps 24` as a launch argument); release builds keep WebRTC's default.
+/// Only the Debug build reads the setting (`-zkOpusKbps 24` as a launch argument); release builds keep WebRTC's
+/// default.
 public enum OpusBitrate {
     /// The cap in kbps for this launch, or 0 for WebRTC's default.
     public static var configuredKbps: Int {

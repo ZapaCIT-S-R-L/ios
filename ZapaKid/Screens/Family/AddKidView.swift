@@ -65,7 +65,11 @@ struct AddKidView: View {
                 ContactPhotoPicker(
                     onPick: { data in
                         choosingPhoto = false
-                        if let data { photo = data } else { noPhoto = true }
+                        if let data {
+                            photo = data
+                        } else {
+                            noPhoto = true
+                        }
                     },
                     onCancel: { choosingPhoto = false }
                 )

@@ -57,19 +57,19 @@ struct MainTabView: View {
                         model: family, connections: connections, pendingKid: services.pendingKidEdit,
                         onKidEditOpened: { services.pendingKidEdit = nil }
                     )
-                        .onChange(of: family.family) { _, loaded in
-                            if let loaded {
-                                services.update(from: loaded)
+                    .onChange(of: family.family) { _, loaded in
+                        if let loaded {
+                            services.update(from: loaded)
+                        }
+                    }
+                    .toolbar {
+                        if let onSignOut {
+                            ToolbarItem(placement: .topBarTrailing) {
+                                Button(role: .destructive, action: onSignOut) { Text("Sign out") }
+                                    .accessibilityIdentifier("home.signOut")
                             }
                         }
-                        .toolbar {
-                            if let onSignOut {
-                                ToolbarItem(placement: .topBarTrailing) {
-                                    Button(role: .destructive, action: onSignOut) { Text("Sign out") }
-                                        .accessibilityIdentifier("home.signOut")
-                                }
-                            }
-                        }
+                    }
                 }
                 .tabItem { Label("Settings", systemImage: "gearshape.fill") }
                 .tag(1)

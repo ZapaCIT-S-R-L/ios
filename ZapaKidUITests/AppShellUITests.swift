@@ -115,5 +115,4 @@ final class AppShellUITests: XCTestCase {
         XCTAssertTrue(app.textFields["chat.input"].waitForExistence(timeout: 5))
         XCTAssertFalse(app.buttons["call.close"].exists)
     }
-
 }

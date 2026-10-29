@@ -36,8 +36,9 @@ struct PeerAvatar: View {
     }
 }
 
+@MainActor
 extension PeerAvatar {
-    @MainActor @ViewBuilder var face: some View {
+    @ViewBuilder var face: some View {
         if let photo = CallPeerPhotos.photo(peer.accountId) {
             Image(uiImage: photo)
                 .resizable()

@@ -21,11 +21,11 @@ struct FamilyModelTests {
         #expect(api.calls == ["create", "create"], "POST /v1/families is idempotent: 201 then 200")
     }
 
-    @Test func renamingAKidUpdatesTheList() async {
+    @Test func renamingAKidUpdatesTheList() async throws {
         let family = model()
         await family.load()
         _ = await family.addKid(nickname: "Ana", avatar: "robot-4", grade: 2)
-        let kid = family.family!.kids[0]
+        let kid = try #require(family.family?.kids[0])
 
         let renamed = await family.renameKid(kid, nickname: "  Ioana ", avatar: "robot-6")
 
@@ -35,11 +35,11 @@ struct FamilyModelTests {
         #expect(api.calls.last == "updateKid \(kid.id) Ioana robot-6")
     }
 
-    @Test func aKidCanNotBeRenamedToAnEmptyName() async {
+    @Test func aKidCanNotBeRenamedToAnEmptyName() async throws {
         let family = model()
         await family.load()
         _ = await family.addKid(nickname: "Ana", avatar: "robot-4", grade: 2)
-        let kid = family.family!.kids[0]
+        let kid = try #require(family.family?.kids[0])
 
         let renamed = await family.renameKid(kid, nickname: "   ", avatar: "robot-4")
 
@@ -47,11 +47,11 @@ struct FamilyModelTests {
         #expect(family.family?.kids.first?.nickname == "Ana")
     }
 
-    @Test func removingAKidDropsItFromTheFamily() async {
+    @Test func removingAKidDropsItFromTheFamily() async throws {
         let family = model()
         await family.load()
         _ = await family.addKid(nickname: "Ana", avatar: "robot-4", grade: 2)
-        let kid = family.family!.kids[0]
+        let kid = try #require(family.family?.kids[0])
 
         let removed = await family.removeKid(kid)
 
@@ -205,7 +205,13 @@ final class FakeFamiliesAPI: FamiliesAPI, @unchecked Sendable {
         return family
     }
 
-    func updateKid(familyId _: String, kidId: String, nickname: String, avatar: String, token _: String) async throws -> Kid {
+    func updateKid(
+        familyId _: String,
+        kidId: String,
+        nickname: String,
+        avatar: String,
+        token _: String
+    ) async throws -> Kid {
         try record("updateKid \(kidId) \(nickname) \(avatar)")
         let kid = Kid(id: kidId, nickname: nickname, avatar: avatar, grade: nil)
         lock.withLock { kids = kids.map { $0.id == kidId ? kid : $0 } }

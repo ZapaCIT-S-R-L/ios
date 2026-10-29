@@ -432,6 +432,22 @@
           }
         }
       }
+    },
+    "Calling %@…": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Îl suni pe %@…"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ wird angerufen…"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

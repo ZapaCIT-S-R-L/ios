@@ -21,7 +21,8 @@ final class PersonPhotos {
         values.isExcludedFromBackup = true
         var excluded = self.folder
         try? excluded.setResourceValues(values)
-        let files = (try? FileManager.default.contentsOfDirectory(at: self.folder, includingPropertiesForKeys: nil)) ?? []
+        let files = (try? FileManager.default.contentsOfDirectory(at: self.folder, includingPropertiesForKeys: nil)) ??
+            []
         for file in files {
             if let data = try? Data(contentsOf: file), let image = UIImage(data: data) {
                 images[file.deletingPathExtension().lastPathComponent] = image
