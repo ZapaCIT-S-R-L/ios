@@ -40,9 +40,14 @@ public final class CallController {
     public private(set) var isSpeakerOn = false
     public private(set) var callId: String?
     public private(set) var lastError: CallsAPIError?
+    /// The call clock's start: the server's answer time when it sent one (the same on every phone), else when this
+    /// phone's call became active.
     public var connectedAt: Date? {
-        machine.connectedAt
+        guard let local = machine.connectedAt else { return nil }
+        return answeredAt ?? local
     }
+
+    private var answeredAt: Date?
 
     /// Level above which a participant shows the speaking ring.
     static let speakingLevel: Float = 0.08
@@ -178,6 +183,9 @@ public final class CallController {
     }
 
     private func rosterChanged(_ call: CallSnapshot) async {
+        if let answered = call.answeredDate {
+            answeredAt = answered
+        }
         let others = call.participants.filter { $0.name != me }
         participants = others.map { person in
             let known = participants.first { $0.deviceId == person.name } ?? participants.first {

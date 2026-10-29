@@ -82,15 +82,26 @@ public struct CallSnapshot: Codable, Sendable, Equatable {
 
     public var callId: String
     public var state: State
+    /// When the first other participant joined (ISO 8601); null while ringing, absent from older servers.
+    public var answeredAt: String?
     public var epoch: UInt32
     public var keyLeader: CallDevice?
     public var participants: [RosterParticipant]
 
+    /// The call clock's start on every phone, so the timers agree.
+    public var answeredDate: Date? {
+        guard let answeredAt else { return nil }
+        return (try? Date(answeredAt, strategy: Date.ISO8601FormatStyle(includingFractionalSeconds: true)))
+            ?? (try? Date(answeredAt, strategy: .iso8601))
+    }
+
     public init(
-        callId: String, state: State, epoch: UInt32, keyLeader: CallDevice?, participants: [RosterParticipant]
+        callId: String, state: State, answeredAt: String? = nil, epoch: UInt32, keyLeader: CallDevice?,
+        participants: [RosterParticipant]
     ) {
         self.callId = callId
         self.state = state
+        self.answeredAt = answeredAt
         self.epoch = epoch
         self.keyLeader = keyLeader
         self.participants = participants
