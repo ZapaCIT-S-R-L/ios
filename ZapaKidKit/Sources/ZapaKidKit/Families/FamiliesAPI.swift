@@ -10,6 +10,11 @@ public protocol FamiliesAPI: Sendable {
     func join(code: String, token: String) async throws -> Family
     func addKid(familyId: String, nickname: String, avatar: String, grade: Int?, token: String) async throws -> Kid
     func createPairing(familyId: String, kidId: String, token: String) async throws -> PairingGrant
+    /// Renames a kid and/or changes its robot (`PATCH /v1/families/{familyId}/kids/{kidId}`); nil keeps a field.
+    func updateKid(familyId: String, kidId: String, nickname: String?, avatar: String?, token: String) async throws
+        -> Kid
+    /// Removes the kid with its account and phones (`DELETE`, 204).
+    func removeKid(familyId: String, kidId: String, token: String) async throws
     /// The signed-in parent's display name (`PATCH /v1/me`); answers with the updated parent.
     func setDisplayName(_ name: String, token: String) async throws -> FamilyParent
     /// No session: the code is the credential.
@@ -53,6 +58,12 @@ public struct HTTPFamiliesAPI: FamiliesAPI {
         private enum CodingKeys: String, CodingKey {
             case nickname, avatar, grade
         }
+    }
+
+    /// Only the fields being changed are sent.
+    private struct KidChange: Encodable {
+        var nickname: String?
+        var avatar: String?
     }
 
     private struct Families: Decodable {
@@ -109,6 +120,19 @@ public struct HTTPFamiliesAPI: FamiliesAPI {
         )
     }
 
+    public func updateKid(
+        familyId: String, kidId: String, nickname: String?, avatar: String?, token: String
+    ) async throws -> Kid {
+        try await send(
+            "PATCH", ["v1", "families", familyId, "kids", kidId], token: token,
+            body: KidChange(nickname: nickname, avatar: avatar)
+        )
+    }
+
+    public func removeKid(familyId: String, kidId: String, token: String) async throws {
+        _ = try await request("DELETE", ["v1", "families", familyId, "kids", kidId], token: token, body: Name?.none)
+    }
+
     public func setDisplayName(_ name: String, token: String) async throws -> FamilyParent {
         try await send("PATCH", ["v1", "me"], token: token, body: DisplayName(displayName: name))
     }
@@ -149,6 +173,17 @@ public struct HTTPFamiliesAPI: FamiliesAPI {
     private func send<Reply: Decodable>(
         _ method: String, _ path: [String], token: String?, body: (some Encodable)?
     ) async throws -> Reply {
+        let data = try await request(method, path, token: token, body: body)
+        do {
+            return try HTTPAuthAPI.decoder.decode(Reply.self, from: data)
+        } catch {
+            throw FamiliesAPIError.invalidResponse
+        }
+    }
+
+    private func request(
+        _ method: String, _ path: [String], token: String?, body: (some Encodable)?
+    ) async throws -> Data {
         var request = URLRequest(url: url(path))
         request.httpMethod = method
         request.setValue("application/json", forHTTPHeaderField: "Accept")
@@ -175,11 +210,7 @@ public struct HTTPFamiliesAPI: FamiliesAPI {
                 retryAfter: http.value(forHTTPHeaderField: "Retry-After")
             )
         }
-        do {
-            return try HTTPAuthAPI.decoder.decode(Reply.self, from: data)
-        } catch {
-            throw FamiliesAPIError.invalidResponse
-        }
+        return data
     }
 
     static func error(status: Int, code: String?, retryAfter: String?) -> FamiliesAPIError {

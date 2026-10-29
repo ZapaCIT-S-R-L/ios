@@ -10,6 +10,7 @@ struct FamilyView: View {
     @State private var pairing: FamilyModel.Pairing?
     @State private var invitation: FamilyModel.Invitation?
     @State private var renaming = false
+    @State private var editing: Kid?
     @Environment(\.zapaTheme) private var theme
 
     var body: some View {
@@ -77,6 +78,9 @@ struct FamilyView: View {
         .sheet(item: $invitation) { invitation in
             InviteParentView(invitation: invitation).zapaTheme(theme.role)
         }
+        .sheet(item: $editing) { kid in
+            EditKidView(model: model, kid: kid).zapaTheme(theme.role)
+        }
         .sheet(isPresented: $renaming) {
             RenameView(model: model).zapaTheme(theme.role)
         }
@@ -107,15 +111,25 @@ struct FamilyView: View {
 
     private func kidRow(_ kid: Kid) -> some View {
         HStack(spacing: 12) {
-            RobotAvatarView(avatar: kid.avatar, size: 44)
-            VStack(alignment: .leading) {
-                Text(verbatim: kid.nickname)
-                    .font(.headline)
-                    .foregroundStyle(theme.text.color)
-                GradeText.text(kid.grade)
-                    .font(.subheadline)
-                    .foregroundStyle(theme.secondaryText.color)
+            Button {
+                editing = kid
+            } label: {
+                HStack(spacing: 12) {
+                    RobotAvatarView(avatar: kid.avatar, size: 44)
+                    VStack(alignment: .leading) {
+                        Text(verbatim: kid.nickname)
+                            .font(.headline)
+                            .foregroundStyle(theme.text.color)
+                        GradeText.text(kid.grade)
+                            .font(.subheadline)
+                            .foregroundStyle(theme.secondaryText.color)
+                    }
+                }
+                .contentShape(Rectangle())
             }
+            .buttonStyle(.plain)
+            .accessibilityHint(Text("Rename or remove"))
+            .accessibilityIdentifier("family.kid.\(kid.nickname).edit")
             Spacer()
             Button {
                 Task { pairing = await model.pairing(for: kid) }

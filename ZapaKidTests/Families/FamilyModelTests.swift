@@ -229,7 +229,8 @@ final class FakeFamiliesAPI: FamiliesAPI, @unchecked Sendable {
     }
 
     func updateKid(familyId _: String, kidId: String, nickname: String?, avatar: String?, token _: String) async throws
-        -> Kid {
+        -> Kid
+    {
         try record("updateKid \(nickname ?? "-") \(avatar ?? "-")")
         return try lock.withLock {
             guard let index = kids.firstIndex(where: { $0.id == kidId }) else { throw FamiliesAPIError.notFound }
