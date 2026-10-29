@@ -1,4 +1,5 @@
 import Foundation
+import os
 import ZapaCalls
 import ZapaChat
 import ZapaKidKit
@@ -15,10 +16,19 @@ enum LiveServices {
         let chatAPI = HTTPChatAPI(baseURL: HTTPChatAPI.stagingURL!, token: token)
         // swiftlint:disable:next force_unwrapping
         let callsAPI = HTTPCallsAPI(baseURL: HTTPCallsAPI.stagingURL!, token: token)
-        let store: ChatStore = (try? EncryptedChatStore(
-            directory: ChatStoreLocation.directory(accountId: me, kid: kid),
-            key: ChatStoreKey.loadOrCreate(account: ChatStoreLocation.keychainAccount(accountId: me, kid: kid))
-        )) ?? InMemoryChatStore()
+        let store: ChatStore
+        do {
+            store = try EncryptedChatStore(
+                directory: ChatStoreLocation.directory(accountId: me, kid: kid),
+                key: ChatStoreKey.loadOrCreate(account: ChatStoreLocation.keychainAccount(accountId: me, kid: kid))
+            )
+        } catch {
+            // Not silent: history kept only in memory is gone at the next start.
+            Logger(subsystem: "ro.zapakid.app", category: "chat-store").error(
+                "encrypted chat store unavailable, using memory: \(String(describing: error), privacy: .public)"
+            )
+            store = InMemoryChatStore()
+        }
         // swiftlint:disable:next force_unwrapping
         let bundles = HTTPPreKeyBundles(baseURL: URL(string: ZapaKidKit.apiBaseURL)!, session: .shared) {
             await MainActor.run { auth.sessionToken }
