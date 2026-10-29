@@ -176,6 +176,18 @@ struct ChatModelTests {
         #expect(chat.connectedConversations == ["c_1", "c_2"])
     }
 
+    /// The background poll runs every 20 s; a network blip must not put an error on screen.
+    @Test func aFailedRefreshStaysSilent() async {
+        let chat = model()
+        api.failConversations = true
+
+        await chat.refresh()
+
+        #expect(chat.errorMessage == nil)
+        await chat.loadConversations()
+        #expect(chat.errorMessage != nil, "a pull-to-refresh still reports")
+    }
+
     @Test func markingReadClearsTheUnreadCount() async {
         let chat = model()
         await chat.loadConversations()
@@ -232,6 +244,7 @@ final class FakeChatAPI: ChatAPI, @unchecked Sendable {
     }
 
     var laterConversations: [Conversation] = []
+    var failConversations = false
 
     func conversation(devices: [Int]) -> Conversation {
         conversation(id: "c_1", devices: devices)
@@ -255,6 +268,9 @@ final class FakeChatAPI: ChatAPI, @unchecked Sendable {
     }
 
     func conversations() async throws -> [Conversation] {
+        if failConversations {
+            throw ChatAPIError.network
+        }
         [conversation(devices: [1, 2])] + laterConversations
     }
 
