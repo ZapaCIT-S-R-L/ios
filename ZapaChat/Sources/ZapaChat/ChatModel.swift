@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import os
 
 /// The chats on this phone: conversations from the service, messages sealed per device on send, opened, stored
 /// encrypted and acknowledged on receive.
@@ -40,10 +41,23 @@ public final class ChatModel {
     public func loadConversations() async {
         do {
             conversations = try await api.conversations()
+            Logger(subsystem: "ro.zapakid.app", category: "chats").info(
+                "loaded \(self.conversations.count, privacy: .public) conversations"
+            )
             for conversation in conversations where messages[conversation.id] == nil {
-                messages[conversation.id] = await (try? store.messages(in: conversation.id)) ?? []
+                do {
+                    messages[conversation.id] = try await store.messages(in: conversation.id)
+                } catch {
+                    Logger(subsystem: "ro.zapakid.app", category: "chat-store").error(
+                        "reading history failed: \(String(describing: error), privacy: .public)"
+                    )
+                    messages[conversation.id] = []
+                }
             }
         } catch {
+            Logger(subsystem: "ro.zapakid.app", category: "chats").error(
+                "loading conversations failed: \(String(describing: error), privacy: .public)"
+            )
             errorMessage = String(describing: error)
         }
     }

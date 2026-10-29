@@ -193,8 +193,10 @@ enum ChatStoreKey {
     static func loadOrCreate(account: String) throws -> Data {
         let keychain = KeychainData(service: service, account: account)
         if let key = try keychain.load(), key.count == 32 {
+            Logger(subsystem: "ro.zapakid.app", category: "chat-store").info("chat key found")
             return key
         }
+        Logger(subsystem: "ro.zapakid.app", category: "chat-store").error("chat key missing, creating a new one")
         var bytes = [UInt8](repeating: 0, count: 32)
         guard SecRandomCopyBytes(kSecRandomDefault, bytes.count, &bytes) == errSecSuccess else {
             throw KeychainData.Failure(status: errSecAllocate)
