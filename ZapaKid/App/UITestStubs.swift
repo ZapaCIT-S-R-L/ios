@@ -231,6 +231,8 @@
             conversation
         }
 
+        func leave(conversationId _: String) async throws {}
+
         func send(conversationId: String, messageId _: String, envelopes _: [OutgoingEnvelope]) async throws -> Date {
             let reply = ChatContent(id: UUID().uuidString, sentAt: Date(), body: .text("Hi! 👋"))
             let envelope = try Envelope(

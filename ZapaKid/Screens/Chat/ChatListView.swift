@@ -22,6 +22,14 @@ struct ChatListView: View {
                     .listRowSeparator(theme.cardShadow ? .hidden : .visible)
                     .listRowSeparatorTint(theme.separator.color)
                     .listRowBackground(rowBackground(index))
+                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                        Button(role: .destructive) {
+                            Task { await services.chat.leave(conversation.id) }
+                        } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
+                        .accessibilityIdentifier("chats.delete")
+                    }
                 }
             } header: {
                 Label { Text("End-to-end encrypted") } icon: { Image(systemName: "lock.fill") }

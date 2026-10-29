@@ -93,6 +93,10 @@ public struct HTTPChatAPI: ChatAPI {
         try await json("GET", ["v1", "conversations", conversationId, "messages"])
     }
 
+    public func leave(conversationId: String) async throws {
+        _ = try await data(request("DELETE", url(["v1", "conversations", conversationId])))
+    }
+
     public func ack(conversationId: String, envelopeIds: [String]) async throws {
         _ = try await data(
             request(

@@ -60,6 +60,26 @@ public final class ChatModel {
             )
             errorMessage = String(describing: error)
         }
+        connectAll()
+    }
+
+    /// Removes this account from a conversation: the service drops the membership, and this phone forgets it,
+    /// including its history. The other members keep the chat.
+    public func leave(_ conversationId: String) async {
+        do {
+            try await api.leave(conversationId: conversationId)
+        } catch {
+            Logger(subsystem: "ro.zapakid.app", category: "chats").error(
+                "leaving a conversation failed: \(String(describing: error), privacy: .public)"
+            )
+            errorMessage = String(describing: error)
+            return
+        }
+        disconnect(conversationId)
+        conversations.removeAll { $0.id == conversationId }
+        messages[conversationId] = nil
+        unread[conversationId] = nil
+        try? await store.delete(conversationId)
     }
 
     /// Why the last `start(with:)` failed (nil after a success), for the New chat screen.

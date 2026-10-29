@@ -70,7 +70,6 @@ enum LiveServices {
             guard let services else { return }
             Task {
                 await services.chat.loadConversations()
-                services.chat.connectAll()
             }
         }
         #if canImport(PushKit)

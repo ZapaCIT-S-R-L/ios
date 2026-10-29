@@ -53,6 +53,15 @@ struct HTTPChatAPITests {
         #expect(list.count == 1)
     }
 
+    @Test func leaveDeletesTheConversationForMe() async throws {
+        let client = api { _, _ in MockReply(204, "") }
+
+        try await client.leave(conversationId: "c_AAAAAAAAAAAAAAAAAAAAAA")
+
+        #expect(sent.first?.request.httpMethod == "DELETE")
+        #expect(sent.first?.request.url?.path == "/v1/conversations/c_AAAAAAAAAAAAAAAAAAAAAA")
+    }
+
     @Test func createSendsOnlyTheOtherMembers() async throws {
         let client = api { [conversationJSON] _, _ in MockReply(201, conversationJSON) }
 

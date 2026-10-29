@@ -106,7 +106,6 @@ struct MainTabView: View {
         .task {
             await services.loadPeople?(services)
             await services.chat.loadConversations()
-            services.chat.connectAll()
         }
     }
 
