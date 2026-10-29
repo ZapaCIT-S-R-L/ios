@@ -8,12 +8,14 @@ final class AppShellUITests: XCTestCase {
         continueAfterFailure = false
     }
 
-    private func launch(session: String = "signed-in", kid: Bool = false, demo: Bool = false) -> XCUIApplication {
+    private func launch(
+        session: String = "signed-in", kid: Bool = false, demo: Bool = false, observer: Bool = false
+    ) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["-zk-ui-test"]
         app.launchEnvironment = [
             "ZK_AGREEMENT": "accepted", "ZK_SESSION": session, "ZK_AGE": "adult", "ZK_KID": kid ? "paired" : "none",
-            "ZK_DEMO_FAMILY": demo ? "1" : "0",
+            "ZK_DEMO_FAMILY": demo ? "1" : "0", "ZK_OBSERVER": observer ? "1" : "0",
         ]
         app.launch()
         return app
@@ -38,6 +40,22 @@ final class AppShellUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Family"].waitForExistence(timeout: 5))
         XCTAssertFalse(app.buttons["family.addKid"].exists)
         XCTAssertFalse(app.buttons["family.inviteParent"].exists)
+    }
+
+    /// ios #63: a chat the parent only reads along in is listed last, with no composer and no Call button.
+    func testAnObservedChatIsLastAndReadOnly() {
+        let app = launch(observer: true)
+        let own = app.buttons["chats.row.Ana"]
+        let observed = app.buttons["chats.row.Ana, Ion"]
+        XCTAssertTrue(own.waitForExistence(timeout: 10))
+        XCTAssertTrue(observed.exists)
+        XCTAssertLessThan(own.frame.minY, observed.frame.minY)
+
+        observed.tap()
+
+        XCTAssertTrue(app.staticTexts["chat.observerNote"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.textFields["chat.input"].exists)
+        XCTAssertFalse(app.buttons["chat.call"].exists)
     }
 
     func testSendingATextShowsItInTheChatAndTheReplyArrives() {

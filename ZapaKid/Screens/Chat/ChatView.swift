@@ -14,6 +14,10 @@ struct ChatView: View {
     @FocusState private var typing: Bool
     @Environment(\.zapaTheme) private var theme
 
+    private var observing: Bool {
+        services.chat.isObserving(conversation.id)
+    }
+
     private var messages: [ChatMessage] {
         services.chat.messages[conversation.id] ?? []
     }
@@ -43,25 +47,27 @@ struct ChatView: View {
                 }
             }
         }
-        .safeAreaInset(edge: .bottom) { composer }
+        .safeAreaInset(edge: .bottom) {
+            if observing {
+                Text("You can read along. Only the kids write here.")
+                    .font(.callout)
+                    .foregroundStyle(theme.secondaryText.color)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: .infinity)
+                    .padding(12)
+                    .background(theme.background.color)
+                    .accessibilityIdentifier("chat.observerNote")
+            } else {
+                composer
+            }
+        }
         .navigationTitle(Text(verbatim: services.name(of: conversation)))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    Task { await services.call(conversation) }
-                } label: {
-                    Label { Text("Call") } icon: { Image(systemName: "phone.fill") }
-                        .labelStyle(.titleAndIcon)
-                        .font(.headline)
-                        .foregroundStyle(theme.onPrimary.color)
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 6)
-                        .background(Capsule().fill(theme.primary.color))
+                if !observing {
+                    callButton
                 }
-                .accessibilityLabel(Text("Call"))
-                .accessibilityIdentifier("chat.call")
-                .disabled(conversation.state == .closed)
             }
         }
         .onAppear {
@@ -80,6 +86,23 @@ struct ChatView: View {
                 photo = nil
             }
         }
+    }
+
+    private var callButton: some View {
+        Button {
+            Task { await services.call(conversation) }
+        } label: {
+            Label { Text("Call") } icon: { Image(systemName: "phone.fill") }
+                .labelStyle(.titleAndIcon)
+                .font(.headline)
+                .foregroundStyle(theme.onPrimary.color)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 6)
+                .background(Capsule().fill(theme.primary.color))
+        }
+        .accessibilityLabel(Text("Call"))
+        .accessibilityIdentifier("chat.call")
+        .disabled(conversation.state == .closed)
     }
 
     private var composer: some View {

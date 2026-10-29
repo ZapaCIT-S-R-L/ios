@@ -54,7 +54,7 @@
                 makeServices: { me, isKid in
                     let services = stubServices(
                         me: me, kid: isKid, ring: environment["ZK_RING"] == "1",
-                        demo: environment["ZK_DEMO_FAMILY"] == "1"
+                        demo: environment["ZK_DEMO_FAMILY"] == "1", observer: environment["ZK_OBSERVER"] == "1"
                     )
                     services.setup = stubSetup(environment["ZK_SETUP"])
                     return services
@@ -73,14 +73,20 @@
             return DeviceSetup(register: { result }, onSignedOut: {})
         }
 
-        static func stubServices(me: String, kid: Bool, ring: Bool, demo: Bool = false) -> AppServices {
+        static func stubServices(
+            me: String,
+            kid: Bool,
+            ring: Bool,
+            demo: Bool = false,
+            observer: Bool = false
+        ) -> AppServices {
             let other = kid
                 ? Person(accountId: "p_test", name: "Mama", avatar: "robot-2", role: .parent)
                 : Person(accountId: "k1", name: "Ana", avatar: "robot-4", role: .kid)
             let myself = kid
                 ? Person(accountId: me, name: "Ana", avatar: "robot-4", role: .kid)
                 : Person(accountId: me, name: "TEST Parent", avatar: "robot-2", role: .parent)
-            let api = StubChatAPI(me: me, other: other.accountId, ring: ring)
+            let api = StubChatAPI(me: me, other: other.accountId, ring: ring, observer: observer)
             return AppServices(
                 me: me, chat: ChatModel(
                     me: me,
@@ -90,6 +96,8 @@
                 ),
                 people: [other, myself] + (demo ? [
                     Person(accountId: "p_tata", name: "Tata", avatar: "robot-6", role: .parent),
+                    Person(accountId: "k2", name: "Ion", avatar: "robot-9", role: .kid),
+                ] : []) + (observer ? [
                     Person(accountId: "k2", name: "Ion", avatar: "robot-9", role: .kid),
                 ] : []), log: InMemoryCallLog(), system: InAppCallSystem()
             ) { services in
@@ -196,10 +204,25 @@
         private let lock = NSLock()
         private var continuation: AsyncThrowingStream<StreamFrame, Error>.Continuation?
 
-        init(me: String, other: String, ring: Bool = false) {
+        /// ZK_OBSERVER=1: a second chat, between two kids, where this parent only reads along.
+        let observer: Bool
+
+        init(me: String, other: String, ring: Bool = false, observer: Bool = false) {
             self.me = me
             self.other = other
             self.ring = ring
+            self.observer = observer
+        }
+
+        private var observed: Conversation {
+            Conversation(id: "c_observed", kind: .direct, state: .open, members: [
+                ConversationMember(
+                    accountId: me, role: .observer, guardian: true,
+                    devices: [DeviceRef(deviceId: 1, registrationId: 1)]
+                ),
+                ConversationMember(accountId: "k1", role: .kid, guardian: false, devices: []),
+                ConversationMember(accountId: "k2", role: .kid, guardian: false, devices: []),
+            ])
         }
 
         private var conversation: Conversation {
@@ -220,7 +243,8 @@
         }
 
         func conversations() async throws -> [Conversation] {
-            [conversation]
+            // The observed chat is listed first on purpose: the app must sort it last.
+            observer ? [observed, conversation] : [conversation]
         }
 
         func conversation(id _: String) async throws -> Conversation {

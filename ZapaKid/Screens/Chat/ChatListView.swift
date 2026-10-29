@@ -12,7 +12,10 @@ struct ChatListView: View {
     var body: some View {
         List {
             Section {
-                ForEach(Array(services.chat.conversations.enumerated()), id: \.element.id) { index, conversation in
+                ForEach(
+                    Array(services.chat.orderedConversations.enumerated()),
+                    id: \.element.id
+                ) { index, conversation in
                     NavigationLink {
                         ChatView(services: services, conversation: conversation)
                     } label: {
@@ -94,13 +97,14 @@ struct ChatListView: View {
     }
 
     private func row(_ conversation: Conversation) -> some View {
-        HStack(spacing: 12) {
+        let observing = services.chat.isObserving(conversation.id)
+        return HStack(spacing: 12) {
             RobotAvatarView(avatar: services.avatar(of: conversation), size: theme.cardShadow ? 58 : 50)
                 .background(Circle().fill(theme.secondary.color.opacity(0.25)))
             VStack(alignment: .leading, spacing: 4) {
                 Text(verbatim: services.name(of: conversation))
-                    .font(theme.cardShadow ? .title3.bold() : .headline)
-                    .foregroundStyle(theme.text.color)
+                    .font(observing ? .subheadline : (theme.cardShadow ? .title3.bold() : .headline))
+                    .foregroundStyle(observing ? theme.secondaryText.color : theme.text.color)
                 if let last = services.chat.messages[conversation.id]?.last {
                     ChatPreview(content: last.content)
                         .font(.subheadline)
@@ -122,6 +126,7 @@ struct ChatListView: View {
         .padding(.vertical, theme.cardShadow ? 18 : 10)
         .padding(.horizontal, theme.cardShadow ? 16 : 0)
         .frame(minHeight: theme.minTapTarget)
+        .opacity(observing ? 0.55 : 1)
     }
 }
 

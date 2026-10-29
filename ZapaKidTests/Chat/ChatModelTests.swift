@@ -164,6 +164,28 @@ struct ChatModelTests {
         #expect(chat.connectedConversations == ["c_1"])
     }
 
+    /// ios #63: a parent who only observes their kid's chats sees them last, and can't write in them.
+    @Test func observedChatsSortLastAndAreReadOnly() async {
+        let chat = model()
+        let observed = Conversation(id: "c_0", kind: .direct, state: .open, members: [
+            ConversationMember(accountId: "acc-m", role: .observer, guardian: true, devices: []),
+            ConversationMember(accountId: "acc-k", role: .kid, guardian: false, devices: []),
+            ConversationMember(accountId: "acc-k2", role: .kid, guardian: false, devices: []),
+        ])
+        api.laterConversations = [observed, api.conversation(id: "c_2", devices: [1])]
+
+        await chat.loadConversations()
+
+        #expect(chat.orderedConversations.map(\.id) == ["c_1", "c_2", "c_0"])
+        #expect(chat.isObserving("c_0"))
+        #expect(!chat.isObserving("c_1"))
+    }
+
+    @Test func theObserverRoleDecodes() throws {
+        let json = Data(#"{"accountId":"a","role":"observer","guardian":true,"devices":[]}"#.utf8)
+        #expect(try JSONDecoder().decode(ConversationMember.self, from: json).role == .observer)
+    }
+
     @Test func markingReadClearsTheUnreadCount() async {
         let chat = model()
         await chat.loadConversations()
@@ -219,8 +241,14 @@ final class FakeChatAPI: ChatAPI, @unchecked Sendable {
         lock.withLock { uploadLog }
     }
 
+    var laterConversations: [Conversation] = []
+
     func conversation(devices: [Int]) -> Conversation {
-        Conversation(id: "c_1", kind: .direct, state: .open, members: [
+        conversation(id: "c_1", devices: devices)
+    }
+
+    func conversation(id: String, devices: [Int]) -> Conversation {
+        Conversation(id: id, kind: .direct, state: .open, members: [
             ConversationMember(
                 accountId: "acc-m",
                 role: .parent,
@@ -237,7 +265,7 @@ final class FakeChatAPI: ChatAPI, @unchecked Sendable {
     }
 
     func conversations() async throws -> [Conversation] {
-        [conversation(devices: [1, 2])]
+        [conversation(devices: [1, 2])] + laterConversations
     }
 
     func conversation(id _: String) async throws -> Conversation {
