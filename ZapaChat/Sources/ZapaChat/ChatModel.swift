@@ -79,6 +79,12 @@ public final class ChatModel {
         return conversation
     }
 
+    /// Reloads the conversations and opens streams for any new ones, so a group created after launch rings too.
+    public func refresh() async {
+        await loadConversations()
+        connectAll()
+    }
+
     /// Keeps every conversation's stream open, so messages and call rings arrive while the app is open.
     public func connectAll() {
         for conversation in conversations where conversation.state == .open {
