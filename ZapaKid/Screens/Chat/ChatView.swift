@@ -20,6 +20,9 @@ struct ChatView: View {
 
     var body: some View {
         ScrollViewReader { scroll in
+            // The tap below only hides the keyboard; it is not a control (VoiceOver users have the keyboard's own
+            // dismiss gesture), so it gets no button trait.
+            // swiftlint:disable:next accessibility_trait_for_button
             ScrollView {
                 LazyVStack(spacing: 8) {
                     ForEach(messages) { message in
@@ -31,6 +34,9 @@ struct ChatView: View {
             }
             .background(theme.background.color.ignoresSafeArea())
             .scrollDismissesKeyboard(.immediately)
+            // Without a Done bar, a tap on the messages hides the keyboard too, even when there's nothing to scroll.
+            .simultaneousGesture(TapGesture().onEnded { typing = false })
+            .accessibilityIdentifier("chat.messages")
             .onChange(of: messages.count) {
                 if let last = messages.last {
                     withAnimation { scroll.scrollTo(last.id, anchor: .bottom) }
@@ -41,11 +47,6 @@ struct ChatView: View {
         .navigationTitle(Text(verbatim: services.name(of: conversation)))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItemGroup(placement: .keyboard) {
-                Spacer()
-                Button { typing = false } label: { Text("Done") }
-                    .accessibilityIdentifier("chat.hideKeyboard")
-            }
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
                     Task { await services.call(conversation) }
