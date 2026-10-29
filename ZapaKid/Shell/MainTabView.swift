@@ -248,7 +248,7 @@ private struct CallNoticeBanner: View {
     @Environment(\.zapaTheme) private var theme
 
     var body: some View {
-        Text(text)
+        text
             .font(.subheadline.weight(.semibold))
             .foregroundStyle(theme.onPrimary.color)
             .padding(.horizontal, 16)
