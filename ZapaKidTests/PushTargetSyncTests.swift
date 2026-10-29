@@ -8,9 +8,15 @@ import ZapaKidKit
 @MainActor
 struct PushTargetSyncTests {
     final class FakePushAPI: DevicePushAPI, @unchecked Sendable {
-        var calls: [(deviceId: Int, target: PushTarget?, token: String)] = []
+        struct Call {
+            let deviceId: Int
+            let target: PushTarget?
+            let token: String
+        }
+
+        var calls: [Call] = []
         func setDevicePush(deviceId: Int, target: PushTarget?, token: String) async throws {
-            calls.append((deviceId, target, token))
+            calls.append(Call(deviceId: deviceId, target: target, token: token))
         }
     }
 

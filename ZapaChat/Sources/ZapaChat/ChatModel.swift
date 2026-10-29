@@ -246,9 +246,11 @@ public final class ChatModel {
         let envelopes = try await sealer.seal(plaintext, for: conversation, me: me)
         _ = try await api.send(conversationId: conversationId, messageId: messageId, envelopes: envelopes)
     }
+}
 
-    // MARK: Receiving
+// MARK: Receiving
 
+extension ChatModel {
     /// Opens the conversation's live stream (and fetches what queued while away).
     public func connect(_ conversationId: String) {
         guard streams[conversationId] == nil else { return }
@@ -266,11 +268,7 @@ public final class ChatModel {
                     pause = 1
                     do {
                         for try await frame in stream.frames() {
-                            switch frame {
-                            case let .envelope(envelope): await self?.receive(envelope)
-                            case .event: await self?.refresh(conversationId)
-                            case .other: break
-                            }
+                            await self?.handle(frame, in: conversationId)
                         }
                     } catch {}
                 }
@@ -280,6 +278,14 @@ public final class ChatModel {
                 try? await Task.sleep(for: .seconds(pause))
                 pause = min(pause * 2, 30)
             }
+        }
+    }
+
+    private func handle(_ frame: StreamFrame, in conversationId: String) async {
+        switch frame {
+        case let .envelope(envelope): await receive(envelope)
+        case .event: await refresh(conversationId)
+        case .other: break
         }
     }
 
