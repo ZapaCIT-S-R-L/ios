@@ -184,8 +184,9 @@ public final class WebRTCMediaEngine: NSObject, CallMediaEngine, @unchecked Send
                 }
             }
         }
-        try await setLocal(offer)
-        return offer.sdp
+        let capped = OpusBitrate.capping(offer.sdp, kbps: OpusBitrate.configuredKbps)
+        try await setLocal(LKRTCSessionDescription(type: offer.type, sdp: capped))
+        return capped
     }
 
     private func makeAnswer() async throws -> String {
@@ -200,8 +201,9 @@ public final class WebRTCMediaEngine: NSObject, CallMediaEngine, @unchecked Send
                 }
             }
         }
-        try await setLocal(answer)
-        return answer.sdp
+        let capped = OpusBitrate.capping(answer.sdp, kbps: OpusBitrate.configuredKbps)
+        try await setLocal(LKRTCSessionDescription(type: answer.type, sdp: capped))
+        return capped
     }
 
     private func setLocal(_ description: LKRTCSessionDescription) async throws {
