@@ -31,6 +31,9 @@ struct ChatView: View {
             }
             .background(theme.background.color.ignoresSafeArea())
             .scrollDismissesKeyboard(.immediately)
+            // Without a Done bar, a tap on the messages hides the keyboard too, even when there's nothing to scroll.
+            .simultaneousGesture(TapGesture().onEnded { typing = false })
+            .accessibilityIdentifier("chat.messages")
             .onChange(of: messages.count) {
                 if let last = messages.last {
                     withAnimation { scroll.scrollTo(last.id, anchor: .bottom) }
