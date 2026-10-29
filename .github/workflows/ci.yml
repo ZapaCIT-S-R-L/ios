@@ -1,7 +1,7 @@
 # Checks every pull request and every push to main. No secrets are used here, so PRs from forks are safe.
 #   changes  does this PR touch more than docs? (docs-only PRs skip the macOS job)
-#   ios      the only macOS job: XcodeGen project, build and unit tests on an iOS simulator (scripts/test.sh unit);
-#            on main also the UI tests. Our free org runs about 5 macOS jobs at once, so each PR uses one.
+#   ios      the only macOS job: XcodeGen project, build, unit and UI tests on an iOS simulator (scripts/test.sh all).
+#            Our free org runs about 5 macOS jobs at once, so each PR uses one.
 #   scripts  Node checks (npm test): CLA, release tags, strings, bundle ID, and the API contract test (fixtures vs
 #            the api's openapi.yaml at the commit in contract/api.json)
 #   deps     OSV-Scanner: known vulnerabilities in the pinned Swift packages (ZapaKidKit/Package.resolved)
@@ -48,17 +48,15 @@ jobs:
     # Docs-only PRs skip this job; a skipped job reports success, so the required `ios` check still passes.
     needs: changes
     if: needs.changes.outputs.code == 'true'
-    # Intel (x64) for now: on 2026-10-26 jobs on macos-26 (arm64) were never picked up ("not acquired by Runner of
-    # type hosted"); the cause was the org's limit of about 5 concurrent macOS jobs. Switch back to macos-26 (arm64,
-    # faster) when that is reliable, here and in codeql.yml.
-    runs-on: macos-26-intel
+    # arm64 with Xcode 27 (preview image, label `xcode-27`): the same Xcode 27.1 and iOS 27 simulators as the
+    # developer Mac, so a green run here means what scripts/ci-local.sh means. Free for this public repo. Earlier
+    # (2026-10-26) jobs on macos-26 arm64 were never picked up because of the org's limit of about 5 concurrent macOS
+    # jobs; if that returns, watch the queue time and fall back to macos-26-intel with Xcode_26.6 and iOS 26.5.
+    runs-on: xcode-27
     timeout-minutes: 75
     env:
-      # Pinned Xcode (the default on the macOS 26 images, latest stable). Bump it in a PR.
-      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
-      # A simulator the image ships (runner-images macos-26 readme, "Installed Simulators").
-      SIM_DEVICE: iPhone 17
-      SIM_OS: "26.5"
+      # Pinned Xcode (the image default). The simulator is the newest iOS one, chosen by scripts/pick-simulator.sh.
+      DEVELOPER_DIR: /Applications/Xcode_27.1.app/Contents/Developer
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Install XcodeGen (pinned release, checksum verified)
@@ -77,8 +75,8 @@ jobs:
           COCOAPODS_VERSION: 1.17.0
         run: test "$(pod --version)" = "$COCOAPODS_VERSION" || { echo "CocoaPods $(pod --version), expected $COCOAPODS_VERSION"; exit 1; }
       - run: xcodebuild -version && xcodegen --version
-      # PRs: build + unit tests. main: also the UI tests (scripts/ci-local.sh runs everything locally before a push).
-      - run: scripts/test.sh "${{ github.event_name == 'pull_request' && 'unit' || 'all' }}"
+      # Build, unit tests and UI tests on every PR and on main (the same as scripts/test.sh all in scripts/ci-local.sh).
+      - run: scripts/test.sh all
       - if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
