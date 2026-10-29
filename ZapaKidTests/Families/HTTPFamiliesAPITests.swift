@@ -80,6 +80,31 @@ struct HTTPFamiliesAPITests {
         #expect(Set(body.keys) == ["nickname", "avatar", "grade"])
     }
 
+    @Test func updateKidPatchesOnlyWhatChanged() async throws {
+        let client = api { _, _ in
+            MockReply(
+                200,
+                #"{"id":"k1","nickname":"Ani","avatar":"robot-4","grade":2,"createdAt":"2026-10-27T18:00:00Z"}"#
+            )
+        }
+
+        let kid = try await client.updateKid(familyId: "f1", kidId: "k1", nickname: "Ani", avatar: nil, token: "t")
+
+        #expect(kid.nickname == "Ani")
+        #expect(sent.first?.request.httpMethod == "PATCH")
+        #expect(sent.first?.request.url?.path == "/v1/families/f1/kids/k1")
+        #expect(try Set(#require(sent.first?.body?.json).keys) == ["nickname"])
+    }
+
+    @Test func removeKidDeletesAndAcceptsNoContent() async throws {
+        let client = api { _, _ in MockReply(204, "") }
+
+        try await client.removeKid(familyId: "f1", kidId: "k1", token: "t")
+
+        #expect(sent.first?.request.httpMethod == "DELETE")
+        #expect(sent.first?.request.url?.path == "/v1/families/f1/kids/k1")
+    }
+
     @Test func invitationsPairingJoinAndRedeem() async throws {
         let code = "zki_" + String(repeating: "a", count: 43)
         let pairing = "zkp_" + String(repeating: "b", count: 43)

@@ -37,6 +37,36 @@ final class FamilyUITests: XCTestCase {
         XCTAssertFalse(app.images["pairing.qr"].label.isEmpty, "VoiceOver says what the QR is for")
     }
 
+    /// Stefan (2026-10-29, ios #61): a parent can rename and remove a kid.
+    func testParentRenamesAndRemovesAKid() {
+        let app = launch(session: "signed-in")
+        XCTAssertTrue(app.tabBars.buttons["Family"].waitForExistence(timeout: 10))
+        app.tabBars.buttons["Family"].tap()
+        app.buttons["family.addKid"].tap()
+        let nickname = app.textFields["addKid.nickname"]
+        XCTAssertTrue(nickname.waitForExistence(timeout: 5))
+        nickname.tap()
+        nickname.typeText("Ana")
+        app.buttons["addKid.save"].tap()
+
+        let edit = app.buttons["family.kid.Ana.edit"]
+        XCTAssertTrue(edit.waitForExistence(timeout: 5))
+        edit.tap()
+        let field = app.textFields["editKid.nickname"]
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        field.tap()
+        field.typeText("i")
+        app.buttons["editKid.save"].tap()
+        XCTAssertTrue(app.buttons["family.kid.Anai.edit"].waitForExistence(timeout: 5))
+
+        app.buttons["family.kid.Anai.edit"].tap()
+        app.buttons["editKid.remove"].tap()
+        XCTAssertTrue(app.staticTexts["editKid.removeWarning"].waitForExistence(timeout: 5))
+        app.buttons["editKid.confirmRemove"].tap()
+        XCTAssertTrue(app.buttons["family.addKid"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["family.kid.Anai.edit"].exists)
+    }
+
     /// Stefan (2026-10-28): "father can't change name".
     func testParentChangesTheirName() {
         let app = launch(session: "signed-in")

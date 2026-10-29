@@ -72,6 +72,37 @@ public final class FamilyModel {
         return added
     }
 
+    /// Renames a kid and/or changes its robot; false when the name is empty or the API refused.
+    public func updateKid(_ kid: Kid, nickname: String, avatar: String) async -> Bool {
+        let nickname = nickname.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !nickname.isEmpty, nickname.count <= 40, let familyId = family?.id else { return false }
+        var saved = false
+        await run { api, token in
+            let updated = try await api.updateKid(
+                familyId: familyId, kidId: kid.id,
+                nickname: nickname == kid.nickname ? nil : nickname, avatar: avatar == kid.avatar ? nil : avatar,
+                token: token
+            )
+            if let kids = family?.kids {
+                family?.kids = kids.map { $0.id == updated.id ? updated : $0 }
+            }
+            saved = true
+        }
+        return saved
+    }
+
+    /// Removes the kid (its account and phones). The list only changes after the API agrees.
+    public func removeKid(_ kid: Kid) async -> Bool {
+        guard let familyId = family?.id else { return false }
+        var removed = false
+        await run { api, token in
+            try await api.removeKid(familyId: familyId, kidId: kid.id, token: token)
+            family?.kids.removeAll { $0.id == kid.id }
+            removed = true
+        }
+        return removed
+    }
+
     public struct Pairing: Equatable, Sendable {
         public let link: PairingLink
         public let expiresAt: Date

@@ -33,6 +33,22 @@
         }
       }
     },
+    "%@'s phone is unpaired, and %@ leaves all chats and calls.": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Telefonul lui %@ este deconectat, iar %@ iese din toate conversațiile și apelurile."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Das Telefon von %@ wird getrennt, und %@ verlässt alle Chats und Anrufe."
+          }
+        }
+      }
+    },
     "A call couldn't ring": {
       "localizations": {
         "ro": {
@@ -285,6 +301,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Fertig"
+          }
+        }
+      }
+    },
+    "Edit kid": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Modifică copilul"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kind bearbeiten"
           }
         }
       }
@@ -989,6 +1021,54 @@
           "stringUnit": {
             "state": "translated",
             "value": "Privater Chat für deine Familie. Eltern melden sich mit Apple oder Google an."
+          }
+        }
+      }
+    },
+    "Remove %@": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elimină %@"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ entfernen"
+          }
+        }
+      }
+    },
+    "Remove kid": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elimină copilul"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kind entfernen"
+          }
+        }
+      }
+    },
+    "Rename or remove": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Redenumește sau elimină"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Umbenennen oder entfernen"
           }
         }
       }

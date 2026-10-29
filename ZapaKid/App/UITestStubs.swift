@@ -142,6 +142,23 @@
             }
         }
 
+        func updateKid(
+            familyId _: String, kidId: String, nickname: String?, avatar: String?, token _: String
+        ) async throws -> Kid {
+            try lock.withLock {
+                guard let index = family.kids.firstIndex(where: { $0.id == kidId }) else {
+                    throw FamiliesAPIError.notFound
+                }
+                family.kids[index].nickname = nickname ?? family.kids[index].nickname
+                family.kids[index].avatar = avatar ?? family.kids[index].avatar
+                return family.kids[index]
+            }
+        }
+
+        func removeKid(familyId _: String, kidId: String, token _: String) async throws {
+            lock.withLock { family.kids.removeAll { $0.id == kidId } }
+        }
+
         func setDisplayName(_ name: String, token _: String) async throws -> FamilyParent {
             lock.withLock {
                 let parent = FamilyParent(id: "p_test", displayName: name)
