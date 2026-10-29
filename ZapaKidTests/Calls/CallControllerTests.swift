@@ -15,6 +15,7 @@ struct CallControllerTests {
         let people = [mama, kid]
         return CallController(
             me: device, api: api, engine: engine, sealer: FakeCallKeySealer(me: device), reconnectTimeout: .seconds(1),
+            pullRetryDelay: { _ in .milliseconds(10) },
             directory: { account in people.first { $0.accountId == account } }
         )
     }
@@ -79,6 +80,26 @@ struct CallControllerTests {
 
         #expect(await eventually { engine.calls.contains("subscribe audio-acc-m_1 (failed)") })
         #expect(await eventually(timeout: .seconds(5)) { engine.calls.contains("subscribe audio-acc-m_1") })
+    }
+
+    /// The SFU may refuse a pull for a while; the controller keeps trying (with backoff) for as long as the call is
+    /// live, never giving up silently with one-way audio (review of ios #64).
+    @Test func aPullKeepsBeingRetriedWhileTheCallIsLive() async {
+        engine.failingSubscribes = 15
+        let call = controller()
+        await call.startCall(conversationId: "conv-1", peers: [mama])
+
+        api.push(roster(["acc-k.1", "acc-m.1"]))
+
+        #expect(await eventually(timeout: .seconds(5)) { engine.calls.contains("subscribe audio-acc-m_1") })
+        #expect(engine.calls.filter { $0 == "subscribe audio-acc-m_1 (failed)" }.count == 15)
+    }
+
+    @Test func pullRetriesBackOffUpToFiveSeconds() {
+        #expect(CallController.defaultPullRetryDelay(0) == .milliseconds(500))
+        #expect(CallController.defaultPullRetryDelay(1) == .seconds(1))
+        #expect(CallController.defaultPullRetryDelay(3) == .seconds(4))
+        #expect(CallController.defaultPullRetryDelay(9) == .seconds(5))
     }
 
     @Test func theServersLeaderSendsOneKeysBatchForTheServersEpoch() async {

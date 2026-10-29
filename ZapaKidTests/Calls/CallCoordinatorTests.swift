@@ -38,15 +38,29 @@ struct CallCoordinatorTests {
 
     /// Do Not Disturb on the called phone: CallKit refuses to ring. Decline it quietly so the caller stops ringing at
     /// once, and don't show the "couldn't start" alert, which is for the caller's own calls (Stefan, 2026-10-29).
-    @Test func aRefusedIncomingCallIsDeclinedQuietly() async {
+    @Test func aCallDoNotDisturbFilteredIsDeclinedQuietly() async {
         let calls = coordinator()
-        system.refusal = NSError(domain: "com.apple.CallKit.error.incomingcall", code: 3)
+        system.refusal = CallSystemError.filtered
 
         await calls.handle(IncomingCallPush(callId: "c_9", callerAccountId: "acc-m"))
 
         #expect(calls.current == nil)
         #expect(calls.refused == nil)
         #expect(await eventually { api.calls.contains("decline c_9") })
+    }
+
+    /// Any other refusal (e.g. a build without the `voip` background mode) must not silently decline every call
+    /// (review of ios #64): the call keeps ringing for the caller and the refusal is recorded.
+    @Test func anyOtherIncomingRefusalIsRecordedNotDeclined() async {
+        let calls = coordinator()
+        system.refusal = NSError(domain: "com.apple.CallKit.error.incomingcall", code: 1)
+
+        await calls.handle(IncomingCallPush(callId: "c_9", callerAccountId: "acc-m"))
+
+        #expect(calls.current == nil)
+        #expect(calls.refused == .incoming)
+        try? await Task.sleep(for: .milliseconds(100))
+        #expect(!api.calls.contains("decline c_9"))
     }
 
     /// CallKit may activate the audio session before the outgoing call's engine is wired up; the engine must still
