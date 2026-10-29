@@ -45,8 +45,9 @@ public final class ChatModel {
     public func loadConversations() async {
         do {
             conversations = try await api.conversations()
+            let loaded = conversations.count
             Logger(subsystem: "ro.zapakid.app", category: "chats").info(
-                "loaded \(conversations.count, privacy: .public) conversations"
+                "loaded \(loaded, privacy: .public) conversations"
             )
             for conversation in conversations where messages[conversation.id] == nil {
                 do {
