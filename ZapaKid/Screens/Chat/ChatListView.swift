@@ -7,12 +7,26 @@ struct ChatListView: View {
     let services: AppServices
     @State private var choosing = false
     @State private var opened: Conversation?
+    /// Archived chats stay on this phone only; they leave the main list until unarchived or deleted.
+    @AppStorage(ArchivedChats.key) private var archivedRaw = ""
     @Environment(\.zapaTheme) private var theme
 
     var body: some View {
+        let archived = ArchivedChats.decode(archivedRaw)
+        let active = services.chat.conversations.filter { !archived.contains($0.id) }
+        let archivedCount = services.chat.conversations.count - active.count
         List {
             Section {
-                ForEach(Array(services.chat.conversations.enumerated()), id: \.element.id) { index, conversation in
+                if archivedCount > 0 {
+                    NavigationLink {
+                        ArchivedChatsView(services: services)
+                    } label: {
+                        Label("Archived (\(archivedCount))", systemImage: "archivebox")
+                            .foregroundStyle(theme.text.color)
+                    }
+                    .accessibilityIdentifier("chats.archived")
+                }
+                ForEach(Array(active.enumerated()), id: \.element.id) { index, conversation in
                     NavigationLink {
                         ChatView(services: services, conversation: conversation)
                     } label: {
@@ -23,12 +37,13 @@ struct ChatListView: View {
                     .listRowSeparatorTint(theme.separator.color)
                     .listRowBackground(rowBackground(index))
                     .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                        Button(role: .destructive) {
-                            Task { await services.chat.leave(conversation.id) }
+                        Button {
+                            archivedRaw = ArchivedChats.encode(archived.union([conversation.id]))
                         } label: {
-                            Label("Delete", systemImage: "trash")
+                            Label("Archive", systemImage: "archivebox")
                         }
-                        .accessibilityIdentifier("chats.delete")
+                        .tint(.indigo)
+                        .accessibilityIdentifier("chats.archive")
                     }
                 }
             } header: {
@@ -130,6 +145,93 @@ struct ChatListView: View {
         .padding(.vertical, theme.cardShadow ? 18 : 10)
         .padding(.horizontal, theme.cardShadow ? 16 : 0)
         .frame(minHeight: theme.minTapTarget)
+    }
+}
+
+/// The archived chats: unarchive them, or delete one (its history goes; the others keep the chat).
+struct ArchivedChatsView: View {
+    let services: AppServices
+    @AppStorage(ArchivedChats.key) private var archivedRaw = ""
+    @State private var confirming: Conversation?
+    @Environment(\.zapaTheme) private var theme
+
+    var body: some View {
+        let archived = ArchivedChats.decode(archivedRaw)
+        let chats = services.chat.conversations.filter { archived.contains($0.id) }
+        List {
+            ForEach(chats, id: \.id) { conversation in
+                NavigationLink {
+                    ChatView(services: services, conversation: conversation)
+                } label: {
+                    Label {
+                        Text(verbatim: services.name(of: conversation))
+                    } icon: {
+                        RobotAvatarView(avatar: services.avatar(of: conversation), size: 40)
+                    }
+                    .foregroundStyle(theme.text.color)
+                }
+                .accessibilityIdentifier("archived.row.\(services.name(of: conversation))")
+                .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                    Button {
+                        archivedRaw = ArchivedChats.encode(archived.subtracting([conversation.id]))
+                    } label: {
+                        Label("Unarchive", systemImage: "tray.and.arrow.up")
+                    }
+                    .tint(.indigo)
+                    .accessibilityIdentifier("archived.unarchive")
+                }
+                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                    Button(role: .destructive) {
+                        confirming = conversation
+                    } label: {
+                        Label("Delete", systemImage: "trash")
+                    }
+                    .accessibilityIdentifier("archived.delete")
+                }
+            }
+        }
+        .listStyle(.plain)
+        .overlay {
+            if chats.isEmpty {
+                ContentUnavailableView {
+                    Text("No archived chats")
+                } description: {
+                    Text("Swipe a chat to archive it.")
+                }
+            }
+        }
+        .navigationTitle(Text("Archived"))
+        .confirmationDialog(
+            "Delete this chat?",
+            isPresented: Binding(get: { confirming != nil }, set: { if !$0 { confirming = nil } }),
+            titleVisibility: .visible,
+            presenting: confirming
+        ) { conversation in
+            Button("Delete chat and history", role: .destructive) {
+                let id = conversation.id
+                archivedRaw = ArchivedChats.encode(archived.subtracting([id]))
+                Task { await services.chat.leave(id) }
+            }
+        } message: { _ in
+            Text("You lose the history on this phone. The others keep the chat.")
+        }
+    }
+
+    private var archived: Set<String> {
+        ArchivedChats.decode(archivedRaw)
+    }
+}
+
+/// The archived chat ids, kept per phone in `AppStorage` as a comma-separated string.
+enum ArchivedChats {
+    static let key = "chats.archivedIds"
+
+    static func decode(_ raw: String) -> Set<String> {
+        Set(raw.split(separator: ",").map(String.init))
+    }
+
+    static func encode(_ ids: Set<String>) -> String {
+        ids.sorted().joined(separator: ",")
     }
 }
 
