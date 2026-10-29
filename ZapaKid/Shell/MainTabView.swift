@@ -24,6 +24,25 @@ struct MainTabView: View {
                 }
             }
             .animation(.default, value: services.calls.notice)
+            // iOS refusing a call is never silent, on either phone.
+            .alert(refusal.map { Text($0.title) } ?? Text(verbatim: ""), isPresented: Binding(
+                get: { services.calls.refused != nil },
+                set: {
+                    if !$0 {
+                        services.calls.clearRefusal()
+                    }
+                }
+            )) {
+                Button { services.calls.clearRefusal() } label: { Text("OK") }
+            } message: {
+                if let refusal {
+                    Text(refusal.message)
+                }
+            }
+    }
+
+    private var refusal: CallRefusalAlert? {
+        services.calls.refused.map(CallRefusalAlert.init)
     }
 
     private var tabs: some View {
@@ -245,6 +264,23 @@ private struct CallNoticeBanner: View {
         case .declined: Text("\(names) declined the call")
         case .noAnswer: Text("\(names) didn't answer")
         case .interrupted: Text("The call was interrupted")
+        }
+    }
+}
+
+/// What the user is told when iOS refused a call.
+struct CallRefusalAlert: Equatable {
+    let title: LocalizedStringResource
+    let message: LocalizedStringResource
+
+    init(_ direction: CallDirection) {
+        switch direction {
+        case .outgoing:
+            title = "The call couldn't start"
+            message = "Your iPhone didn't allow the call. Check Do Not Disturb and try again."
+        case .incoming:
+            title = "A call couldn't ring"
+            message = "Your iPhone didn't let ZapaKid ring. Close ZapaKid and open it again."
         }
     }
 }

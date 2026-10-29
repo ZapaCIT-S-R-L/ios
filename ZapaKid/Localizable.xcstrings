@@ -33,6 +33,22 @@
         }
       }
     },
+    "A call couldn't ring": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Un apel nu a putut suna"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ein Anruf konnte nicht klingeln"
+          }
+        }
+      }
+    },
     "Accepts the parental agreement and continues to sign-in": {
       "localizations": {
         "ro": {
@@ -1437,6 +1453,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Dein iPhone hat den Anruf nicht erlaubt. Prüfe „Nicht stören“ und versuche es noch einmal."
+          }
+        }
+      }
+    },
+    "Your iPhone didn't let ZapaKid ring. Close ZapaKid and open it again.": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iPhone-ul nu a lăsat ZapaKid să sune. Închide ZapaKid și deschide-l din nou."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dein iPhone hat ZapaKid nicht klingeln lassen. Schließe ZapaKid und öffne es noch einmal."
           }
         }
       }

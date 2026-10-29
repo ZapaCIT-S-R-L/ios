@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import os
 
 /// Someone in the call as the screens show them: a robot avatar, a name, muted, speaking.
 public struct CallPeer: Sendable, Equatable, Identifiable {
@@ -246,6 +247,9 @@ public final class CallController {
             subscribed.subtract(added)
             let delay = pullRetryDelay(pullAttempts)
             pullAttempts += 1
+            let attempt = pullAttempts
+            let reason = String(describing: error)
+            Self.log.warning("Track pull refused (attempt \(attempt, privacy: .public)): \(reason, privacy: .public)")
             retryTask?.cancel()
             retryTask = Task { [weak self] in
                 try? await Task.sleep(for: delay)
@@ -254,6 +258,8 @@ public final class CallController {
             }
         }
     }
+
+    private static let log = Logger(subsystem: "ro.zapakid.app", category: "calls")
 
     /// 0.5 s, 1 s, 2 s, 4 s, then every 5 s.
     public nonisolated static func defaultPullRetryDelay(_ attempt: Int) -> Duration {
