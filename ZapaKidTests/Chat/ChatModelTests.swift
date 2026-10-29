@@ -164,6 +164,18 @@ struct ChatModelTests {
         #expect(chat.connectedConversations == ["c_1"])
     }
 
+    /// Regression (ios #65): a group created after launch never got a stream, so its call ring never arrived.
+    @Test func refreshingConnectsConversationsCreatedAfterLaunch() async {
+        let chat = model()
+        await chat.refresh()
+        #expect(chat.connectedConversations == ["c_1"])
+
+        api.laterConversations = [api.conversation(id: "c_2", devices: [1])]
+        await chat.refresh()
+
+        #expect(chat.connectedConversations == ["c_1", "c_2"])
+    }
+
     @Test func markingReadClearsTheUnreadCount() async {
         let chat = model()
         await chat.loadConversations()
@@ -219,8 +231,14 @@ final class FakeChatAPI: ChatAPI, @unchecked Sendable {
         lock.withLock { uploadLog }
     }
 
+    var laterConversations: [Conversation] = []
+
     func conversation(devices: [Int]) -> Conversation {
-        Conversation(id: "c_1", kind: .direct, state: .open, members: [
+        conversation(id: "c_1", devices: devices)
+    }
+
+    func conversation(id: String, devices: [Int]) -> Conversation {
+        Conversation(id: id, kind: .direct, state: .open, members: [
             ConversationMember(
                 accountId: "acc-m",
                 role: .parent,
@@ -237,7 +255,7 @@ final class FakeChatAPI: ChatAPI, @unchecked Sendable {
     }
 
     func conversations() async throws -> [Conversation] {
-        [conversation(devices: [1, 2])]
+        [conversation(devices: [1, 2])] + laterConversations
     }
 
     func conversation(id _: String) async throws -> Conversation {
