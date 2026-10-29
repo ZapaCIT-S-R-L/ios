@@ -54,6 +54,8 @@ targets:
         # Kid-friendly; RO and DE in ZapaKid/InfoPlist.xcstrings.
         INFOPLIST_KEY_NSCameraUsageDescription: "ZapaKid uses the camera only to scan your parent's QR code."
         INFOPLIST_KEY_NSMicrophoneUsageDescription: "ZapaKid uses the microphone so you can talk with your family in calls and voice messages."
+        # Asked only when the user shares a location in a chat (attach menu); never in the background.
+        INFOPLIST_KEY_NSLocationWhenInUseUsageDescription: "ZapaKid uses your location only when you choose to share it in a chat."
         # The robot with the spring antenna (ZapaKid/Assets.xcassets/AppIcon.appiconset, one 1024 image).
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         # Sign in with Apple, Declared Age Range (is the parent 18+?) and Data Protection Complete for all files.
