@@ -73,6 +73,59 @@ struct CallCoordinatorTests {
         #expect(calls.notice == nil)
     }
 
+    /// Calls did nothing at all on device (Stefan, 2026-10-29): CallKit refused, and the refusal was dropped.
+    @Test func aRefusedOutgoingCallIsReportedNotDropped() async {
+        let calls = coordinator()
+        system.refusal = NSError(domain: "com.apple.CallKit.error.requesttransaction", code: 1)
+
+        await calls.startCall(conversationId: "conv-1", peers: [mama])
+
+        #expect(calls.current == nil)
+        #expect(api.calls.isEmpty)
+        #expect(calls.refused == .outgoing)
+    }
+
+    /// Do Not Disturb on the called phone: CallKit refuses to ring. Decline it quietly so the caller stops ringing at
+    /// once, and don't show the "couldn't start" alert, which is for the caller's own calls (Stefan, 2026-10-29).
+    @Test func aCallDoNotDisturbFilteredIsDeclinedQuietly() async {
+        let calls = coordinator()
+        system.refusal = CallSystemError.filtered
+
+        await calls.handle(IncomingCallPush(callId: "c_9", callerAccountId: "acc-m"))
+
+        #expect(calls.current == nil)
+        #expect(calls.refused == nil)
+        #expect(await eventually { api.calls.contains("decline c_9") })
+    }
+
+    /// Any other refusal (e.g. a build without the `voip` background mode) must not silently decline every call
+    /// (review of ios #64): the call keeps ringing for the caller and the refusal is recorded.
+    @Test func anyOtherIncomingRefusalIsRecordedNotDeclined() async {
+        let calls = coordinator()
+        system.refusal = NSError(domain: "com.apple.CallKit.error.incomingcall", code: 1)
+
+        await calls.handle(IncomingCallPush(callId: "c_9", callerAccountId: "acc-m"))
+
+        #expect(calls.current == nil)
+        #expect(calls.refused == .incoming)
+        try? await Task.sleep(for: .milliseconds(100))
+        #expect(!api.calls.contains("decline c_9"))
+    }
+
+    /// CallKit may activate the audio session before the outgoing call's engine is wired up; the engine must still
+    /// get it, or the call has no voice.
+    @Test func anAudioSessionActivatedBeforeTheEngineIsWiredStillReachesIt() {
+        let calls = coordinator()
+        var seen: [Bool] = []
+
+        calls.audioSession(active: true)
+        calls.onAudioSessionChange = { seen.append($0) }
+
+        #expect(seen == [true])
+        calls.audioSession(active: false)
+        #expect(seen == [true, false])
+    }
+
     @Test func pushPayloadsCarryOnlyTheCallId() throws {
         let push = try #require(IncomingCallPush(payload: ["callId": "c_9", "callerAccountId": "acc-m"]))
         #expect(push.callId == "c_9")
@@ -209,11 +262,20 @@ final class FakeCallSystem: CallSystem {
     private(set) var connected: [UUID] = []
     private(set) var ended: [(uuid: UUID, reason: CallSystemEndReason)] = []
 
+    /// CallKit's answer to the next request, e.g. CXErrorCodeRequestTransactionError.unentitled.
+    var refusal: Error?
+
     func reportIncoming(uuid: UUID, callerName: String) async throws {
+        if let refusal {
+            throw refusal
+        }
         reported.append(Reported(uuid: uuid, name: callerName))
     }
 
     func startOutgoing(uuid: UUID, name _: String) async throws {
+        if let refusal {
+            throw refusal
+        }
         started.append(uuid)
     }
 

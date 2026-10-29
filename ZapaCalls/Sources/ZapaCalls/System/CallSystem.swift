@@ -8,6 +8,12 @@ public enum CallSystemEndReason: Sendable, Equatable {
     case declinedElsewhere
 }
 
+/// Why the system refused to ring an incoming call.
+public enum CallSystemError: Error, Equatable {
+    /// Do Not Disturb or a blocked caller: the user chose not to be rung.
+    case filtered
+}
+
 /// The system call UI: CallKit on iOS (native incoming call screen, lock screen, Bluetooth, audio session).
 @MainActor
 public protocol CallSystem: AnyObject {

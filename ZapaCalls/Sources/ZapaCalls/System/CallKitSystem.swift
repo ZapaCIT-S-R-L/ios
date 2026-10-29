@@ -35,7 +35,13 @@
             update.supportsDTMF = false
             update.supportsGrouping = false
             update.supportsUngrouping = false
-            try await provider.reportNewIncomingCall(with: uuid, update: update)
+            do {
+                try await provider.reportNewIncomingCall(with: uuid, update: update)
+            } catch let error as CXErrorCodeIncomingCallError
+                where error.code == .filteredByDoNotDisturb || error.code == .filteredByBlockList
+            {
+                throw CallSystemError.filtered
+            }
         }
 
         public func startOutgoing(uuid: UUID, name: String) async throws {
@@ -71,6 +77,7 @@
         public func providerDidReset(_: CXProvider) {}
 
         public func provider(_: CXProvider, perform action: CXAnswerCallAction) {
+            CallAudio.prepareForCall()
             Task {
                 await actions?.answer(action.callUUID)
                 action.fulfill()
@@ -92,6 +99,7 @@
         }
 
         public func provider(_: CXProvider, perform action: CXStartCallAction) {
+            CallAudio.prepareForCall()
             action.fulfill()
         }
 

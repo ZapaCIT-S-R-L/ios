@@ -63,6 +63,18 @@ struct ChatView: View {
                 .disabled(conversation.state == .closed)
             }
         }
+        .alert(Text("The call couldn't start"), isPresented: Binding(
+            get: { services.calls.refused == .outgoing },
+            set: {
+                if !$0 {
+                    services.calls.clearRefusal()
+                }
+            }
+        )) {
+            Button { services.calls.clearRefusal() } label: { Text("OK") }
+        } message: {
+            Text("Your iPhone didn't allow the call. Check Do Not Disturb and try again.")
+        }
         .onAppear {
             services.chat.connect(conversation.id)
             services.chat.markRead(conversation.id)

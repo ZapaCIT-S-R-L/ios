@@ -33,6 +33,22 @@ struct CallSignalTests {
         #expect(call.participants[1].role == .kid)
     }
 
+    /// Both phones start the call clock at the server's answer time (api #97), so their timers agree
+    /// (Stefan, 2026-10-29: the caller's ran ~2 s ahead).
+    @Test func theRosterCarriesTheServersAnswerTime() throws {
+        let answered = callJSON.replacingOccurrences(
+            of: #""epoch":3,"#, with: #""answeredAt":"2026-10-28T08:00:05.250Z","epoch":3,"#
+        )
+        guard case let .roster(call) = try decode(#"{"type":"roster","call":\#(answered)}"#),
+              case let .roster(older) = try decode(#"{"type":"roster","call":\#(callJSON)}"#)
+        else {
+            Issue.record("not a roster")
+            return
+        }
+        #expect(call.answeredDate == Date(timeIntervalSince1970: 1_793_174_405.25))
+        #expect(older.answeredDate == nil, "an older server without answeredAt")
+    }
+
     @Test func keysArriveFromAnAccountAndIntegerDevice() throws {
         let signal = try decode(#"{"type":"key","epoch":4,"fromAccount":"acc-m","fromDevice":1,"blob":"AQID"}"#)
 

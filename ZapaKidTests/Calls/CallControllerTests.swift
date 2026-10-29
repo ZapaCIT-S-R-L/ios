@@ -15,14 +15,17 @@ struct CallControllerTests {
         let people = [mama, kid]
         return CallController(
             me: device, api: api, engine: engine, sealer: FakeCallKeySealer(me: device), reconnectTimeout: .seconds(1),
+            pullRetryDelay: { _ in .milliseconds(10) },
             directory: { account in people.first { $0.accountId == account } }
         )
     }
 
     /// A roster from the server: the given devices, all with a session and their mic track.
-    func roster(_ devices: [String], epoch: UInt32 = 1, leader: String? = nil) -> CallSignal {
+    func roster(
+        _ devices: [String], epoch: UInt32 = 1, leader: String? = nil, answeredAt: String? = nil
+    ) -> CallSignal {
         .roster(CallSnapshot(
-            callId: "c_1", state: .active, epoch: epoch,
+            callId: "c_1", state: .active, answeredAt: answeredAt, epoch: epoch,
             keyLeader: (leader ?? devices.first).flatMap(CallDevice.init(name:)),
             participants: devices.compactMap { name in
                 CallDevice(name: name).map {
@@ -43,7 +46,7 @@ struct CallControllerTests {
         #expect(call.phase == .calling)
         #expect(call.participants.map(\.displayName) == ["Mama"])
         #expect(api.calls == ["create conv-1", "events c_1"])
-        #expect(engine.calls == ["start c_1 audio-acc-k_1"])
+        #expect(engine.calls == ["start c_1 audio-acc-k_1", "started"])
 
         api.push(roster(["acc-k.1", "acc-m.1"]))
         #expect(await eventually { call.phase == .connecting })
@@ -51,6 +54,65 @@ struct CallControllerTests {
         #expect(call.participants.first?.displayName == "Mama", "names come from the directory")
         engine.emit(.connected)
         #expect(await eventually { call.phase == .active })
+    }
+
+    /// Joining a call: the roster with the caller's track arrived before this phone's SFU session existed, the pull
+    /// went out with an empty session id (404), and the track was never pulled again. No voice (Stefan, 2026-10-29).
+    @Test func aRosterDuringStartIsSubscribedOnceTheSessionExists() async {
+        engine.startDelay = .milliseconds(300)
+        let call = controller()
+
+        let joining = Task { await call.startCall(conversationId: "conv-1", peers: [mama]) }
+        #expect(await eventually { api.calls.contains("events c_1") })
+        api.push(roster(["acc-k.1", "acc-m.1"]))
+        await joining.value
+
+        #expect(await eventually { engine.calls.contains("subscribe audio-acc-m_1") })
+        #expect(!engine.calls.contains { $0.hasPrefix("subscribe before start") })
+        let order = engine.calls.filter { $0 == "started" || $0.hasPrefix("subscribe") }
+        #expect(order.first == "started")
+    }
+
+    @Test func aFailedSubscribeIsRetried() async {
+        engine.failingSubscribes = 1
+        let call = controller()
+        await call.startCall(conversationId: "conv-1", peers: [mama])
+
+        api.push(roster(["acc-k.1", "acc-m.1"]))
+
+        #expect(await eventually { engine.calls.contains("subscribe audio-acc-m_1 (failed)") })
+        #expect(await eventually(timeout: .seconds(5)) { engine.calls.contains("subscribe audio-acc-m_1") })
+    }
+
+    /// The SFU may refuse a pull for a while; the controller keeps trying (with backoff) for as long as the call is
+    /// live, never giving up silently with one-way audio (review of ios #64).
+    @Test func aPullKeepsBeingRetriedWhileTheCallIsLive() async {
+        engine.failingSubscribes = 15
+        let call = controller()
+        await call.startCall(conversationId: "conv-1", peers: [mama])
+
+        api.push(roster(["acc-k.1", "acc-m.1"]))
+
+        #expect(await eventually(timeout: .seconds(5)) { engine.calls.contains("subscribe audio-acc-m_1") })
+        #expect(engine.calls.filter { $0 == "subscribe audio-acc-m_1 (failed)" }.count == 15)
+    }
+
+    @Test func pullRetriesBackOffUpToFiveSeconds() {
+        #expect(CallController.defaultPullRetryDelay(0) == .milliseconds(500))
+        #expect(CallController.defaultPullRetryDelay(1) == .seconds(1))
+        #expect(CallController.defaultPullRetryDelay(3) == .seconds(4))
+        #expect(CallController.defaultPullRetryDelay(9) == .seconds(5))
+    }
+
+    @Test func theCallClockStartsAtTheServersAnswerTime() async {
+        let call = controller()
+        await call.startCall(conversationId: "conv-1", peers: [mama])
+
+        api.push(roster(["acc-k.1", "acc-m.1"], answeredAt: "2026-10-28T08:00:05Z"))
+        engine.emit(.connected)
+
+        #expect(await eventually { call.phase == .active })
+        #expect(call.connectedAt == Date(timeIntervalSince1970: 1_793_174_405))
     }
 
     @Test func theServersLeaderSendsOneKeysBatchForTheServersEpoch() async {
@@ -89,7 +151,7 @@ struct CallControllerTests {
 
         #expect(call.phase == .connecting)
         #expect(api.calls == ["join c_9", "events c_9"])
-        #expect(engine.calls == ["start c_9 audio-acc-k_1"])
+        #expect(engine.calls == ["start c_9 audio-acc-k_1", "started"])
     }
 
     @Test func declineTellsTheServiceAndEnds() async {

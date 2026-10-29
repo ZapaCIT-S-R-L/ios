@@ -113,12 +113,35 @@ final class FakeMediaEngine: CallMediaEngine, @unchecked Sendable {
         lock.withLock { log.append(line) }
     }
 
+    /// How long `start` takes (the SFU session and the mic track), so a roster can arrive meanwhile.
+    var startDelay: Duration = .zero
+    /// The next subscribes that fail (the SFU didn't have the track yet).
+    var failingSubscribes = 0
+    private var started = false
+
     func start(callId: String, iceServers _: [IceServer], api _: CallsAPI, trackName: String) async throws {
         record("start \(callId) \(trackName)")
+        if startDelay > .zero {
+            try? await Task.sleep(for: startDelay)
+        }
+        lock.withLock { started = true }
+        record("started")
     }
 
     func subscribe(_ tracks: [TrackRef]) async throws {
-        record("subscribe \(tracks.map(\.trackName).joined(separator: ","))")
+        let names = tracks.map(\.trackName).joined(separator: ",")
+        guard lock.withLock({ started }) else {
+            record("subscribe before start \(names)")
+            throw CallsAPIError.invalidResponse
+        }
+        let fail = lock.withLock {
+            defer { failingSubscribes = max(0, failingSubscribes - 1) }
+            return failingSubscribes > 0
+        }
+        record("subscribe \(names)\(fail ? " (failed)" : "")")
+        if fail {
+            throw CallsAPIError.invalidResponse
+        }
     }
 
     func unsubscribe(_ tracks: [TrackRef]) async {
@@ -142,10 +165,11 @@ final class FakeMediaEngine: CallMediaEngine, @unchecked Sendable {
     }
 }
 
-/// Waits (up to 2 s) for a condition on the main actor; the controller works through async tasks.
+/// Waits (up to 2 s by default) for a condition on the main actor; the controller works through async tasks.
 @MainActor
-func eventually(_ condition: @MainActor () -> Bool) async -> Bool {
-    for _ in 0 ..< 200 {
+func eventually(timeout: Duration = .seconds(2), _ condition: @MainActor () -> Bool) async -> Bool {
+    let tries = Int(timeout / .milliseconds(10))
+    for _ in 0 ..< tries {
         if condition() {
             return true
         }
