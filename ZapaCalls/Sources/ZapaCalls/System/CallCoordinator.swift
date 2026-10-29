@@ -67,11 +67,15 @@ public final class CallCoordinator: CallSystemActions {
         )
         do {
             try await system.reportIncoming(uuid: uuid, callerName: caller.displayName)
-        } catch {
-            // Do Not Disturb or blocked: CallKit refused to ring. Decline, so the caller stops ringing at once.
+        } catch CallSystemError.filtered {
+            // Do Not Disturb or blocked: the user chose not to be rung. Decline, so the caller stops ringing at once.
             let controller = makeController()
             controller.reportIncoming(callId: push.callId, caller: caller)
             await controller.decline()
+            return
+        } catch {
+            // Any other refusal (e.g. no `voip` background mode) is a fault: record it, never decline silently.
+            refused = .incoming
             return
         }
         let controller = makeController()

@@ -5,7 +5,8 @@ import AVFoundation
 /// CallKit says so (manual audio). Without this, WebRTC and CallKit fight over the session and a connected call
 /// has no voice on either phone.
 public enum CallAudio {
-    /// Before any audio track exists: WebRTC must not start the session itself.
+    /// Before any audio track exists: WebRTC must not start the session itself. `LKRTCAudioSession` is app-wide, so
+    /// this applies to any WebRTC use in the app (calls are the only one).
     public static func leaveSessionToCallKit() {
         #if os(iOS)
             let session = LKRTCAudioSession.sharedInstance()

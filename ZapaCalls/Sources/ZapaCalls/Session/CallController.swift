@@ -64,14 +64,18 @@ public final class CallController {
     private var mediaStarted = false
     private var retryTask: Task<Void, Never>?
     private var pullAttempts = 0
+    private let pullRetryDelay: @Sendable (Int) -> Duration
     private var trackOwner: [String: String] = [:]
     private var hadOthers = false
     private var reconnectTask: Task<Void, Never>?
 
     public init(
         me: String, api: CallsAPI, engine: CallMediaEngine, sealer: CallKeySealer,
-        reconnectTimeout: Duration = .seconds(20), directory: ((String) -> CallPeer?)? = nil
+        reconnectTimeout: Duration = .seconds(20),
+        pullRetryDelay: @escaping @Sendable (Int) -> Duration = CallController.defaultPullRetryDelay,
+        directory: ((String) -> CallPeer?)? = nil
     ) {
+        self.pullRetryDelay = pullRetryDelay
         self.directory = directory
         self.me = me
         self.api = api
@@ -224,19 +228,24 @@ public final class CallController {
             try await engine.subscribe(added.sorted { $0.trackName < $1.trackName })
             pullAttempts = 0
         } catch {
+            // The SFU may not have a just-published track yet: try again, backing off, for as long as the call is
+            // live (tearDown cancels it). Never give up silently with one-way audio.
             subscribed.subtract(added)
+            let delay = pullRetryDelay(pullAttempts)
             pullAttempts += 1
-            guard pullAttempts <= Self.maxPullAttempts else { return }
             retryTask?.cancel()
             retryTask = Task { [weak self] in
-                try? await Task.sleep(for: .milliseconds(500))
+                try? await Task.sleep(for: delay)
                 guard !Task.isCancelled else { return }
                 await self?.syncTracks()
             }
         }
     }
 
-    private static let maxPullAttempts = 10
+    /// 0.5 s, 1 s, 2 s, 4 s, then every 5 s.
+    public nonisolated static func defaultPullRetryDelay(_ attempt: Int) -> Duration {
+        min(.milliseconds(500) * (1 << min(attempt, 4)), .seconds(5))
+    }
 
     private func handle(_ event: MediaEvent) {
         switch event {
