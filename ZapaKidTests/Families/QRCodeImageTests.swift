@@ -1,6 +1,7 @@
 import CoreImage
 import Foundation
 import Testing
+import UIKit
 @testable import ZapaKid
 import ZapaKidKit
 
@@ -16,7 +17,10 @@ struct QRCodeImageTests {
     }
 
     @Test func theLongestPairingLinkScansBackWithTheRobotInTheCentre() throws {
-        let link = PairingLink(code: "zkp_" + String(repeating: "A1b2C3d4", count: 6), fingerprint: String(repeating: "ab", count: 32))
+        let link = PairingLink(
+            code: "zkp_" + String(repeating: "A1b2C3d4", count: 6),
+            fingerprint: String(repeating: "ab", count: 32)
+        )
         let image = try #require(QRCodeImage.render(link.url.absoluteString))
         #expect(decode(image) == link.url.absoluteString)
     }
