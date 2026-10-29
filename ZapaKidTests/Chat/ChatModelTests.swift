@@ -271,7 +271,7 @@ final class FakeChatAPI: ChatAPI, @unchecked Sendable {
         if failConversations {
             throw ChatAPIError.network
         }
-        [conversation(devices: [1, 2])] + laterConversations
+        return [conversation(devices: [1, 2])] + laterConversations
     }
 
     func conversation(id _: String) async throws -> Conversation {

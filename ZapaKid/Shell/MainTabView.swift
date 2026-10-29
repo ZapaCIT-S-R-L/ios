@@ -124,7 +124,8 @@ struct MainTabView: View {
             await services.chat.refresh()
         }
         .task(id: scenePhase == .active) {
-            // Until the service pushes new conversations: while the app is open, look for new ones now and then.
+            // Stopgap: until the account events stream (api #100) tells the phone about new conversations,
+            // poll for them every 20 s while the app is open. Remove this poll when that stream lands.
             while scenePhase == .active, !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(20))
                 await services.chat.refresh()
