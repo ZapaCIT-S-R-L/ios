@@ -31,6 +31,10 @@ final class AppServices {
     var setup: DeviceSetup?
     /// Fills in names and robots from the family (account API).
     var loadPeople: (@MainActor (AppServices) async -> Void)?
+    /// Receives VoIP pushes, so a call rings even when the app isn't running. Kept here: PushKit holds it weakly.
+    #if canImport(PushKit)
+        var voipPushes: VoIPPushes?
+    #endif
 
     init(
         me: String, canStartChats: Bool = true, chat: ChatModel, people: [Person], log: CallLogStore,

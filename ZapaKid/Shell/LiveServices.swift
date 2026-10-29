@@ -56,6 +56,12 @@ enum LiveServices {
                 services.chat.connectAll()
             }
         }
+        #if canImport(PushKit)
+            // Start PushKit at sign-in, so a killed app is woken for an incoming call.
+            let pushes = VoIPPushes(coordinator: services.calls)
+            pushes.register()
+            services.voipPushes = pushes
+        #endif
         return services
     }
 
