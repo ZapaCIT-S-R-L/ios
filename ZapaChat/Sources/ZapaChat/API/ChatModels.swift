@@ -3,6 +3,8 @@ import Foundation
 public enum ChatRole: String, Codable, Sendable {
     case parent
     case kid
+    /// A parent of a kid in the conversation, added by the server: reads along, never writes.
+    case observer
 }
 
 public struct DeviceRef: Codable, Sendable, Equatable {

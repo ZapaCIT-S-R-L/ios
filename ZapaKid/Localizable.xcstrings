@@ -1393,6 +1393,22 @@
         }
       }
     },
+    "You can read along. Only the kids write here.": {
+      "localizations": {
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Poți citi, dar aici scriu doar copiii."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Du kannst mitlesen. Hier schreiben nur die Kinder."
+          }
+        }
+      }
+    },
     "You can't start a chat with these people.": {
       "localizations": {
         "ro": {

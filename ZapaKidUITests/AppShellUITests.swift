@@ -46,7 +46,7 @@ final class AppShellUITests: XCTestCase {
     func testAnObservedChatIsLastAndReadOnly() {
         let app = launch(observer: true)
         let own = app.buttons["chats.row.Ana"]
-        let observed = app.buttons["chats.row.Ion"]
+        let observed = app.buttons["chats.row.Ana, Ion"]
         XCTAssertTrue(own.waitForExistence(timeout: 10))
         XCTAssertTrue(observed.exists)
         XCTAssertLessThan(own.frame.minY, observed.frame.minY)

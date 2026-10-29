@@ -241,6 +241,8 @@ final class FakeChatAPI: ChatAPI, @unchecked Sendable {
         lock.withLock { uploadLog }
     }
 
+    var laterConversations: [Conversation] = []
+
     func conversation(devices: [Int]) -> Conversation {
         conversation(id: "c_1", devices: devices)
     }

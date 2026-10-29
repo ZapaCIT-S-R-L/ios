@@ -19,6 +19,17 @@ public final class ChatModel {
     /// A call message from the last minute arrived: (callId, conversationId, caller account).
     public var onIncomingCall: ((String, String, String) -> Void)?
 
+    /// The parent's own chats first, then the ones they only observe (their kids' chats with others).
+    public var orderedConversations: [Conversation] {
+        conversations.filter { !isObserving($0.id) } + conversations.filter { isObserving($0.id) }
+    }
+
+    /// This account only reads along in the conversation (server role `observer`, older name `guardian`).
+    public func isObserving(_ conversationId: String) -> Bool {
+        conversations.first { $0.id == conversationId }?.members
+            .contains { $0.accountId == me && ($0.role == .observer || $0.guardian) } ?? false
+    }
+
     public var connectedConversations: [String] {
         streams.keys.sorted()
     }
