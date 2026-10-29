@@ -248,8 +248,8 @@ public final class CallController {
             let delay = pullRetryDelay(pullAttempts)
             pullAttempts += 1
             let attempt = pullAttempts
-            let reason = String(describing: error)
-            Self.log.warning("Track pull refused (attempt \(attempt, privacy: .public)): \(reason, privacy: .public)")
+            let reason = String(describing: error) // may hold the SFU's reply: private in logs
+            Self.log.warning("Track pull refused (attempt \(attempt, privacy: .public)): \(reason, privacy: .private)")
             retryTask?.cancel()
             retryTask = Task { [weak self] in
                 try? await Task.sleep(for: delay)
