@@ -59,19 +59,65 @@ struct PushTargetSyncTests {
         ])
     }
 
-    @Test func invalidatedTokenClearsTheTargetOnlyIfOneWasSent() async {
+    @Test func anInvalidationClearsTheTargetEvenOnAFreshLaunch() async {
         let api = FakePushAPI()
         let box = Box()
         box.deviceId = 1
         let sync = make(api, box)
 
+        // The server may still hold the previous launch's token, so the first invalidation clears it.
         await sync.voipTokenChanged(nil)
-        #expect(api.calls.isEmpty)
+        #expect(api.calls.map(\.target) == [nil])
 
         await sync.voipTokenChanged("aa")
         await sync.voipTokenChanged(nil)
-        #expect(api.calls.last?.target == nil)
-        #expect(api.calls.count == 2)
+        #expect(api.calls.map(\.target) == [nil, PushTarget(provider: .apns, token: "aa"), nil])
+    }
+
+    @Test func registeringBeforePushKitAnswersSendsNothing() async {
+        let api = FakePushAPI()
+        let box = Box()
+        box.deviceId = 1
+        let sync = make(api, box)
+
+        await sync.deviceRegistered()
+        #expect(api.calls.isEmpty)
+    }
+
+    /// Holds the first request until the test releases it, so a second token arrives while it is out.
+    final class GatedPushAPI: DevicePushAPI, @unchecked Sendable {
+        var targets: [PushTarget?] = []
+        var gate: CheckedContinuation<Void, Never>?
+        private var holdFirst = true
+
+        func setDevicePush(deviceId _: Int, target: PushTarget?, token _: String) async throws {
+            targets.append(target)
+            guard holdFirst else { return }
+            holdFirst = false
+            await withCheckedContinuation { gate = $0 }
+        }
+    }
+
+    @Test func aTokenThatArrivesDuringARequestIsSentAfterIt() async throws {
+        let api = GatedPushAPI()
+        let box = Box()
+        box.deviceId = 1
+        let sync = PushTargetSync(api: api, token: { box.session }, deviceId: { box.deviceId })
+
+        let first = Task { await sync.voipTokenChanged("aa") }
+        for _ in 0 ..< 200 where api.gate == nil {
+            try await Task.sleep(for: .milliseconds(5))
+        }
+        #expect(api.gate != nil)
+
+        await sync.voipTokenChanged("bb") // Returns at once: the running sync picks it up.
+        api.gate?.resume()
+        await first.value
+
+        // The newest token went last, and nothing was sent twice.
+        #expect(api.targets == [PushTarget(provider: .apns, token: "aa"), PushTarget(provider: .apns, token: "bb")])
+        await sync.deviceRegistered()
+        #expect(api.targets.count == 2)
     }
 
     @Test func noSessionMeansNothingIsSent() async {
