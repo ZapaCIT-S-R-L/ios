@@ -32,6 +32,55 @@ struct FamilyModelTests {
         #expect(api.calls.last == "addKid Ana robot-4 2")
     }
 
+    @Test func renamingAKidUpdatesTheList() async throws {
+        let family = model()
+        await family.load()
+        _ = await family.addKid(nickname: "Ana", avatar: "robot-4", grade: 2)
+        let kid = try #require(family.family?.kids.first)
+
+        let saved = await family.updateKid(kid, nickname: "  Ani ", avatar: "robot-7")
+
+        #expect(saved)
+        #expect(family.family?.kids.first?.nickname == "Ani")
+        #expect(family.family?.kids.first?.avatar == "robot-7")
+        #expect(api.calls.last == "updateKid Ani robot-7")
+    }
+
+    @Test func anEmptyKidNameIsRefusedBeforeTheAPI() async throws {
+        let family = model()
+        await family.load()
+        _ = await family.addKid(nickname: "Ana", avatar: "robot-4", grade: 2)
+        let kid = try #require(family.family?.kids.first)
+
+        #expect(await !family.updateKid(kid, nickname: "  ", avatar: kid.avatar))
+        #expect(api.calls.last == "addKid Ana robot-4 2")
+    }
+
+    @Test func removingAKidTakesItOutOfTheList() async throws {
+        let family = model()
+        await family.load()
+        _ = await family.addKid(nickname: "Ana", avatar: "robot-4", grade: 2)
+        let kid = try #require(family.family?.kids.first)
+
+        #expect(await family.removeKid(kid))
+
+        #expect(family.family?.kids.isEmpty == true)
+        #expect(api.calls.last == "removeKid \(kid.id)")
+    }
+
+    @Test func aRefusedRemovalKeepsTheKidAndSaysWhy() async throws {
+        let family = model()
+        await family.load()
+        _ = await family.addKid(nickname: "Ana", avatar: "robot-4", grade: 2)
+        let kid = try #require(family.family?.kids.first)
+        api.failure = .network
+
+        #expect(await !family.removeKid(kid))
+
+        #expect(family.family?.kids.count == 1)
+        #expect(family.errorMessage != nil)
+    }
+
     @Test func emptyNicknamesAreRefusedBeforeTheAPI() async {
         let family = model()
         await family.load()
@@ -177,6 +226,22 @@ final class FakeFamiliesAPI: FamiliesAPI, @unchecked Sendable {
         let kid = Kid(id: "k\(calls.count)", nickname: nickname, avatar: avatar, grade: grade)
         lock.withLock { kids.append(kid) }
         return kid
+    }
+
+    func updateKid(familyId _: String, kidId: String, nickname: String?, avatar: String?, token _: String) async throws
+        -> Kid {
+        try record("updateKid \(nickname ?? "-") \(avatar ?? "-")")
+        return try lock.withLock {
+            guard let index = kids.firstIndex(where: { $0.id == kidId }) else { throw FamiliesAPIError.notFound }
+            kids[index].nickname = nickname ?? kids[index].nickname
+            kids[index].avatar = avatar ?? kids[index].avatar
+            return kids[index]
+        }
+    }
+
+    func removeKid(familyId _: String, kidId: String, token _: String) async throws {
+        try record("removeKid \(kidId)")
+        lock.withLock { kids.removeAll { $0.id == kidId } }
     }
 
     func setDisplayName(_ name: String, token _: String) async throws -> FamilyParent {
