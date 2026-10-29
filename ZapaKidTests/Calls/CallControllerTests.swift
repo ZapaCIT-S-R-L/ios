@@ -21,9 +21,11 @@ struct CallControllerTests {
     }
 
     /// A roster from the server: the given devices, all with a session and their mic track.
-    func roster(_ devices: [String], epoch: UInt32 = 1, leader: String? = nil) -> CallSignal {
+    func roster(
+        _ devices: [String], epoch: UInt32 = 1, leader: String? = nil, answeredAt: String? = nil
+    ) -> CallSignal {
         .roster(CallSnapshot(
-            callId: "c_1", state: .active, epoch: epoch,
+            callId: "c_1", state: .active, answeredAt: answeredAt, epoch: epoch,
             keyLeader: (leader ?? devices.first).flatMap(CallDevice.init(name:)),
             participants: devices.compactMap { name in
                 CallDevice(name: name).map {
@@ -100,6 +102,17 @@ struct CallControllerTests {
         #expect(CallController.defaultPullRetryDelay(1) == .seconds(1))
         #expect(CallController.defaultPullRetryDelay(3) == .seconds(4))
         #expect(CallController.defaultPullRetryDelay(9) == .seconds(5))
+    }
+
+    @Test func theCallClockStartsAtTheServersAnswerTime() async {
+        let call = controller()
+        await call.startCall(conversationId: "conv-1", peers: [mama])
+
+        api.push(roster(["acc-k.1", "acc-m.1"], answeredAt: "2026-10-28T08:00:05Z"))
+        engine.emit(.connected)
+
+        #expect(await eventually { call.phase == .active })
+        #expect(call.connectedAt == Date(timeIntervalSince1970: 1_793_174_405))
     }
 
     @Test func theServersLeaderSendsOneKeysBatchForTheServersEpoch() async {
