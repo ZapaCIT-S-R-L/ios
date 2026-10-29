@@ -1,3 +1,4 @@
+import AVFoundation
 import Foundation
 import Testing
 @testable import ZapaCalls
@@ -35,6 +36,23 @@ struct WebRTCMediaEngineTests {
         #expect(!offer.contains("m=video"), "voice only in v1")
         #expect(engine.keysForTests.senderIndexes == [2])
         await engine.stop()
+    }
+
+    /// CallKit owns the audio session, so WebRTC must leave it alone from the start (manual audio, off until CallKit
+    /// activates it), and calls need the voice-chat category. A call connected with no voice on either phone
+    /// (Stefan, 2026-10-29).
+    @Test(.enabled(if: WebRTCMediaEngineTests.onIOS))
+    func callKitOwnsTheAudioSessionFromTheStart() async {
+        #if os(iOS)
+            let engine = WebRTCMediaEngine()
+            #expect(CallAudio.webRTCAudioForTests == (manual: true, enabled: false))
+
+            CallAudio.prepareForCall()
+
+            #expect(AVAudioSession.sharedInstance().category == .playAndRecord)
+            #expect(AVAudioSession.sharedInstance().mode == .voiceChat)
+            await engine.stop()
+        #endif
     }
 
     @Test func theKeyDerivationSettingsAreFixedForAndroid() {
