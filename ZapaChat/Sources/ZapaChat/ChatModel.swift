@@ -82,9 +82,9 @@ public final class ChatModel {
     }
 
     /// Reloads the conversations and opens streams for any new ones, so a group created after launch rings too.
-    /// Silent on failure: it runs in the background (every 20 s), so a network blip shows no error.
-    public func refresh() async {
-        await loadConversations(reportErrors: false)
+    /// The poll passes `reportErrors: false`: it runs every 20 s, so a network blip shows no error.
+    public func refresh(reportErrors: Bool = true) async {
+        await loadConversations(reportErrors: reportErrors)
         connectAll()
     }
 
