@@ -79,7 +79,7 @@ public final class WebRTCMediaEngine: NSObject, CallMediaEngine, @unchecked Send
         ))
         guard let answer = reply.sessionDescription else { throw CallsAPIError.invalidResponse }
         try await setRemote(answer)
-        log.info("published \(trackName, privacy: .public), sfu answer applied, session \(sessionId, privacy: .public)")
+        log.info("published \(trackName, privacy: .public), sfu answer applied")
         startLevels()
     }
 
@@ -294,7 +294,8 @@ extension WebRTCMediaEngine {
 
     func logPulled(_ tracks: [TrackResult]) {
         let summary = tracks.map { "\($0.trackName ?? "?"):mid=\($0.mid ?? "-"):err=\($0.errorCode ?? "-")" }
-        log.info("pulled tracks \(summary.joined(separator: ", "), privacy: .public), cryptors \(receivers.count)")
+        let cryptors = receivers.count
+        log.info("pulled tracks \(summary.joined(separator: ", "), privacy: .public), cryptors \(cryptors)")
     }
 
     /// Packets and bytes each way, every two seconds (no keys, no audio content).
@@ -307,15 +308,16 @@ extension WebRTCMediaEngine {
                 {
                     let values = stats.values
                     let kind = values["kind"] as? String ?? "?"
-                    let sent = values["packetsSent"] ?? values["packetsReceived"] ?? 0
-                    let lost = values["packetsLost"] ?? 0
-                    let level = values["audioLevel"] ?? "-"
+                    let sent = values["packetsSent"] ?? values["packetsReceived"] ?? NSNumber(value: 0)
+                    let lost = values["packetsLost"] ?? NSNumber(value: 0)
+                    let level = values["audioLevel"] ?? NSString("-")
                     parts.append("\(stats.type) \(kind) pkts=\(sent) lost=\(lost) level=\(level)")
                 }
                 done.resume(returning: parts.joined(separator: "; "))
             }
         }
-        log.info("rtp \(line, privacy: .public), mic enabled=\(microphone?.isEnabled ?? false)")
+        let micOn = microphone?.isEnabled ?? false
+        log.info("rtp \(line, privacy: .public), mic enabled=\(micOn)")
     }
 }
 
