@@ -97,7 +97,7 @@ enum LiveServices {
             let pushes = VoIPPushes(coordinator: services.calls)
             pushes.onToken = { data in
                 let hex = data.map(PushTargetSync.hex)
-                Task { await pushSync.voipTokenChanged(hex) }
+                Task { await pushSync.tokenChanged(hex) }
             }
             pushes.register()
             services.voipPushes = pushes
