@@ -33,16 +33,15 @@ enum AlertPushes {
             }
         #endif
         let center = UNUserNotificationCenter.current()
-        let allowed: Bool
-        switch await center.notificationSettings().authorizationStatus {
+        let allowed = switch await center.notificationSettings().authorizationStatus {
         case .notDetermined:
-            allowed = (try? await center.requestAuthorization(options: [.alert, .sound, .badge])) ?? false
+            await (try? center.requestAuthorization(options: [.alert, .sound, .badge])) ?? false
         case .authorized, .provisional, .ephemeral:
-            allowed = true
+            true
         case .denied:
-            allowed = false
+            false
         @unknown default:
-            allowed = false
+            false
         }
         if allowed {
             UIApplication.shared.registerForRemoteNotifications()
@@ -56,7 +55,8 @@ enum AlertPushes {
         onToken?(hex)
     }
 
-    /// APNs refused or failed. Only the error's domain and code are logged, never anything that could identify the phone.
+    /// APNs refused or failed. Only the error's domain and code are logged, never anything that could identify the
+    /// phone.
     static func failed(_ error: Error) {
         let nsError = error as NSError
         log.error("APNs registration failed: \(nsError.domain, privacy: .public) \(nsError.code)")
