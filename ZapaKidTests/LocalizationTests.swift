@@ -37,6 +37,16 @@ struct LocalizationTests {
         #expect(text(key, language, in: .module) == expected)
     }
 
+    /// The chat notification's text: APNs resolves `loc-key` from this catalog, so the key must be here in all three.
+    @Test(arguments: [
+        ("ro", "Mesaj nou"),
+        ("de", "Neue Nachricht"),
+        ("en", "New message"),
+    ])
+    func chatNotificationIsTranslated(language: String, expected: String) {
+        #expect(text("chat.notification.new_message", language, in: .main) == expected)
+    }
+
     @Test func interpolatedSecondsAreTranslated() throws {
         let format = try #require(text("Too many sign-in attempts. Try again in %lld seconds.", "ro", in: .module))
         #expect(String(format: format, 30) ==

@@ -93,10 +93,19 @@ public struct HTTPAuthAPI: AuthAPI, DeviceAPI, DevicePushAPI, AppAttestAPI {
 
     /// `PUT /v1/devices/{deviceId}/push`: nulls clear the target (JSONEncoder would drop them, so this is spelled out).
     public func setDevicePush(deviceId: Int, target: PushTarget?, token: String) async throws {
+        try await putPushTarget("v1/devices/\(deviceId)/push", target: target, token: token)
+    }
+
+    /// `PUT /v1/devices/{deviceId}/alert-push`: the APNs token for chat notifications.
+    public func setDeviceAlertPush(deviceId: Int, target: PushTarget?, token: String) async throws {
+        try await putPushTarget("v1/devices/\(deviceId)/alert-push", target: target, token: token)
+    }
+
+    private func putPushTarget(_ path: String, target: PushTarget?, token: String) async throws {
         let fields: [String: Any] = target.map { ["provider": $0.provider.rawValue, "token": $0.token] }
             ?? ["provider": NSNull(), "token": NSNull()]
         let body = try JSONSerialization.data(withJSONObject: fields)
-        _ = try await data("PUT", "v1/devices/\(deviceId)/push", token: token, body: body)
+        _ = try await data("PUT", path, token: token, body: body)
     }
 
     public func accountIdentity(accountId: String, token: String) async throws -> String? {

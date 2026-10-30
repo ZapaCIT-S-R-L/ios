@@ -34,4 +34,33 @@ struct DevicePushAPITests {
                 == ["provider": NSNull(), "token": NSNull()] as NSDictionary
         )
     }
+
+    /// `PUT /v1/devices/{deviceId}/alert-push`: the standard APNs token for chat notifications (not the VoIP one).
+    @Test func setsTheAlertTargetWithItsProviderAndToken() async throws {
+        try await api().setDeviceAlertPush(
+            deviceId: 2, target: PushTarget(provider: .apns, token: "cd34"), token: "zks_tok"
+        )
+
+        let sent = try #require(MockURLProtocol.requests.first)
+        #expect(sent.request.httpMethod == "PUT")
+        #expect(sent.request.url?.path == "/v1/devices/2/alert-push")
+        #expect(sent.request.value(forHTTPHeaderField: "Authorization") == "Bearer zks_tok")
+        let body = try #require(sent.body)
+        #expect(
+            try JSONSerialization.jsonObject(with: body) as? NSDictionary
+                == ["provider": "apns", "token": "cd34"] as NSDictionary
+        )
+    }
+
+    @Test func clearingTheAlertTargetSendsBothFieldsAsNull() async throws {
+        try await api().setDeviceAlertPush(deviceId: 1, target: nil, token: "zks_tok")
+
+        let sent = try #require(MockURLProtocol.requests.first)
+        #expect(sent.request.url?.path == "/v1/devices/1/alert-push")
+        let body = try #require(sent.body)
+        #expect(
+            try JSONSerialization.jsonObject(with: body) as? NSDictionary
+                == ["provider": NSNull(), "token": NSNull()] as NSDictionary
+        )
+    }
 }

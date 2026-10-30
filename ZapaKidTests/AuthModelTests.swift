@@ -370,6 +370,20 @@ struct AuthModelTests {
         #expect(await api.logoutCalls == ["zks_1"])
     }
 
+    @Test func logoutRunsTheSignOutHookWhileTheSessionIsStillValid() async throws {
+        try store.save(session)
+        await api.set(me: .success(parent))
+        agreement.accept(version: ParentalAgreement.currentVersion)
+        let auth = model()
+        await auth.start()
+        var tokenSeen: String?
+        auth.beforeSignOut = { tokenSeen = auth.sessionToken }
+
+        await auth.logout()
+        #expect(tokenSeen == "zks_1")
+        #expect(auth.state == .signedOut)
+    }
+
     @Test func logoutClearsTheSessionEvenWhenTheAPIFails() async throws {
         try store.save(session)
         await api.set(me: .success(parent))
