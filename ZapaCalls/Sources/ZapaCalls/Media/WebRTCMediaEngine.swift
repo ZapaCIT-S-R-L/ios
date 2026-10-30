@@ -1,6 +1,7 @@
 import AVFoundation
 import Foundation
 @preconcurrency import LiveKitWebRTC
+import os
 
 /// Voice over Cloudflare Realtime (SFU) through the calls service's proxy: one peer connection, the microphone
 /// published as `audio-<device>`, remote tracks pulled per participant. Every frame passes the FrameCryptor
@@ -17,15 +18,17 @@ public final class WebRTCMediaEngine: NSObject, CallMediaEngine, @unchecked Send
     let factory: LKRTCPeerConnectionFactory
     private let queue = DispatchQueue(label: "ro.zapakid.calls.media")
     var connection: LKRTCPeerConnection?
-    private var microphone: LKRTCAudioTrack?
+    var microphone: LKRTCAudioTrack?
     private var api: CallsAPI?
     private var callId = ""
     private var sessionId = ""
     private var me = ""
     /// Remote track name by transceiver mid, and the receive cryptors.
     private var remoteMids: [String: TrackRef] = [:]
-    private var receivers: [String: LKRTCFrameCryptor] = [:]
+    var receivers: [String: LKRTCFrameCryptor] = [:]
     private var levelTask: Task<Void, Never>?
+    let log = Logger(subsystem: "ro.zapakid.app", category: "call-media")
+    private var statsTick = 0
 
     override public init() {
         CallAudio.leaveSessionToCallKit()
@@ -76,6 +79,7 @@ public final class WebRTCMediaEngine: NSObject, CallMediaEngine, @unchecked Send
         ))
         guard let answer = reply.sessionDescription else { throw CallsAPIError.invalidResponse }
         try await setRemote(answer)
+        log.info("published \(trackName, privacy: .public), sfu answer applied")
         startLevels()
     }
 
@@ -104,6 +108,7 @@ public final class WebRTCMediaEngine: NSObject, CallMediaEngine, @unchecked Send
             )
         }
         attachReceiveCryptors()
+        logPulled(reply.tracks ?? [])
         if reply.tracks?.contains(where: { $0.errorCode != nil }) ?? true {
             throw CallsAPIError.invalidResponse
         }
@@ -147,6 +152,7 @@ public final class WebRTCMediaEngine: NSObject, CallMediaEngine, @unchecked Send
 
     /// CallKit activated or deactivated the audio session (use with `CallCoordinator.onAudioSessionChange`).
     public func audioSession(active: Bool) {
+        log.info("audio session active=\(active), enabled before=\(LKRTCAudioSession.sharedInstance().isAudioEnabled)")
         #if os(iOS)
             let session = LKRTCAudioSession.sharedInstance()
             if active {
@@ -274,8 +280,44 @@ public final class WebRTCMediaEngine: NSObject, CallMediaEngine, @unchecked Send
                 if !levels.isEmpty {
                     continuation.yield(.levels(levels))
                 }
+                statsTick += 1
+                if statsTick % 6 == 0 {
+                    await logTransport(connection)
+                }
             }
         }
+    }
+}
+
+extension WebRTCMediaEngine {
+    // MARK: Diagnostics
+
+    func logPulled(_ tracks: [TrackResult]) {
+        let summary = tracks.map { "\($0.trackName ?? "?"):mid=\($0.mid ?? "-"):err=\($0.errorCode ?? "-")" }
+        let cryptors = receivers.count
+        log.info("pulled tracks \(summary.joined(separator: ", "), privacy: .public), cryptors \(cryptors)")
+    }
+
+    /// Packets and bytes each way, every two seconds (no keys, no audio content).
+    func logTransport(_ connection: LKRTCPeerConnection) async {
+        let line: String = await withCheckedContinuation { done in
+            connection.statistics { report in
+                var parts: [String] = []
+                for stats in report.statistics.values
+                    where stats.type == "inbound-rtp" || stats.type == "outbound-rtp"
+                {
+                    let values = stats.values
+                    let kind = values["kind"] as? String ?? "?"
+                    let sent = values["packetsSent"] ?? values["packetsReceived"] ?? NSNumber(value: 0)
+                    let lost = values["packetsLost"] ?? NSNumber(value: 0)
+                    let level = values["audioLevel"] ?? NSString("-")
+                    parts.append("\(stats.type) \(kind) pkts=\(sent) lost=\(lost) level=\(level)")
+                }
+                done.resume(returning: parts.joined(separator: "; "))
+            }
+        }
+        let micOn = microphone?.isEnabled ?? false
+        log.info("rtp \(line, privacy: .public), mic enabled=\(micOn)")
     }
 }
 
@@ -286,6 +328,7 @@ extension WebRTCMediaEngine: LKRTCPeerConnectionDelegate {
     public func peerConnectionShouldNegotiate(_: LKRTCPeerConnection) {}
 
     public func peerConnection(_: LKRTCPeerConnection, didChange newState: LKRTCIceConnectionState) {
+        log.info("ice state \(newState.rawValue)")
         switch newState {
         case .connected, .completed: continuation.yield(.connected)
         case .disconnected, .failed: continuation.yield(.interrupted)
