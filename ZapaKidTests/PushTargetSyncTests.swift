@@ -134,6 +134,8 @@ struct PushTargetSyncTests {
     /// Holds the first request until the test releases it, so a second token arrives while it is out.
     final class GatedPushAPI: DevicePushAPI, @unchecked Sendable {
         var targets: [PushTarget?] = []
+        var sessionTokens: [String] = []
+        var deviceIds: [Int] = []
         var gate: CheckedContinuation<Void, Never>?
         /// The held first request fails once released (the server or network refused it).
         var failFirst = false
@@ -141,8 +143,10 @@ struct PushTargetSyncTests {
 
         func setDeviceAlertPush(deviceId _: Int, target _: PushTarget?, token _: String) async throws {}
 
-        func setDevicePush(deviceId _: Int, target: PushTarget?, token _: String) async throws {
+        func setDevicePush(deviceId: Int, target: PushTarget?, token: String) async throws {
             targets.append(target)
+            sessionTokens.append(token)
+            deviceIds.append(deviceId)
             guard holdFirst else { return }
             holdFirst = false
             await withCheckedContinuation { gate = $0 }
@@ -193,6 +197,37 @@ struct PushTargetSyncTests {
 
         // bb went out without waiting for another PushKit or registration callback.
         #expect(api.targets == [PushTarget(provider: .apns, token: "aa"), PushTarget(provider: .apns, token: "bb")])
+    }
+
+    @Test func signingOutWaitsForAnOutstandingUpdateAndIgnoresLateTokens() async throws {
+        let api = GatedPushAPI()
+        let box = Box()
+        box.deviceId = 1
+        let sync = PushTargetSync(api: api, token: { box.session }, deviceId: { box.deviceId })
+        let update = Task { await sync.tokenChanged("aa") }
+        for _ in 0 ..< 200 where api.gate == nil {
+            try await Task.sleep(for: .milliseconds(5))
+        }
+        var signedOut = false
+        let logout = Task {
+            await sync.signOut()
+            signedOut = true
+            box.session = nil
+        }
+        // Let sign-out enter while the first token write is held.
+        try await Task.sleep(for: .milliseconds(20))
+        #expect(!signedOut)
+        // If the bounded logout has already allowed a new account, cleanup must still use the old credentials.
+        box.session = "new-account"
+        box.deviceId = 7
+        await sync.tokenChanged("bb")
+        api.gate?.resume()
+        await update.value
+        await logout.value
+        #expect(api.targets == [PushTarget(provider: .apns, token: "aa"), nil])
+        #expect(api.sessionTokens == ["zks_tok", "zks_tok"])
+        #expect(api.deviceIds == [1, 1])
+        #expect(signedOut)
     }
 
     @Test func noSessionMeansNothingIsSent() async {
