@@ -177,6 +177,24 @@ struct CallCoordinatorTests {
         #expect(calls.current == nil)
     }
 
+    /// Two VoIP pushes for the same call (lab, 2026-10-30: one phone rang twice and the call had no voice). The second
+    /// must still reach CallKit (PushKit rule) and end at once, but must not decline the call that is ringing: that
+    /// decline would end the real call on the server.
+    @Test func aRepeatedPushForTheRingingCallNeverDeclinesIt() async {
+        let calls = coordinator()
+        await calls.handle(IncomingCallPush(callId: "c_9", callerAccountId: "acc-m"))
+        let first = system.reported.first?.uuid
+
+        await calls.handle(IncomingCallPush(callId: "c_9", callerAccountId: "acc-m"))
+
+        #expect(system.reported.count == 2)
+        #expect(system.ended.count == 1)
+        #expect(system.ended.first?.uuid != first)
+        #expect(api.calls.isEmpty)
+        #expect(calls.current?.callId == "c_9")
+        #expect(calls.uuid(for: "c_9") == first)
+    }
+
     @Test func aSecondCallWhileBusyIsDeclined() async {
         let calls = coordinator()
         await calls.handle(IncomingCallPush(callId: "c_9", callerAccountId: "acc-m"))
