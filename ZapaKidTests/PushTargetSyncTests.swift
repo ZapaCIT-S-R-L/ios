@@ -79,6 +79,48 @@ struct PushTargetSyncTests {
         #expect(api.calls.map(\.target) == [nil, PushTarget(provider: .apns, token: "aa"), nil])
     }
 
+    @Test func signingOutClearsTheServerTargetWhileTheCredentialsRemain() async {
+        let api = FakePushAPI()
+        let box = Box()
+        box.deviceId = 1
+        let sync = PushTargetSync(api: api, channel: .alert, token: { box.session }, deviceId: { box.deviceId })
+        await sync.tokenChanged("aa")
+
+        await sync.signOut()
+        #expect(api.alertCalls.map(\.target) == [PushTarget(provider: .apns, token: "aa"), nil])
+        #expect(api.alertCalls.last?.token == "zks_tok")
+    }
+
+    @Test func afterSigningOutAnOldCallbackNeverRegistersTheTargetAgain() async {
+        let api = FakePushAPI()
+        let box = Box()
+        box.deviceId = 1
+        let sync = PushTargetSync(api: api, channel: .alert, token: { box.session }, deviceId: { box.deviceId })
+        await sync.signOut()
+        let sent = api.alertCalls.count
+
+        await sync.tokenChanged("bb")
+        await sync.deviceRegistered()
+        #expect(api.alertCalls.count == sent)
+    }
+
+    @Test func aFailedClearDoesNotBlockSigningOut() async {
+        final class Failing: DevicePushAPI, @unchecked Sendable {
+            func setDevicePush(deviceId _: Int, target _: PushTarget?, token _: String) async throws {
+                throw URLError(.notConnectedToInternet)
+            }
+
+            func setDeviceAlertPush(deviceId _: Int, target _: PushTarget?, token _: String) async throws {
+                throw URLError(.notConnectedToInternet)
+            }
+        }
+        let box = Box()
+        box.deviceId = 1
+        let sync = PushTargetSync(api: Failing(), channel: .alert, token: { box.session }, deviceId: { box.deviceId })
+        await sync.tokenChanged("aa")
+        await sync.signOut()
+    }
+
     @Test func registeringBeforePushKitAnswersSendsNothing() async {
         let api = FakePushAPI()
         let box = Box()
