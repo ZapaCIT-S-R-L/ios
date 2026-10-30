@@ -15,8 +15,13 @@ struct PushTargetSyncTests {
         }
 
         var calls: [Call] = []
+        var alertCalls: [Call] = []
         func setDevicePush(deviceId: Int, target: PushTarget?, token: String) async throws {
             calls.append(Call(deviceId: deviceId, target: target, token: token))
+        }
+
+        func setDeviceAlertPush(deviceId: Int, target: PushTarget?, token: String) async throws {
+            alertCalls.append(Call(deviceId: deviceId, target: target, token: token))
         }
     }
 
@@ -34,7 +39,7 @@ struct PushTargetSyncTests {
         let box = Box()
         let sync = make(api, box)
 
-        await sync.voipTokenChanged("ab12")
+        await sync.tokenChanged("ab12")
         #expect(api.calls.isEmpty)
 
         box.deviceId = 2
@@ -51,8 +56,8 @@ struct PushTargetSyncTests {
         box.deviceId = 1
         let sync = make(api, box)
 
-        await sync.voipTokenChanged("aa")
-        await sync.voipTokenChanged("bb")
+        await sync.tokenChanged("aa")
+        await sync.tokenChanged("bb")
         #expect(api.calls.map(\.target) == [
             PushTarget(provider: .apns, token: "aa"),
             PushTarget(provider: .apns, token: "bb"),
@@ -66,11 +71,11 @@ struct PushTargetSyncTests {
         let sync = make(api, box)
 
         // The server may still hold the previous launch's token, so the first invalidation clears it.
-        await sync.voipTokenChanged(nil)
+        await sync.tokenChanged(nil)
         #expect(api.calls.map(\.target) == [nil])
 
-        await sync.voipTokenChanged("aa")
-        await sync.voipTokenChanged(nil)
+        await sync.tokenChanged("aa")
+        await sync.tokenChanged(nil)
         #expect(api.calls.map(\.target) == [nil, PushTarget(provider: .apns, token: "aa"), nil])
     }
 
@@ -92,6 +97,8 @@ struct PushTargetSyncTests {
         var failFirst = false
         private var holdFirst = true
 
+        func setDeviceAlertPush(deviceId _: Int, target _: PushTarget?, token _: String) async throws {}
+
         func setDevicePush(deviceId _: Int, target: PushTarget?, token _: String) async throws {
             targets.append(target)
             guard holdFirst else { return }
@@ -109,13 +116,13 @@ struct PushTargetSyncTests {
         box.deviceId = 1
         let sync = PushTargetSync(api: api, token: { box.session }, deviceId: { box.deviceId })
 
-        let first = Task { await sync.voipTokenChanged("aa") }
+        let first = Task { await sync.tokenChanged("aa") }
         for _ in 0 ..< 200 where api.gate == nil {
             try await Task.sleep(for: .milliseconds(5))
         }
         #expect(api.gate != nil)
 
-        await sync.voipTokenChanged("bb") // Returns at once: the running sync picks it up.
+        await sync.tokenChanged("bb") // Returns at once: the running sync picks it up.
         api.gate?.resume()
         await first.value
 
@@ -132,13 +139,13 @@ struct PushTargetSyncTests {
         box.deviceId = 1
         let sync = PushTargetSync(api: api, token: { box.session }, deviceId: { box.deviceId })
 
-        let first = Task { await sync.voipTokenChanged("aa") }
+        let first = Task { await sync.tokenChanged("aa") }
         for _ in 0 ..< 200 where api.gate == nil {
             try await Task.sleep(for: .milliseconds(5))
         }
         #expect(api.gate != nil)
 
-        await sync.voipTokenChanged("bb")
+        await sync.tokenChanged("bb")
         api.gate?.resume() // PUT(aa) fails now.
         await first.value
 
@@ -153,8 +160,36 @@ struct PushTargetSyncTests {
         box.session = nil
         let sync = make(api, box)
 
-        await sync.voipTokenChanged("aa")
+        await sync.tokenChanged("aa")
         #expect(api.calls.isEmpty)
+    }
+
+    /// The alert channel (chat notifications) sends to the alert endpoint, and never touches the VoIP target.
+    @Test func theAlertChannelUsesItsOwnEndpoint() async {
+        let api = FakePushAPI()
+        let box = Box()
+        box.deviceId = 3
+        let alert = PushTargetSync(api: api, channel: .alert, token: { box.session }, deviceId: { box.deviceId })
+
+        await alert.tokenChanged("cd34")
+        #expect(api.calls.isEmpty)
+        #expect(api.alertCalls.map(\.target) == [PushTarget(provider: .apns, token: "cd34")])
+        #expect(api.alertCalls.first?.deviceId == 3)
+        #expect(api.alertCalls.first?.token == "zks_tok")
+    }
+
+    /// The two channels keep separate targets: a VoIP token and an alert token never overwrite each other.
+    @Test func theVoIPAndAlertTargetsStayApart() async {
+        let api = FakePushAPI()
+        let box = Box()
+        box.deviceId = 1
+        let voip = make(api, box)
+        let alert = PushTargetSync(api: api, channel: .alert, token: { box.session }, deviceId: { box.deviceId })
+
+        await voip.tokenChanged("aa")
+        await alert.tokenChanged("bb")
+        #expect(api.calls.map(\.target) == [PushTarget(provider: .apns, token: "aa")])
+        #expect(api.alertCalls.map(\.target) == [PushTarget(provider: .apns, token: "bb")])
     }
 
     @Test func tokenBytesBecomeLowercaseHex() {
