@@ -21,7 +21,7 @@ export const CATALOGS = [
 ];
 
 // SwiftUI views and String(localized:) take a literal as the localization key. `\(x)` becomes `%lld` for numbers
-// and `%@` for text; the only text interpolated in this app is people's names (`name`, `names`, `x.name`).
+// and `%@` for text: people's names (`name`, `names`, `x.name`, `kid.nickname`) and preformatted text (`somethingText`).
 const PATTERNS = [
   /\b(?:Text|Label|Button|navigationTitle|accessibilityLabel|accessibilityHint)\(\s*"((?:[^"\\]|\\.)*)"/g,
   /String\(\s*localized:\s*"((?:[^"\\]|\\.)*)"/g,
@@ -33,7 +33,7 @@ export function keysIn(swift) {
   for (const pattern of PATTERNS) {
     for (const match of withoutComments.matchAll(pattern)) {
       const key = match[1].replace(/\\\(([^)]*)\)/g, (_, expression) =>
-        /\bnames?$/.test(expression) ? "%@" : "%lld",
+        /names?$|Text$/.test(expression) ? "%@" : "%lld",
       );
       keys.add(key.replace(/\\"/g, '"'));
     }

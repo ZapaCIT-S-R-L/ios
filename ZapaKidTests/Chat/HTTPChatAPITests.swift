@@ -35,6 +35,33 @@ struct HTTPChatAPITests {
         #expect(sent.first?.request.value(forHTTPHeaderField: "Authorization") == "Bearer chat-token")
     }
 
+    /// A parent sees the kid's conversations too, where the service lists them as an observer (role "observer",
+    /// guardian true). Before this decoded, the whole list failed and the parent's history never showed (2026-10-29).
+    @Test func aGuardianObserverInTheListStillDecodes() async throws {
+        let observed = """
+        {"id":"c_BBBBBBBBBBBBBBBBBBBBBB","kind":"group","state":"open","createdAt":"2026-10-27T18:00:00Z",\
+        "closedAt":null,"members":[{"accountId":"acc-k","role":"kid","guardian":false,\
+        "devices":[{"deviceId":1,"registrationId":7}]},{"accountId":"acc-p","role":"observer","guardian":true,\
+        "devices":[{"deviceId":1,"registrationId":9}]}]}
+        """
+        let client = api { _, _ in MockReply(200, #"{"conversations":[\#(observed)]}"#) }
+
+        let list = try await client.conversations()
+
+        #expect(list.first?.members.last?.role == .observer)
+        #expect(list.first?.members.last?.guardian == true)
+        #expect(list.count == 1)
+    }
+
+    @Test func leaveDeletesTheConversationForMe() async throws {
+        let client = api { _, _ in MockReply(204, "") }
+
+        try await client.leave(conversationId: "c_AAAAAAAAAAAAAAAAAAAAAA")
+
+        #expect(sent.first?.request.httpMethod == "DELETE")
+        #expect(sent.first?.request.url?.path == "/v1/conversations/c_AAAAAAAAAAAAAAAAAAAAAA")
+    }
+
     @Test func createSendsOnlyTheOtherMembers() async throws {
         let client = api { [conversationJSON] _, _ in MockReply(201, conversationJSON) }
 

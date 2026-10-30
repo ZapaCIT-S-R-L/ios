@@ -1,4 +1,5 @@
 import Foundation
+import os
 import ZapaCalls
 import ZapaChat
 import ZapaKidKit
@@ -15,10 +16,7 @@ enum LiveServices {
         let chatAPI = HTTPChatAPI(baseURL: HTTPChatAPI.stagingURL!, token: token)
         // swiftlint:disable:next force_unwrapping
         let callsAPI = HTTPCallsAPI(baseURL: HTTPCallsAPI.stagingURL!, token: token)
-        let store: ChatStore = (try? EncryptedChatStore(
-            directory: ChatStoreLocation.directory(accountId: me, kid: kid),
-            key: ChatStoreKey.loadOrCreate(account: ChatStoreLocation.keychainAccount(accountId: me, kid: kid))
-        )) ?? InMemoryChatStore()
+        let store = chatStore(me: me, kid: kid)
         // swiftlint:disable:next force_unwrapping
         let bundles = HTTPPreKeyBundles(baseURL: URL(string: ZapaKidKit.apiBaseURL)!, session: .shared) {
             await MainActor.run { auth.sessionToken }
@@ -48,15 +46,54 @@ enum LiveServices {
                 directory: { [weak services] account in services?.peer(account) }
             )
         }
+        // The VoIP token goes to the server once this phone is registered (in either order).
+        let pushSync = PushTargetSync(
+            api: AppAttestation.devicesAPI,
+            token: { auth.sessionToken },
+            deviceId: { (try? AccountKeys.app(accountId: me, kid: kid)).flatMap(DeviceRegistration.registeredDeviceId) }
+        )
         services.setup = deviceSetup(me: me, kid: kid, auth: auth, endKidSession: endKidSession) { [weak services] in
             box.sessions = SecureSessions.make(accountId: me, kid: kid, bundles: bundles)
+            Task { await pushSync.deviceRegistered() }
             guard let services else { return }
             Task {
                 await services.chat.loadConversations()
-                services.chat.connectAll()
             }
         }
+        startVoIPPushes(services: services, pushSync: pushSync)
+        services.calls.onFinished = { [weak services] entry in
+            guard let services, let result = CallResult(entry) else { return }
+            Task { await services.chat.recordCallResult(callId: entry.id, result: result) }
+        }
         return services
+    }
+
+    private static func chatStore(me: String, kid: Bool) -> ChatStore {
+        do {
+            return try EncryptedChatStore(
+                directory: ChatStoreLocation.directory(accountId: me, kid: kid),
+                key: ChatStoreKey.loadOrCreate(account: ChatStoreLocation.keychainAccount(accountId: me, kid: kid))
+            )
+        } catch {
+            // Not silent: history kept only in memory is gone at the next start.
+            Logger(subsystem: "ro.zapakid.app", category: "chat-store").error(
+                "encrypted chat store unavailable, using memory: \(String(describing: error), privacy: .public)"
+            )
+            return InMemoryChatStore()
+        }
+    }
+
+    private static func startVoIPPushes(services: AppServices, pushSync: PushTargetSync) {
+        #if canImport(PushKit)
+            // Start PushKit at sign-in, so a killed app is woken for an incoming call.
+            let pushes = VoIPPushes(coordinator: services.calls)
+            pushes.onToken = { data in
+                let hex = data.map(PushTargetSync.hex)
+                Task { await pushSync.voipTokenChanged(hex) }
+            }
+            pushes.register()
+            services.voipPushes = pushes
+        #endif
     }
 
     /// A kid session the API refuses (401): wipe this kid's keys and chat history (only the kid's, never a
@@ -166,8 +203,10 @@ enum ChatStoreKey {
     static func loadOrCreate(account: String) throws -> Data {
         let keychain = KeychainData(service: service, account: account)
         if let key = try keychain.load(), key.count == 32 {
+            Logger(subsystem: "ro.zapakid.app", category: "chat-store").info("chat key found")
             return key
         }
+        Logger(subsystem: "ro.zapakid.app", category: "chat-store").error("chat key missing, creating a new one")
         var bytes = [UInt8](repeating: 0, count: 32)
         guard SecRandomCopyBytes(kSecRandomDefault, bytes.count, &bytes) == errSecSuccess else {
             throw KeychainData.Failure(status: errSecAllocate)

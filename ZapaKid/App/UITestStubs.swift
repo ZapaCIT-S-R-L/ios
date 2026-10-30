@@ -50,6 +50,7 @@
                 google: StubGoogleSignIn(),
                 ageCheck: StubAgeRangeCheck(range: age),
                 families: StubFamiliesAPI(demo: environment["ZK_DEMO_FAMILY"] == "1"),
+                connections: ConnectionsModel(api: HTTPConnectionsAPI.staging, token: { nil }),
                 fingerprint: { _ in String(repeating: "ab", count: 32) },
                 makeServices: { me, isKid in
                     let services = stubServices(
@@ -142,6 +143,20 @@
             }
         }
 
+        func updateKid(
+            familyId _: String, kidId: String, nickname: String, avatar: String, token _: String
+        ) async throws -> Kid {
+            lock.withLock {
+                let kid = Kid(id: kidId, nickname: nickname, avatar: avatar, grade: nil)
+                family.kids = family.kids.map { $0.id == kidId ? kid : $0 }
+                return kid
+            }
+        }
+
+        func removeKid(familyId _: String, kidId: String, token _: String) async throws {
+            lock.withLock { family.kids.removeAll { $0.id == kidId } }
+        }
+
         func setDisplayName(_ name: String, token _: String) async throws -> FamilyParent {
             lock.withLock {
                 let parent = FamilyParent(id: "p_test", displayName: name)
@@ -230,6 +245,8 @@
         func createConversation(members _: [String]) async throws -> Conversation {
             conversation
         }
+
+        func leave(conversationId _: String) async throws {}
 
         func send(conversationId: String, messageId _: String, envelopes _: [OutgoingEnvelope]) async throws -> Date {
             let reply = ChatContent(id: UUID().uuidString, sentAt: Date(), body: .text("Hi! 👋"))
@@ -327,7 +344,7 @@
     import SwiftUI
     import ZapaCalls
 
-    /// `ZK_CALL=outgoing|incoming|group|log` with `-zk-ui-test`: the call screens with the demo call engine.
+    /// `ZK_CALL=outgoing|incoming|group` with `-zk-ui-test`: the call screens with the demo call engine.
     struct CallsDemoRoot: View {
         let scenario: String
         @State private var controller: CallController?
@@ -335,11 +352,7 @@
         var body: some View {
             ZStack {
                 Color.clear
-                if scenario == "log" {
-                    NavigationStack {
-                        CallLogView(entries: DemoCalls.log) { _ in }
-                    }
-                } else if let controller {
+                if let controller {
                     CallScreen(controller: controller)
                 }
             }

@@ -82,14 +82,6 @@ final class CallsUITests: XCTestCase {
         waitForExpectations(timeout: timeout)
     }
 
-    func testCallLogListsCallsAndMissedOnes() {
-        let app = launch("log")
-
-        XCTAssertTrue(app.buttons["calls.log.callBack.Mama"].waitForExistence(timeout: 10))
-        XCTAssertTrue(app.staticTexts["Missed call"].exists)
-        XCTAssertEqual(app.buttons["calls.log.callBack.Mama"].label, "Call back")
-    }
-
     func testRomanianLabels() {
         let app = launch("incoming", arguments: ["-AppleLanguages", "(ro)", "-AppleLocale", "ro_RO"])
 

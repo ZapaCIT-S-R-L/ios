@@ -19,13 +19,13 @@ final class AppShellUITests: XCTestCase {
         return app
     }
 
-    func testParentSeesChatsCallsAndFamilyTabs() {
+    func testParentSeesChatsAndFamilyTabsOnly() {
         let app = launch()
 
         XCTAssertTrue(app.tabBars.buttons["Chats"].waitForExistence(timeout: 10))
-        XCTAssertTrue(app.tabBars.buttons["Calls"].exists)
-        XCTAssertTrue(app.tabBars.buttons["Family"].exists)
-        app.tabBars.buttons["Family"].tap()
+        XCTAssertFalse(app.tabBars.buttons["Calls"].exists)
+        XCTAssertTrue(app.tabBars.buttons["Settings"].exists)
+        app.tabBars.buttons["Settings"].tap()
         XCTAssertTrue(app.buttons["family.addKid"].waitForExistence(timeout: 5))
     }
 
@@ -33,9 +33,9 @@ final class AppShellUITests: XCTestCase {
         let app = launch(session: "none", kid: true)
 
         XCTAssertTrue(app.tabBars.buttons["Chats"].waitForExistence(timeout: 10))
-        XCTAssertTrue(app.tabBars.buttons["Calls"].exists)
-        app.tabBars.buttons["Family"].tap()
-        XCTAssertTrue(app.navigationBars["Family"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.tabBars.buttons["Calls"].exists)
+        app.tabBars.buttons["Settings"].tap()
+        XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 5))
         XCTAssertFalse(app.buttons["family.addKid"].exists)
         XCTAssertFalse(app.buttons["family.inviteParent"].exists)
     }
@@ -114,19 +114,5 @@ final class AppShellUITests: XCTestCase {
         // Hanging up goes straight back to the chat; no "Close" screen (Stefan, 2026-10-29).
         XCTAssertTrue(app.textFields["chat.input"].waitForExistence(timeout: 5))
         XCTAssertFalse(app.buttons["call.close"].exists)
-    }
-
-    func testTheCallsTabListsCallsAfterACall() {
-        let app = launch()
-        XCTAssertTrue(app.buttons["chats.row.Ana"].waitForExistence(timeout: 10))
-        app.buttons["chats.row.Ana"].tap()
-        app.buttons["chat.call"].tap()
-        XCTAssertTrue(app.buttons["call.end"].waitForExistence(timeout: 5))
-        app.buttons["call.end"].tap()
-        XCTAssertTrue(app.textFields["chat.input"].waitForExistence(timeout: 5))
-
-        app.tabBars.buttons["Calls"].tap()
-
-        XCTAssertTrue(app.buttons["calls.log.callBack.Ana"].waitForExistence(timeout: 5))
     }
 }

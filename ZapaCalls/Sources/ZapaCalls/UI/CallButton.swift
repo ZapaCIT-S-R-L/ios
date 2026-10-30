@@ -47,14 +47,16 @@ struct CallButton: View {
                     .font(.system(size: size * 0.36, weight: .semibold))
                     .foregroundStyle(iconColor)
                     .frame(width: size, height: size)
-                    .background(
-                        RoundedRectangle(
-                            cornerRadius: theme.roundCallButtons ? size / 2 : size * 0.3,
-                            style: .continuous
+                    .background {
+                        LiquidSurface(
+                            tint: fill,
+                            shape: RoundedRectangle(
+                                cornerRadius: theme.roundCallButtons ? size / 2 : size * 0.3,
+                                style: .continuous
+                            )
                         )
-                        .fill(fill)
                         .shadow(color: .black.opacity(theme.cardShadow ? 0.15 : 0), radius: 6, y: 3)
-                    )
+                    }
                 Text(title, bundle: .module)
                     .font(.footnote.weight(.semibold))
                     .foregroundStyle(theme.text.color)
@@ -69,5 +71,37 @@ struct CallButton: View {
         .accessibilityLabel(Text(title, bundle: .module))
         .accessibilityValue(accessibilityValue ?? Text(verbatim: ""))
         .accessibilityAddTraits(.isButton)
+    }
+}
+
+/// A glossy, liquid button surface: Liquid Glass on iOS 26, otherwise a tinted gradient with a light rim and a
+/// highlight on top.
+struct LiquidSurface<S: Shape>: View {
+    let tint: Color
+    let shape: S
+
+    var body: some View {
+        if #available(iOS 26, *) {
+            Color.clear
+                .glassEffect(.regular.tint(tint).interactive(), in: shape)
+        } else {
+            shape
+                .fill(LinearGradient(
+                    colors: [tint.opacity(0.95), tint.opacity(0.72)],
+                    startPoint: .top, endPoint: .bottom
+                ))
+                .overlay(alignment: .top) {
+                    shape
+                        .fill(LinearGradient(
+                            colors: [.white.opacity(0.45), .white.opacity(0)],
+                            startPoint: .top, endPoint: .center
+                        ))
+                        .padding(2)
+                        .mask(shape)
+                }
+                .overlay {
+                    shape.stroke(.white.opacity(0.35), lineWidth: 1)
+                }
+        }
     }
 }

@@ -164,6 +164,39 @@ struct ChatModelTests {
         #expect(chat.connectedConversations == ["c_1"])
     }
 
+    /// A group someone else made after launch shows up on a pull to refresh; its stream must open with the reload,
+    /// or its messages and calls wait until the next launch (Stefan, 2026-10-29).
+    @Test func reloadingConnectsAGroupCreatedElsewhere() async {
+        let chat = model()
+        await chat.loadConversations()
+        #expect(chat.connectedConversations == ["c_1"])
+    }
+
+    /// Delete on the chat list: the service drops this account's membership and the phone forgets the chat.
+    @Test func leavingRemovesTheChatAndItsHistory() async throws {
+        let chat = model()
+        await chat.loadConversations()
+        await chat.send(text: "hi", in: "c_1")
+
+        await chat.leave("c_1")
+
+        #expect(api.left == ["c_1"])
+        #expect(chat.conversations.isEmpty)
+        #expect(chat.messages["c_1"] == nil)
+        #expect(try await store.messages(in: "c_1").isEmpty)
+    }
+
+    @Test func aFailedLeaveKeepsTheChat() async {
+        let chat = model()
+        await chat.loadConversations()
+        api.failNextLeave = .network
+
+        await chat.leave("c_1")
+
+        #expect(chat.conversations.map(\.id) == ["c_1"])
+        #expect(chat.errorMessage != nil)
+    }
+
     @Test func markingReadClearsTheUnreadCount() async {
         let chat = model()
         await chat.loadConversations()
@@ -203,8 +236,10 @@ final class FakeChatAPI: ChatAPI, @unchecked Sendable {
     private var sentLog: [Sent] = []
     private var ackLog: [String] = []
     private var uploadLog: [Data] = []
+    private var leftLog: [String] = []
     var failNextSend: ChatAPIError?
     var failNextCreate: ChatAPIError?
+    var failNextLeave: ChatAPIError?
     var devicesAfterRefresh: [Int]?
 
     var sent: [Sent] {
@@ -217,6 +252,10 @@ final class FakeChatAPI: ChatAPI, @unchecked Sendable {
 
     var uploads: [Data] {
         lock.withLock { uploadLog }
+    }
+
+    var left: [String] {
+        lock.withLock { leftLog }
     }
 
     func conversation(devices: [Int]) -> Conversation {
@@ -289,5 +328,16 @@ final class FakeChatAPI: ChatAPI, @unchecked Sendable {
 
     func openStream(conversationId _: String) async throws -> ChatStreamConnection {
         throw ChatAPIError.network
+    }
+
+    func leave(conversationId: String) async throws {
+        let failure: ChatAPIError? = lock.withLock {
+            defer { failNextLeave = nil }
+            return failNextLeave
+        }
+        if let failure {
+            throw failure
+        }
+        lock.withLock { leftLog.append(conversationId) }
     }
 }

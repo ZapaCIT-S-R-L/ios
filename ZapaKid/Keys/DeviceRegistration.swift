@@ -60,6 +60,12 @@ final class DeviceRegistration {
         var deviceId: Int
     }
 
+    /// The device ID this account's phone was registered under, if it has been (see `run` and `runKid`).
+    static func registeredDeviceId(in account: AccountKeys) -> Int? {
+        guard let data = try? account.files.read(deviceFile) else { return nil }
+        return (try? JSONDecoder().decode(Registered.self, from: data))?.deviceId
+    }
+
     init(
         api: DeviceAPI,
         keyspace: @escaping (String) throws -> AccountKeys = { try AccountKeys.app(accountId: $0) },

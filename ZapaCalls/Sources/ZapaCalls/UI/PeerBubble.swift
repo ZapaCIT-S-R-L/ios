@@ -1,6 +1,13 @@
 import SwiftUI
+import UIKit
 
-/// A participant's robot with the speaking ring (green, gently pulsing) and a muted badge.
+/// The picture to show for a participant instead of their robot: the app sets this to the photo it keeps for them
+/// (a contact's picture). Nil means the robot.
+public enum CallPeerPhotos {
+    @MainActor public static var photo: (String) -> UIImage? = { _ in nil }
+}
+
+/// A participant's robot (or photo) with the speaking ring (green, gently pulsing) and a muted badge.
 struct PeerAvatar: View {
     let peer: CallPeer
     let size: CGFloat
@@ -8,7 +15,7 @@ struct PeerAvatar: View {
 
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
-            RobotAvatarView(avatar: peer.avatar, size: size)
+            face
                 .padding(size * 0.06)
                 .overlay {
                     Circle()
@@ -25,6 +32,22 @@ struct PeerAvatar: View {
                     .background(Circle().fill(theme.danger.color))
                     .accessibilityHidden(true)
             }
+        }
+    }
+}
+
+@MainActor
+extension PeerAvatar {
+    @ViewBuilder var face: some View {
+        if let photo = CallPeerPhotos.photo(peer.accountId) {
+            Image(uiImage: photo)
+                .resizable()
+                .scaledToFill()
+                .frame(width: size, height: size)
+                .clipShape(Circle())
+                .accessibilityHidden(true)
+        } else {
+            RobotAvatarView(avatar: peer.avatar, size: size)
         }
     }
 }

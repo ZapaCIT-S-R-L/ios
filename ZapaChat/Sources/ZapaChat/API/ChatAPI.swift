@@ -14,6 +14,8 @@ public protocol ChatAPI: Sendable {
     func upload(conversationId: String, ciphertext: Data) async throws -> String
     func download(attachmentId: String) async throws -> Data
     func openStream(conversationId: String) async throws -> ChatStreamConnection
+    /// Removes the caller from the conversation; the others keep it.
+    func leave(conversationId: String) async throws
 }
 
 public protocol ChatStreamConnection: Sendable {

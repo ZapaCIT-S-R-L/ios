@@ -37,7 +37,7 @@ final class ThemeUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["theme.e2ee"].waitForExistence(timeout: 10))
         XCTAssertEqual(app.staticTexts["theme.e2ee"].value as? String, role)
         XCTAssertTrue(app.buttons["chats.row.\(kid ? "Mama" : "Ana")"].exists)
-        XCTAssertTrue(app.tabBars.buttons["Family"].exists)
+        XCTAssertTrue(app.tabBars.buttons["Settings"].exists)
         shoot(app, "\(role)-chats")
 
         // Chat: a message both ways.
@@ -70,8 +70,8 @@ final class ThemeUITests: XCTestCase {
 
         // Family: parents manage it, kids see who is in it.
         app.navigationBars.buttons.element(boundBy: 0).tap()
-        XCTAssertTrue(app.tabBars.buttons["Family"].waitForExistence(timeout: 5))
-        app.tabBars.buttons["Family"].tap()
+        XCTAssertTrue(app.tabBars.buttons["Settings"].waitForExistence(timeout: 5))
+        app.tabBars.buttons["Settings"].tap()
         if kid {
             XCTAssertTrue(app.staticTexts["My family"].waitForExistence(timeout: 5))
             XCTAssertFalse(app.buttons["family.addKid"].exists, "only parents add kids")

@@ -10,20 +10,10 @@ struct MainTabView: View {
     let services: AppServices
     let family: FamilyModel?
     let onSignOut: (() -> Void)?
+    var connections: ConnectionsModel?
 
     var body: some View {
         tabs.zapaTheme(role)
-            .overlay(alignment: .top) {
-                if let notice = services.calls.notice {
-                    CallNoticeBanner(notice: notice)
-                        .transition(.move(edge: .top).combined(with: .opacity))
-                        .task {
-                            try? await Task.sleep(for: .seconds(3))
-                            withAnimation { services.calls.clearNotice() }
-                        }
-                }
-            }
-            .animation(.default, value: services.calls.notice)
             // iOS refusing a call is never silent, on either phone.
             .alert(refusal.map { Text($0.title) } ?? Text(verbatim: ""), isPresented: Binding(
                 get: { services.calls.refused != nil },
@@ -46,50 +36,49 @@ struct MainTabView: View {
     }
 
     private var tabs: some View {
-        TabView {
+        TabView(selection: $tab) {
             NavigationStack {
                 ChatListView(services: services)
                     .safeAreaInset(edge: .bottom) {
-                        if let setup = services.setup {
-                            SetupBanner(setup: setup)
+                        VStack(spacing: 0) {
+                            E2EEBadge()
+                            if let setup = services.setup {
+                                SetupBanner(setup: setup)
+                            }
                         }
                     }
             }
             .tabItem { Label("Chats", systemImage: "bubble.left.and.bubble.right.fill") }
-
-            NavigationStack {
-                CallLogView(entries: services.callLog) { entry in
-                    guard let conversation = services.chat.conversations.first(where: { $0.id == entry.conversationId })
-                    else { return }
-                    Task { await services.call(conversation) }
-                }
-                .task { await services.refreshLog() }
-            }
-            .tabItem { Label("Calls", systemImage: "phone.fill") }
+            .tag(0)
 
             if let family {
                 NavigationStack {
-                    FamilyView(model: family)
-                        .onChange(of: family.family) { _, loaded in
-                            if let loaded {
-                                services.update(from: loaded)
+                    FamilyView(
+                        model: family, connections: connections, pendingKid: services.pendingKidEdit,
+                        onKidEditOpened: { services.pendingKidEdit = nil }
+                    )
+                    .onChange(of: family.family) { _, loaded in
+                        if let loaded {
+                            services.update(from: loaded)
+                        }
+                    }
+                    .toolbar {
+                        if let onSignOut {
+                            ToolbarItem(placement: .topBarTrailing) {
+                                Button(role: .destructive, action: onSignOut) { Text("Sign out") }
+                                    .accessibilityIdentifier("home.signOut")
                             }
                         }
-                        .toolbar {
-                            if let onSignOut {
-                                ToolbarItem(placement: .topBarTrailing) {
-                                    Button(role: .destructive, action: onSignOut) { Text("Sign out") }
-                                        .accessibilityIdentifier("home.signOut")
-                                }
-                            }
-                        }
+                    }
                 }
-                .tabItem { Label("Family", systemImage: "person.3.fill") }
+                .tabItem { Label("Settings", systemImage: "gearshape.fill") }
+                .tag(1)
             } else {
                 NavigationStack {
                     KidFamilyView(services: services)
                 }
-                .tabItem { Label("Family", systemImage: "person.3.fill") }
+                .tabItem { Label("Settings", systemImage: "gearshape.fill") }
+                .tag(1)
             }
         }
         .modifier(ThemedBars(role: role))
@@ -100,14 +89,16 @@ struct MainTabView: View {
                     .zapaTheme(role)
             }
         }
+        .onChange(of: services.pendingKidEdit) { _, kidId in
+            if kidId != nil {
+                tab = 1
+            }
+        }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active {
                 services.setup?.retryNow()
-            }
-        }
-        .onChange(of: services.calls.current == nil) { _, ended in
-            if ended {
-                Task { await services.refreshLog() }
+                // A group made elsewhere while the app slept shows up here, and its stream opens with the reload.
+                Task { await services.chat.loadConversations() }
             }
         }
         .task {
@@ -121,12 +112,12 @@ struct MainTabView: View {
         .task {
             await services.loadPeople?(services)
             await services.chat.loadConversations()
-            services.chat.connectAll()
         }
     }
 
     /// Keeps the ended call on screen until the person taps Close.
     @Environment(\.scenePhase) private var scenePhase
+    @State private var tab = 0
 }
 
 /// Tab and navigation bars in the theme's colors.
@@ -166,7 +157,7 @@ struct KidFamilyView: View {
                         id: \.element.accountId
                     ) { index, person in
                         VStack(spacing: 8) {
-                            RobotAvatarView(avatar: person.avatar, size: 72)
+                            PersonAvatar(accountId: person.accountId, avatar: person.avatar, size: 72)
                             Text(verbatim: person.name)
                                 .font(.headline)
                                 .foregroundStyle(theme.text.color)
@@ -183,7 +174,7 @@ struct KidFamilyView: View {
             .padding(theme.spacing)
         }
         .background(theme.background.color.ignoresSafeArea())
-        .navigationTitle(Text("Family"))
+        .modifier(ZapaTopBar(title: "Settings"))
         .accessibilityIdentifier("family.screen")
     }
 }
@@ -242,28 +233,38 @@ struct SetupBanner: View {
     }
 }
 
-/// After the call screen closed: why a call this phone placed didn't go through (Stefan, 2026-10-29).
-private struct CallNoticeBanner: View {
-    let notice: CallNotice
-    @Environment(\.zapaTheme) private var theme
+/// Under the chat's title: why a call this phone placed didn't go through. Red for a failure, blue for information.
+/// It clears itself after a few seconds.
+struct CallNoticeBar: View {
+    let services: AppServices
 
     var body: some View {
-        text
-            .font(.subheadline.weight(.semibold))
-            .foregroundStyle(theme.onPrimary.color)
-            .padding(.horizontal, 16)
-            .padding(.vertical, 10)
-            .background(Capsule().fill(theme.primary.color))
-            .padding(.top, 8)
-            .accessibilityIdentifier("call.notice")
+        if let notice = services.calls.notice {
+            Text(text(for: notice))
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(.white)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 5)
+                .background(Capsule().fill(color(for: notice.tone)))
+                .frame(maxWidth: .infinity)
+                .padding(.top, 4)
+                .accessibilityIdentifier("call.notice")
+        }
     }
 
-    private var text: Text {
+    private func color(for tone: CallNotice.Tone) -> Color {
+        switch tone {
+        case .error: .red
+        case .info: .blue
+        }
+    }
+
+    private func text(for notice: CallNotice) -> String {
         let names = notice.names.formatted(.list(type: .and))
         return switch notice.reason {
-        case .declined: Text("\(names) declined the call")
-        case .noAnswer: Text("\(names) didn't answer")
-        case .interrupted: Text("The call was interrupted")
+        case .declined: String(localized: "\(names) declined the call")
+        case .noAnswer: String(localized: "\(names) didn't answer")
+        case .interrupted: String(localized: "The call was interrupted")
         }
     }
 }

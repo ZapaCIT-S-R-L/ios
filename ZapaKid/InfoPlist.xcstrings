@@ -48,6 +48,30 @@
           }
         }
       }
+    },
+    "NSLocationWhenInUseUsageDescription": {
+      "comment": "Location permission (share a location in a chat, only when chosen); kid-friendly.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ZapaKid uses your location only when you choose to share it in a chat."
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ZapaKid folosește locația ta doar când alegi să o trimiți într-o conversație."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ZapaKid nutzt deinen Standort nur, wenn du ihn in einem Chat teilen möchtest."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

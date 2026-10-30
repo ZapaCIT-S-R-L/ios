@@ -25,12 +25,17 @@ public struct CallScreen: View {
             .background(theme.background.color)
             .ignoresSafeArea()
             VStack(spacing: 24) {
+                if isOneToOne {
+                    header
+                }
                 ScrollView {
                     VStack(spacing: 16) {
                         people
-                        status
+                        if !isOneToOne {
+                            status
+                        }
                     }
-                    .padding(.top, 32)
+                    .padding(.top, isOneToOne ? 8 : 32)
                     .frame(maxWidth: .infinity)
                 }
                 .scrollBounceBehavior(.basedOnSize)
@@ -60,25 +65,64 @@ public struct CallScreen: View {
             }
             .zapaCard(theme)
         } else if let peer = controller.participants.first {
-            VStack(spacing: 12) {
-                PeerAvatar(peer: peer, size: 160)
-                    .phaseAnimator([1.0, 1.06]) { avatar, scale in
-                        avatar.scaleEffect(isRinging ? scale : 1)
-                    } animation: { _ in .easeInOut(duration: 0.9) }
-                    .accessibilityElement(children: .ignore)
-                    .accessibilityLabel(Text(verbatim: peer.displayName))
-                    .accessibilityValue(PeerBubble.state(of: peer))
-                    .accessibilityIdentifier("call.peer.\(peer.displayName)")
-                HStack(spacing: 8) {
-                    Sparkles()
-                    Text(verbatim: peer.displayName)
-                        .font(.largeTitle.bold())
-                        .foregroundStyle(theme.text.color)
-                        .multilineTextAlignment(.center)
-                        .accessibilityIdentifier("call.name")
-                    Sparkles()
-                }
+            // The big picture in the middle; the name and the clock are in the header.
+            PeerAvatar(peer: peer, size: 260)
+                .phaseAnimator([1.0, 1.06]) { avatar, scale in
+                    avatar.scaleEffect(isRinging ? scale : 1)
+                } animation: { _ in .easeInOut(duration: 0.9) }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 24)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(Text(verbatim: peer.displayName))
+                .accessibilityValue(PeerBubble.state(of: peer))
+                .accessibilityIdentifier("call.peer.\(peer.displayName)")
+        }
+    }
+
+    private var isOneToOne: Bool {
+        controller.participants.count <= 1
+    }
+
+    /// One-to-one: "Calling <name>…" and the clock under it, which starts when they answer.
+    private var header: some View {
+        VStack(spacing: 6) {
+            // While it rings, "Calling <name>…"; once they answer, just their name.
+            Text(verbatim: titleText)
+                .font(.largeTitle.bold())
+                .foregroundStyle(theme.text.color)
+                .multilineTextAlignment(.center)
+                .accessibilityIdentifier("call.title")
+            clock
+        }
+        .padding(.top, 24)
+    }
+
+    private var titleText: String {
+        let name = controller.participants.first?.displayName ?? ""
+        if controller.phase == .active {
+            return name
+        }
+        if controller.isIncoming {
+            return String(localized: "\(name) is calling…", bundle: .module)
+        }
+        return String(localized: "Calling \(name)…", bundle: .module)
+    }
+
+    /// 00:00:00 until the call is answered, then the time since then.
+    @ViewBuilder private var clock: some View {
+        if controller.phase == .active, let start = controller.connectedAt {
+            TimelineView(.periodic(from: start, by: 1)) { context in
+                Text(verbatim: Duration.seconds(max(0, context.date.timeIntervalSince(start)).rounded(.down))
+                    .formatted(.time(pattern: .hourMinuteSecond)))
+                    .font(.largeTitle.monospacedDigit())
+                    .foregroundStyle(theme.secondaryText.color)
+                    .accessibilityIdentifier("call.timer")
             }
+        } else {
+            Text(verbatim: "00:00:00")
+                .font(.largeTitle.monospacedDigit())
+                .foregroundStyle(theme.secondaryText.color)
+                .accessibilityIdentifier("call.timer")
         }
     }
 
@@ -93,7 +137,7 @@ public struct CallScreen: View {
             TimelineView(.periodic(from: start, by: 1)) { context in
                 Text(verbatim: Duration.seconds(max(0, context.date.timeIntervalSince(start)).rounded(.down))
                     .formatted(.time(pattern: .minuteSecond)))
-                    .font(.title2.monospacedDigit())
+                    .font(.largeTitle.monospacedDigit())
                     .foregroundStyle(theme.secondaryText.color)
                     .accessibilityIdentifier("call.timer")
             }
@@ -169,7 +213,7 @@ public struct CallScreen: View {
         case .ended:
             EmptyView()
         default:
-            HStack(spacing: 28) {
+            HStack(spacing: 16) {
                 CallButton(
                     systemImage: controller.isMuted ? "mic.slash.fill" : "mic.fill",
                     title: controller.isMuted ? "Unmute" : "Mute",
@@ -189,6 +233,11 @@ public struct CallScreen: View {
                     controller.setSpeakerOn(!controller.isSpeakerOn)
                 }
                 .accessibilityIdentifier("call.speaker")
+                // Video is not in this version: greyed out until it is.
+                CallButton(systemImage: "video.fill", title: "Video") {}
+                    .disabled(true)
+                    .opacity(0.35)
+                    .accessibilityIdentifier("call.video")
                 CallButton(systemImage: "phone.down.fill", title: "End call", kind: .end) {
                     Task { await hangUp() }
                 }

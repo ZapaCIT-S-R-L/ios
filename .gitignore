@@ -10,3 +10,5 @@ DerivedData/
 *.xcresult
 node_modules/
 Pods/
+# Per-user Xcode state (schemes, breakpoints); never shared.
+xcuserdata/

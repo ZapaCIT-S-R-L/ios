@@ -20,8 +20,6 @@ final class AppServices {
     let chat: ChatModel
     let calls: CallCoordinator
     private(set) var people: [String: Person]
-    private(set) var callLog: [CallLogEntry] = []
-    private let log: CallLogStore
     /// The peers of the call being placed (the controller factory reads them).
     var placing: [CallPeer] = []
 
@@ -31,6 +29,10 @@ final class AppServices {
     var setup: DeviceSetup?
     /// Fills in names and robots from the family (account API).
     var loadPeople: (@MainActor (AppServices) async -> Void)?
+    // Receives VoIP pushes, so a call rings even when the app isn't running. Kept here: PushKit holds it weakly.
+    #if canImport(PushKit)
+        var voipPushes: VoIPPushes?
+    #endif
 
     init(
         me: String, canStartChats: Bool = true, chat: ChatModel, people: [Person], log: CallLogStore,
@@ -41,7 +43,6 @@ final class AppServices {
         self.canStartChats = canStartChats
         self.chat = chat
         self.people = Dictionary(people.map { ($0.accountId, $0) }) { first, _ in first }
-        self.log = log
         weak var services: AppServices?
         calls = CallCoordinator(
             system: system, log: log,
@@ -61,6 +62,11 @@ final class AppServices {
     }
 
     /// Everyone this account can chat with (not itself).
+    /// Set when a parent taps a kid's name in a chat: Settings opens that kid's edit screen.
+    var pendingKidEdit: String?
+    /// True on a parent's phone, where Settings edits kids.
+    var isParentPhone = false
+
     var contacts: [Person] {
         people.values.filter { $0.accountId != me }.sorted { $0.name < $1.name }
     }
@@ -85,8 +91,25 @@ final class AppServices {
 
     func name(of conversation: Conversation) -> String {
         let others = conversation.members.filter { $0.accountId != me && !$0.guardian }
-        let names = others.map { people[$0.accountId]?.name ?? "…" }
+        let names = others.map { member -> String in
+            if let name = people[member.accountId]?.name {
+                KnownNames.remember(member.accountId, name)
+                return name
+            }
+            // Gone from the family: the last name it had, marked as deleted.
+            return KnownNames.name(member.accountId).map { "\($0) (Deleted)" } ?? "…"
+        }
         return names.isEmpty ? "…" : names.joined(separator: ", ")
+    }
+
+    /// A chat with nobody else left in it (the other person was deleted or left): it goes to Archived.
+    func isDeadChat(_ conversation: Conversation) -> Bool {
+        !conversation.members.contains { $0.accountId != me && !$0.guardian }
+    }
+
+    /// The other member of a 1:1 chat (nil for a group or when unknown).
+    func otherMemberId(of conversation: Conversation) -> String? {
+        conversation.members.first { $0.accountId != me }?.accountId
     }
 
     func avatar(of conversation: Conversation) -> String {
@@ -101,8 +124,41 @@ final class AppServices {
             await chat.announceCall(callId, in: conversation.id)
         }
     }
+}
 
-    func refreshLog() async {
-        callLog = await log.entries()
+extension CallResult {
+    /// The chat's record of a call that ended here. Calls that failed or were cancelled leave no record.
+    init?(_ entry: CallLogEntry) {
+        let kind: Kind
+        switch entry.outcome {
+        case .answered: kind = .answered
+        case .declined: kind = .declined
+        case .missed, .noAnswer: kind = .unanswered
+        case .cancelled, .failed: return nil
+        }
+        self.init(kind: kind, seconds: Int(entry.duration.rounded(.down)), incoming: entry.direction == .incoming)
+    }
+}
+
+/// The last name each person had, so a chat with a deleted person can still say who it was.
+enum KnownNames {
+    private static let key = "chats.knownNames"
+
+    static func remember(_ accountId: String, _ name: String) {
+        var names = stored()
+        guard names[accountId] != name else { return }
+        names[accountId] = name
+        if let data = try? JSONEncoder().encode(names) {
+            UserDefaults.standard.set(data, forKey: key)
+        }
+    }
+
+    static func name(_ accountId: String) -> String? {
+        stored()[accountId]
+    }
+
+    private static func stored() -> [String: String] {
+        guard let data = UserDefaults.standard.data(forKey: key) else { return [:] }
+        return (try? JSONDecoder().decode([String: String].self, from: data)) ?? [:]
     }
 }

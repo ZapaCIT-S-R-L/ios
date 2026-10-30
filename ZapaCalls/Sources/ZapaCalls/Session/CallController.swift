@@ -40,6 +40,8 @@ public final class CallController {
     public private(set) var isMuted = false
     public private(set) var isSpeakerOn = false
     public private(set) var callId: String?
+    /// True for a call someone else placed to this phone (it rings here).
+    public private(set) var isIncoming = false
     public private(set) var lastError: CallsAPIError?
     /// The call clock's start: the server's answer time when it sent one (the same on every phone), else when this
     /// phone's call became active.
@@ -108,6 +110,7 @@ public final class CallController {
     public func reportIncoming(callId: String, caller: CallPeer) {
         guard apply(.incoming) else { return }
         self.callId = callId
+        isIncoming = true
         participants = [caller]
     }
 
@@ -193,17 +196,21 @@ public final class CallController {
             answeredAt = answered
         }
         let others = call.participants.filter { $0.name != me }
-        participants = others.map { person in
+        let listed = others.map { person in
             let known = participants.first { $0.deviceId == person.name } ?? participants.first {
                 $0.accountId == person.accountId
             }
-            let listed = directory?(person.accountId)
+            let directoryEntry = directory?(person.accountId)
             return CallPeer(
                 accountId: person.accountId, deviceId: person.name,
-                displayName: listed?.displayName ?? known?.displayName ?? "",
-                avatar: listed?.avatar ?? known?.avatar ?? "robot-1", role: person.role,
+                displayName: directoryEntry?.displayName ?? known?.displayName ?? "",
+                avatar: directoryEntry?.avatar ?? known?.avatar ?? "robot-1", role: person.role,
                 isMuted: false, isSpeaking: known?.isSpeaking ?? false
             )
+        }
+        // Still ringing: the roster lists only this phone, so keep the invited peers on screen until someone joins.
+        if !others.isEmpty || hadOthers {
+            participants = listed
         }
         trackOwner = Dictionary(
             others.flatMap { person in person.tracks.map { ($0, person.name) } }
