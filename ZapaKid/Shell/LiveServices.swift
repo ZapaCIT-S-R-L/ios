@@ -82,6 +82,12 @@ enum LiveServices {
             api: AppAttestation.devicesAPI, channel: .alert, token: { auth.sessionToken }, deviceId: registeredDevice
         )
         AlertPushes.onToken = { hex in Task { await alert.tokenChanged(hex) } }
+        // Sign-out removes both targets while the session works and detaches the callbacks.
+        auth.beforeSignOut = {
+            AlertPushes.onToken = nil
+            await alert.signOut()
+            await voip.signOut()
+        }
         return (voip, alert)
     }
 

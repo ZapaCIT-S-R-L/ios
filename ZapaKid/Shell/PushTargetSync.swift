@@ -22,6 +22,8 @@ final class PushTargetSync {
     private var synced: Known = .unknown
     /// A request is on its way; that sync sends the newest target when it returns, so updates never overlap.
     private var syncing = false
+    /// Set once the account signed out: this sync is finished.
+    private var signedOut = false
 
     enum Known: Equatable {
         case unknown
@@ -39,12 +41,24 @@ final class PushTargetSync {
 
     /// The token changed (hex-encoded), or was invalidated (nil). PushKit's token for `.voip`, APNs's for `.alert`.
     func tokenChanged(_ hex: String?) async {
+        guard !signedOut else { return }
         wanted = .known(hex.map { PushTarget(provider: .apns, token: $0) })
         await sync()
     }
 
+    /// Signing out: removes the target from the server while the session still works (one try; if it fails, the
+    /// server-side logout is the backstop), then never sends anything again, so a late token callback of the old
+    /// account can't register it. The next account gets its own sync.
+    func signOut() async {
+        guard !signedOut else { return }
+        wanted = .known(nil)
+        await sync()
+        signedOut = true
+    }
+
     /// The phone was registered (or re-registered), so it has a device ID to send the target for.
     func deviceRegistered() async {
+        guard !signedOut else { return }
         await sync()
     }
 

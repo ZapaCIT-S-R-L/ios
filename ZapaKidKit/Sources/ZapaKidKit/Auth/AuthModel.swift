@@ -39,6 +39,9 @@ public final class AuthModel {
         nonce.map { SignInNonce(raw: $0.nonce).hashed }
     }
 
+    /// Runs first on sign-out, before the credentials are cleared (set by the app's live services).
+    public var beforeSignOut: (@MainActor () async -> Void)?
+
     private let api: AuthAPI
     private let store: SessionStore
     private let agreement: AgreementStore
@@ -200,6 +203,11 @@ public final class AuthModel {
 
     /// Signs out on this phone. The session is removed even when the API can't be reached.
     public func logout() async {
+        // While the credentials still work: the app drops this phone's push targets (calls, chat alerts), so the
+        // old account's messages stop here. Bounded, and a failure never keeps the phone signed in.
+        if let beforeSignOut {
+            await Self.withTimeout(seconds: 5, beforeSignOut)
+        }
         let session = try? store.load()
         try? store.clear()
         try? kidStore.clear()
@@ -207,6 +215,16 @@ public final class AuthModel {
         errorMessage = nil
         if let session {
             try? await api.logout(token: session.token)
+        }
+    }
+
+    /// Runs `work` and waits for it at most `seconds`; whichever ends first lets the caller go on.
+    private static func withTimeout(seconds: Double, _ work: @escaping @MainActor () async -> Void) async {
+        await withTaskGroup(of: Void.self) { group in
+            group.addTask { await work() }
+            group.addTask { try? await Task.sleep(for: .seconds(seconds)) }
+            await group.next()
+            group.cancelAll()
         }
     }
 

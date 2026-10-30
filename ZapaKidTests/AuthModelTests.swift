@@ -372,6 +372,8 @@ struct AuthModelTests {
 
     @Test func logoutRunsTheSignOutHookWhileTheSessionIsStillValid() async throws {
         try store.save(session)
+        await api.set(me: .success(parent))
+        agreement.accept(version: ParentalAgreement.currentVersion)
         let auth = model()
         await auth.start()
         var tokenSeen: String?
