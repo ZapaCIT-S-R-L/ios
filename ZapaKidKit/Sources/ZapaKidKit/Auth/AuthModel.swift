@@ -205,8 +205,10 @@ public final class AuthModel {
     public func logout() async {
         // While the credentials still work: the app drops this phone's push targets (calls, chat alerts), so the
         // old account's messages stop here. Bounded, and a failure never keeps the phone signed in.
-        if let beforeSignOut {
-            await Self.withTimeout(seconds: 5, beforeSignOut)
+        let cleanup = beforeSignOut
+        beforeSignOut = nil
+        if let cleanup {
+            await Self.withTimeout(seconds: 5, cleanup)
         }
         let session = try? store.load()
         try? store.clear()
@@ -219,12 +221,19 @@ public final class AuthModel {
     }
 
     /// Runs `work` and waits for it at most `seconds`; whichever ends first lets the caller go on.
-    private static func withTimeout(seconds: Double, _ work: @escaping @MainActor () async -> Void) async {
-        await withTaskGroup(of: Void.self) { group in
-            group.addTask { await work() }
-            group.addTask { try? await Task.sleep(for: .seconds(seconds)) }
-            await group.next()
-            group.cancelAll()
+    static func withTimeout(seconds: Double, _ work: @escaping @MainActor () async -> Void) async {
+        // A task group waits for cancelled children on exit. A stalled callback can ignore cancellation, so use
+        // independent tasks and a single-resume gate instead of holding local sign-out behind that child.
+        await withCheckedContinuation { continuation in
+            let completion = SignOutCompletion(continuation)
+            completion.work = Task { @MainActor in
+                await work()
+                completion.finish()
+            }
+            completion.timer = Task { @MainActor in
+                try? await Task.sleep(for: .seconds(seconds))
+                completion.finish()
+            }
         }
     }
 
@@ -248,5 +257,27 @@ public final class AuthModel {
         default:
             String(localized: "Sign-in didn't work. Try again.", bundle: .module)
         }
+    }
+}
+
+/// Both contenders run on the main actor; exactly one resumes the caller, even if cleanup ignores cancellation.
+@MainActor
+private final class SignOutCompletion {
+    private var continuation: CheckedContinuation<Void, Never>?
+    var work: Task<Void, Never>?
+    var timer: Task<Void, Never>?
+
+    init(_ continuation: CheckedContinuation<Void, Never>) {
+        self.continuation = continuation
+    }
+
+    func finish() {
+        guard let continuation else { return }
+        self.continuation = nil
+        work?.cancel()
+        timer?.cancel()
+        work = nil
+        timer = nil
+        continuation.resume()
     }
 }

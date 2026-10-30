@@ -22,8 +22,10 @@ final class PushTargetSync {
     private var synced: Known = .unknown
     /// A request is on its way; that sync sends the newest target when it returns, so updates never overlap.
     private var syncing = false
+    private var idleWaiters: [CheckedContinuation<Void, Never>] = []
     /// Set once the account signed out: this sync is finished.
     private var signedOut = false
+    private var signOutCredentials: (token: String, deviceId: Int)?
 
     enum Known: Equatable {
         case unknown
@@ -46,14 +48,19 @@ final class PushTargetSync {
         await sync()
     }
 
-    /// Signing out: removes the target from the server while the session still works (one try; if it fails, the
-    /// server-side logout is the backstop), then never sends anything again, so a late token callback of the old
-    /// account can't register it. The next account gets its own sync.
+    /// Stops callbacks immediately, then clears after any outstanding update while credentials still work.
+    /// A failed clear never prevents local sign-out. The next account gets its own sync.
     func signOut() async {
         guard !signedOut else { return }
-        wanted = .known(nil)
-        await sync()
         signedOut = true
+        if let token = sessionToken(), let deviceId = deviceId() {
+            signOutCredentials = (token, deviceId)
+        }
+        wanted = .known(nil)
+        if syncing {
+            await withCheckedContinuation { idleWaiters.append($0) }
+        }
+        await sync()
     }
 
     /// The phone was registered (or re-registered), so it has a device ID to send the target for.
@@ -68,10 +75,23 @@ final class PushTargetSync {
     private func sync() async {
         guard !syncing else { return }
         syncing = true
-        defer { syncing = false }
-        while case let .known(target) = wanted, synced != wanted, let token = sessionToken(),
-              let deviceId = deviceId()
-        {
+        defer {
+            syncing = false
+            let waiters = idleWaiters
+            idleWaiters.removeAll()
+            for waiter in waiters {
+                waiter.resume()
+            }
+        }
+        while case let .known(target) = wanted, synced != wanted {
+            let credentials: (token: String, deviceId: Int)? = if signedOut {
+                signOutCredentials
+            } else if let token = sessionToken(), let deviceId = deviceId() {
+                (token, deviceId)
+            } else {
+                nil
+            }
+            guard let (token, deviceId) = credentials else { return }
             do {
                 switch channel {
                 case .voip:
