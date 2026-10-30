@@ -88,6 +88,13 @@ public final class CallCoordinator: CallSystemActions {
     /// A VoIP push. PushKit requires every push to show a call in CallKit, even one we decline at once.
     public func handle(_ push: IncomingCallPush) async {
         let uuid = UUID()
+        if uuids[push.callId] != nil {
+            // The same call pushed again (two push targets on one phone): CallKit must still see it, then it ends at
+            // once. The call keeps its own CallKit call; declining here would end it on the server.
+            try? await system.reportIncoming(uuid: uuid, callerName: "ZapaKid")
+            system.reportEnded(uuid: uuid, reason: .declinedElsewhere)
+            return
+        }
         uuids[push.callId] = uuid
         let caller = push.callerAccountId.flatMap(lookup) ?? CallPeer(
             accountId: push.callerAccountId ?? "", deviceId: "", displayName: "ZapaKid", avatar: "robot-1",
