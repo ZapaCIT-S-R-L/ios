@@ -46,19 +46,7 @@ enum LiveServices {
                 directory: { [weak services] account in services?.peer(account) }
             )
         }
-        // This phone's device ID, once it is registered.
-        let registeredDevice: () -> Int? = {
-            (try? AccountKeys.app(accountId: me, kid: kid)).flatMap(DeviceRegistration.registeredDeviceId)
-        }
-        // The VoIP token goes to the server once this phone is registered (in either order).
-        let pushSync = PushTargetSync(
-            api: AppAttestation.devicesAPI, token: { auth.sessionToken }, deviceId: registeredDevice
-        )
-        // The APNs token for chat notifications: its own target and endpoint, synced the same way.
-        let alertSync = PushTargetSync(
-            api: AppAttestation.devicesAPI, channel: .alert, token: { auth.sessionToken }, deviceId: registeredDevice
-        )
-        AlertPushes.onToken = { hex in Task { await alertSync.tokenChanged(hex) } }
+        let (pushSync, alertSync) = pushSyncs(me: me, kid: kid, auth: auth)
         services.setup = deviceSetup(me: me, kid: kid, auth: auth, endKidSession: endKidSession) { [weak services] in
             box.sessions = SecureSessions.make(accountId: me, kid: kid, bundles: bundles)
             Task { await pushSync.deviceRegistered() }
@@ -74,6 +62,27 @@ enum LiveServices {
             Task { await services.chat.recordCallResult(callId: entry.id, result: result) }
         }
         return services
+    }
+
+    /// The VoIP token and the APNs alert token each go to the server once this phone is registered (in either order).
+    private static func pushSyncs(
+        me: String,
+        kid: Bool,
+        auth: AuthModel
+    ) -> (voip: PushTargetSync, alert: PushTargetSync) {
+        // This phone's device ID, once it is registered.
+        let registeredDevice: () -> Int? = {
+            (try? AccountKeys.app(accountId: me, kid: kid)).flatMap(DeviceRegistration.registeredDeviceId)
+        }
+        let voip = PushTargetSync(
+            api: AppAttestation.devicesAPI, token: { auth.sessionToken }, deviceId: registeredDevice
+        )
+        // The APNs token for chat notifications: its own target and endpoint, synced the same way.
+        let alert = PushTargetSync(
+            api: AppAttestation.devicesAPI, channel: .alert, token: { auth.sessionToken }, deviceId: registeredDevice
+        )
+        AlertPushes.onToken = { hex in Task { await alert.tokenChanged(hex) } }
+        return (voip, alert)
     }
 
     private static func chatStore(me: String, kid: Bool) -> ChatStore {
