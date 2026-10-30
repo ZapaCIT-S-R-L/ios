@@ -1,9 +1,11 @@
 import SwiftUI
+import UIKit
 import ZapaCalls
 import ZapaKidKit
 
 @main
 struct ZapaKidApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @State private var dependencies = AppDependencies.make()
 
     init() {

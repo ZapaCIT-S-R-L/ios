@@ -1,11 +1,19 @@
 import Foundation
 import ZapaKidKit
 
-/// Keeps this phone's VoIP push target on the server, so a call can ring it while the app is closed.
-/// The token can arrive before the phone is registered (or the reverse); whichever comes last sends it.
+/// Keeps one of this phone's push targets on the server: the VoIP token (a call rings the phone while the app is
+/// closed) or the APNs alert token (a chat message shows a notification). The token can arrive before the phone is
+/// registered (or the reverse); whichever comes last sends it.
 @MainActor
 final class PushTargetSync {
+    /// Which target this sync keeps. The two never share a value: each has its own endpoint and its own state.
+    enum Channel: Equatable {
+        case voip
+        case alert
+    }
+
     private let api: DevicePushAPI
+    private let channel: Channel
     private let sessionToken: () -> String?
     private let deviceId: () -> Int?
     /// What PushKit last said: a target, or nil once it invalidated the token. Unknown until it reports either.
@@ -20,14 +28,17 @@ final class PushTargetSync {
         case known(PushTarget?)
     }
 
-    init(api: DevicePushAPI, token: @escaping () -> String?, deviceId: @escaping () -> Int?) {
+    init(
+        api: DevicePushAPI, channel: Channel = .voip, token: @escaping () -> String?, deviceId: @escaping () -> Int?
+    ) {
         self.api = api
+        self.channel = channel
         sessionToken = token
         self.deviceId = deviceId
     }
 
-    /// PushKit gave a new token (hex-encoded), or invalidated the old one (nil).
-    func voipTokenChanged(_ hex: String?) async {
+    /// The token changed (hex-encoded), or was invalidated (nil). PushKit's token for `.voip`, APNs's for `.alert`.
+    func tokenChanged(_ hex: String?) async {
         wanted = .known(hex.map { PushTarget(provider: .apns, token: $0) })
         await sync()
     }
@@ -48,7 +59,12 @@ final class PushTargetSync {
               let deviceId = deviceId()
         {
             do {
-                try await api.setDevicePush(deviceId: deviceId, target: target, token: token)
+                switch channel {
+                case .voip:
+                    try await api.setDevicePush(deviceId: deviceId, target: target, token: token)
+                case .alert:
+                    try await api.setDeviceAlertPush(deviceId: deviceId, target: target, token: token)
+                }
                 synced = .known(target)
             } catch {
                 // A newer target arrived while this request was out: send it now rather than wait for a callback.
@@ -60,7 +76,7 @@ final class PushTargetSync {
         }
     }
 
-    /// PushKit's token bytes as the server expects them.
+    /// The token's bytes as the server expects them.
     static func hex(_ data: Data) -> String {
         data.map { String(format: "%02x", $0) }.joined()
     }

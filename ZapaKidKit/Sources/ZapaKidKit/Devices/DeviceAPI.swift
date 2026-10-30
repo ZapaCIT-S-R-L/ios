@@ -87,5 +87,8 @@ public struct PushTarget: Equatable, Sendable {
 /// `PUT /v1/devices/{deviceId}/push` (openapi.yaml, "Devices and keys"): sets this phone's wake-up target, or clears
 /// it (`nil`). Only the session's own device may be set.
 public protocol DevicePushAPI: Sendable {
+    /// The VoIP target (PushKit token), for calls.
     func setDevicePush(deviceId: Int, target: PushTarget?, token: String) async throws
+    /// `PUT /v1/devices/{deviceId}/alert-push`: the standard APNs token, for chat notifications (never the VoIP one).
+    func setDeviceAlertPush(deviceId: Int, target: PushTarget?, token: String) async throws
 }

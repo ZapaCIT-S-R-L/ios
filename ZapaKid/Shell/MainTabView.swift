@@ -101,6 +101,7 @@ struct MainTabView: View {
                 Task { await services.chat.loadConversations() }
             }
         }
+        .task { await AlertPushes.start() }
         .task {
             // Structured: leaving this view cancels the run and its network watch, so a run from one session never
             // outlives it.

@@ -353,6 +353,28 @@
         }
       }
     },
+    "chat.notification.new_message": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Neue Nachricht"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New message"
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mesaj nou"
+          }
+        }
+      }
+    },
     "Chats with your family show up here.": {
       "localizations": {
         "ro": {
